@@ -1,29 +1,37 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import 'react-native-gesture-handler';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { Stack } from "expo-router";
+import { Drawer } from "expo-router/drawer";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import CustomDrawerContent from '../components/CustomDrawerContent';
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+const DrawerLayout = () =>
+{
+    return (
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <Drawer drawerContent={CustomDrawerContent}
+                screenOptions={{
+                    drawerActiveTintColor: 'white',
+                    drawerInactiveTintColor: '#ccc',
+                    drawerActiveBackgroundColor: '#D05B52',
+                    drawerLabelStyle: { fontSize: 16 },
+                    drawerItemStyle:
+                    {
+                          borderRadius: 12,
+                          marginHorizontal: 8,
+                    },
+                   }}>
+                <Drawer.Screen name='index'
+                options={{drawerLabel: 'Home'}}/>
+                <Drawer.Screen name='calendar'
+                options={{drawerLabel: 'Calendar'}}/>
+                <Drawer.Screen name='notifications'
+                options={{drawerLabel: 'Notifications'}}/>
+                <Drawer.Screen name='settings'
+                options={{drawerLabel: 'Settings'}}/>
+            </Drawer>
+        </GestureHandlerRootView>
+    );
+};
 
-  if (!loaded) {
-    // Async font loading only occurs in development.
-    return null;
-  }
-
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
-}
+export default DrawerLayout;
