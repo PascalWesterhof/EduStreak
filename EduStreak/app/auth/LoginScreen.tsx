@@ -2,7 +2,7 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { useRouter } from 'expo-router';
 import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import React, { useState } from 'react';
-import { Alert, Button, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth } from '../../config/firebase'; // Adjust path as necessary
 
 // Configure Google Sign In only for native platforms
@@ -24,7 +24,7 @@ export default function LoginScreen() {
     }
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Navigate to a different screen on successful login, (home)
+      // Navigate to a different screen on successful login, e.g., home
       router.replace('/(tabs)/' as any); // Navigate to the default tab screen
     } catch (error: any) {
       Alert.alert('Login Failed', error.message);
@@ -75,6 +75,7 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Email"
+        placeholderTextColor="#ccc"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -83,14 +84,21 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Password"
+        placeholderTextColor="#ccc"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
-      <Button title="Login" onPress={handleLogin} />
+      <TouchableOpacity style={styles.buttonContainer} onPress={handleLogin}>
+        <Text style={styles.buttonText}>Login</Text>
+      </TouchableOpacity>
       <View style={styles.spacer} />
-      <Button title="Sign in with Google" onPress={handleGoogleSignIn} />
-      <Button title="Don't have an account? Register" onPress={() => router.push('/auth/RegisterScreen' as any)} />
+      <TouchableOpacity style={styles.buttonContainer} onPress={handleGoogleSignIn}>
+        <Text style={styles.buttonText}>Sign in with Google</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.linkButton} onPress={() => router.push('/auth/RegisterScreen' as any)}>
+        <Text style={styles.linkButtonText}>Don't have an account? Register</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -100,20 +108,44 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 16,
+    backgroundColor: '#000', // Black background
   },
   title: {
     fontSize: 24,
-    marginBottom: 16,
+    marginBottom: 24, // Increased margin
     textAlign: 'center',
+    color: '#d05b52', // Updated color
   },
   input: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: '#d05b52', // Updated color
     borderWidth: 1,
     marginBottom: 12,
     paddingHorizontal: 8,
+    color: '#fff', // White text for input
+    backgroundColor: '#333', // Darker background for input
+  },
+  buttonContainer: {
+    backgroundColor: '#d05b52', // Updated color
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  buttonText: {
+    color: '#fff', // White text for buttons
+    fontSize: 16,
+  },
+  linkButton: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  linkButtonText: {
+    color: '#d05b52', // Updated color
+    fontSize: 16,
   },
   spacer: {
-    height: 10, 
+    height: 10,
   }
 }); 

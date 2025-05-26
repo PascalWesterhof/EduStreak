@@ -32,7 +32,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (initializing || !loaded) return; // Wait for font loading and auth initialization
 
-    const inAuthGroup = String(segments[0]) === 'auth'; // Check if the first segment is 'auth'
+    const firstSegment = segments && segments.length > 0 ? segments[0] : '';
+    const inAuthGroup = firstSegment === 'auth'; // Check if the first segment is 'auth'
 
     if (!user && !inAuthGroup) {
       // If not signed in and not in auth group, redirect to login
@@ -52,6 +53,9 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
+        {/* Add auth screens to the stack if they are not in a group */}
+        {/* <Stack.Screen name="auth/LoginScreen" options={{ headerShown: false }} /> */}
+        {/* <Stack.Screen name="auth/RegisterScreen" options={{ headerShown: false }} /> */}
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
