@@ -22,13 +22,15 @@ const DrawerLayout = () =>
                     },
                    }}>
                 <Drawer.Screen name='index'
-                options={{drawerLabel: 'Home'}}/>
+                options={{drawerLabel: 'Home', headerTitle: 'Home'}}/>
                 <Drawer.Screen name='calendar'
-                options={{drawerLabel: 'Calendar'}}/>
+                options={{drawerLabel: 'Calendar', headerTitle: 'Calendar'}}/>
                 <Drawer.Screen name='notifications'
-                options={{drawerLabel: 'Notifications'}}/>
+                options={{drawerLabel: 'Notifications', headerTitle: 'Notifications'}}/>
                 <Drawer.Screen name='settings'
-                options={{drawerLabel: 'Settings'}}/>
+                options={{drawerLabel: 'Settings', headerTitle: 'Settings',}}/>
+                <Drawer.Screen name='leaderboard'
+                options={{drawerLabel: 'Leaderboard', headerTitle: 'Leaderboard'}}/>
             </Drawer>
         </GestureHandlerRootView>
     );
