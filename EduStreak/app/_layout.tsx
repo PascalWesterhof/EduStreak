@@ -4,6 +4,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useEffect, useState } from 'react';
+import 'react-native-get-random-values';
 import 'react-native-reanimated';
 import { auth } from '../config/firebase'; // Adjust path if your firebase.js is elsewhere
 
