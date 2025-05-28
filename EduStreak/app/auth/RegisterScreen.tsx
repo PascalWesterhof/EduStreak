@@ -31,12 +31,11 @@ export default function RegisterScreen() {
         uid: user.uid,
         displayName: displayName,
         email: user.email,
-        friends: [],
-        friendRequestsSent: [],
-        friendRequestsReceived: [],
         points: 0,
         currentStreak: 0,
-        longestStreak: 0
+        longestStreak: 0,
+        lastCompletionDate: null,
+        photoURL: user.photoURL || ''
       });
 
       Alert.alert('Registration Successful', 'Your account has been created.');

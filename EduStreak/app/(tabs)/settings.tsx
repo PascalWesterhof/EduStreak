@@ -1,9 +1,11 @@
 import { DrawerActions, useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 
 export default function Settings() {
   const navigation = useNavigation();
+  const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [aiAssistanceEnabled, setAiAssistanceEnabled] = useState(true);
 
@@ -57,6 +59,7 @@ export default function Settings() {
           <View style={styles.box}>
             <Text style={styles.label}>Extras</Text>
           </View>
+
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -115,4 +118,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
   },
+  arrowIcon: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  }
 });

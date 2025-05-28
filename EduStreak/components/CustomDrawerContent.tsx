@@ -25,7 +25,7 @@ const CustomDrawerContent = (props: any) => {
   };
 
   return (
-    <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
+    <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 100 }}>
       <DrawerItemList {...props} />
       <DrawerItem
         label="Log out"

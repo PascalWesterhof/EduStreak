@@ -1,19 +1,33 @@
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { deleteDoc, doc, getDoc, Timestamp } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Button, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { auth, db } from '../../config/firebase'; // Corrected path
-import { Habit } from '../../types'; // Corrected path
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { auth, db } from '../../config/firebase';
+import { Habit } from '../../types';
+
+const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function HabitDetailScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const params = useLocalSearchParams();
   const habitId = params.id as string;
   const [habit, setHabit] = useState<Habit | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
@@ -24,180 +38,355 @@ export default function HabitDetailScreen() {
         setHabit(null); 
         setIsLoading(false); 
         setError("User not authenticated. Please sign in.");
+        // Optionally redirect to login if critical
+        // router.replace('/auth/LoginScreen');
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [router]);
+
+  const fetchHabitDetails = useCallback(async () => {
+    if (!currentUserId || !habitId) {
+      setHabit(null);
+      setIsLoading(false);
+      if (!currentUserId) setError("User not authenticated. Please sign in.");
+      if (!habitId) setError("Habit ID not provided.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const habitDocRef = doc(db, 'users', currentUserId, 'habits', habitId);
+      const docSnap = await getDoc(habitDocRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const createdAt = data.createdAt instanceof Timestamp 
+                            ? data.createdAt.toDate().toISOString() 
+                            : data.createdAt || new Date().toISOString();
+        const completionHistory = (data.completionHistory || []).map((entry: any) => ({
+            ...entry,
+            date: entry.date instanceof Timestamp ? entry.date.toDate().toISOString().split('T')[0] : String(entry.date).split('T')[0],
+        }));            
+        setHabit({ id: docSnap.id, ...data, createdAt, completionHistory } as Habit);
+      } else {
+        setError('Habit not found.');
+        setHabit(null);
+      }
+    } catch (e) {
+      console.error("Error fetching habit details: ", e);
+      setError('Failed to load habit details. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentUserId, habitId]);
 
   useFocusEffect(
     useCallback(() => {
-      if (!currentUserId || !habitId) {
-        console.log("HabitDetailScreen focused, but no user ID or habit ID. Clearing habit details.");
-        setHabit(null);
-        setIsLoading(false);
-        if (!currentUserId) setError("User not authenticated. Please sign in.");
-        if (!habitId) setError("Habit ID not provided.");
-        return;
-      }
-
-      console.log(`HabitDetailScreen focused for user: ${currentUserId}, habit: ${habitId}. Fetching habit details.`);
-      const fetchHabitDetails = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-          const habitDocRef = doc(db, 'users', currentUserId, 'habits', habitId);
-          const docSnap = await getDoc(habitDocRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            const createdAt = data.createdAt instanceof Timestamp 
-                                ? data.createdAt.toDate().toISOString() 
-                                : data.createdAt || new Date().toISOString();
-            const completionHistory = (data.completionHistory || []).map((entry: any) => ({
-                ...entry,
-                date: entry.date instanceof Timestamp ? entry.date.toDate().toISOString().split('T')[0] : entry.date,
-            }));            
-            setHabit({ id: docSnap.id, ...data, createdAt, completionHistory } as Habit);
-            console.log("Habit details fetched successfully for HabitDetailScreen:", habitId);
-          } else {
-            setError('Habit not found.');
-            setHabit(null);
-            console.log("No such document for habit:", habitId);
-          }
-        } catch (e) {
-          console.error("Error fetching habit details for HabitDetailScreen: ", e);
-          setError('Failed to load habit details. Please try again.');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
+      navigation.setOptions({ headerShown: false });
       fetchHabitDetails();
-      
-      // Optional: Return a cleanup function if fetchHabitDetails sets up any subscriptions
-      // return () => { /* cleanup */ };
-    }, [currentUserId, habitId]) // Dependencies: re-run if currentUserId or habitId changes
+    }, [navigation, fetchHabitDetails])
   );
 
   const handleDeleteHabit = async () => {
-    if (!currentUserId || !habitId) {
-      Alert.alert("Error", "Cannot delete habit: missing user or habit ID.");
+    if (!currentUserId || !habitId || !habit) {
+      Alert.alert("Error", "Cannot delete habit: missing user, habit ID, or habit data.");
       return;
     }
-    console.log(`Attempting and proceeding to delete habit: ${habitId} for user: ${currentUserId}`);
-
-    try {
-      const habitDocRef = doc(db, 'users', currentUserId, 'habits', habitId);
-      await deleteDoc(habitDocRef);
-      console.log(`Habit ${habitId} successfully deleted from Firestore for user ${currentUserId}.`);
-      router.back(); // Navigate back immediately
-      Alert.alert("Success", `Habit "${habit?.name || 'The habit'}" deleted successfully.`, [
-        { text: "OK" } // OK button now just dismisses the alert
-      ]);
-    } catch (error) {
-      console.error("Error deleting habit: ", error);
-      Alert.alert("Error", `Failed to delete habit "${habit?.name || habitId}". Please try again.`);
-    }
+    
+    Alert.alert(
+      "Confirm Delete",
+      `Are you sure you want to delete the habit "${habit.name}"? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete", 
+          style: "destructive", 
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              const habitDocRef = doc(db, 'users', currentUserId, 'habits', habitId);
+              await deleteDoc(habitDocRef);
+              Alert.alert("Success", `Habit "${habit.name}" deleted successfully.`);
+              router.back();
+            } catch (error) {
+              console.error("Error deleting habit: ", error);
+              Alert.alert("Error", `Failed to delete habit. Please try again.`);
+              setIsDeleting(false);
+            }
+          }
+        }
+      ]
+    );
   };
   
   const handleEditHabit = () => {
-    if (!habit) return;
-    // We will create app/edit-habit.tsx screen later
-    // For now, this will likely cause a 404 if the route doesn't exist or isn't fully typed in router.
-    router.push({ pathname: '/edit-habit' as any, params: { habitId: habitId } }); 
-    console.log("Attempting to navigate to edit habit: ", habitId);
+    if (!habitId) return;
+    router.push({ pathname: '/habit/edit-habit', params: { habitId } }); 
+  };
+
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      // Fallback if no screen to go back to (e.g., deep link)
+      router.replace('/(tabs)'); 
+    }
   };
 
   if (isLoading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color="#D05B52" /><Text>Loading habit...</Text></View>;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#d05b52" />
+        <Text style={styles.loadingText}>Loading Habit Details...</Text>
+      </View>
+    );
   }
 
   if (error) {
-    return <View style={styles.centered}><Text style={styles.errorText}>{error}</Text><Button title="Go Back" onPress={() => router.back()} /></View>;
+    return (
+      <View style={styles.pageContainer}>
+         <View style={styles.headerContainer}>
+          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+            <Image source={require('../../assets/icons/back_arrow.png')} style={styles.backArrow} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Error</Text>
+          <View style={styles.headerRightPlaceholder} />
+        </View>
+        <View style={styles.centeredMessageContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleGoBack}>
+            <Text style={styles.primaryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   }
 
   if (!habit) {
-    return <View style={styles.centered}><Text>Habit not found or not loaded.</Text><Button title="Go Back" onPress={() => router.back()} /></View>;
+    return (
+      <View style={styles.pageContainer}>
+        <View style={styles.headerContainer}>
+          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+            <Image source={require('../../assets/icons/back_arrow.png')} style={styles.backArrow} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Not Found</Text>
+          <View style={styles.headerRightPlaceholder} />
+        </View>
+        <View style={styles.centeredMessageContainer}>
+          <Text style={styles.infoText}>Habit not found or could not be loaded.</Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleGoBack}>
+            <Text style={styles.primaryButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>{habit.name}</Text>
-      <Text style={styles.detailText}>Description: {habit.description || 'N/A'}</Text>
-      <Text style={styles.detailText}>
-        Frequency: {habit.frequency.type === 'daily'
-          ? `${habit.frequency.times} time(s) a day`
-          : `${habit.frequency.times} time(s) a week on ${habit.frequency.days?.map((d: number) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ')}`}
-      </Text>
-      <Text style={styles.detailText}>Streak: {habit.streak} (Longest: {habit.longestStreak})</Text>
-      <Text style={styles.detailText}>Notes: {habit.notes || 'N/A'}</Text>
-      <Text style={styles.detailText}>Created At: {new Date(habit.createdAt).toLocaleDateString()}</Text>
-      
-      <Text style={styles.historyTitle}>Completion History:</Text>
-      {habit.completionHistory && habit.completionHistory.length > 0 ? (
-        habit.completionHistory.map((entry, index) => (
-          <Text key={index} style={styles.historyEntry}>
-            {new Date(entry.date).toLocaleDateString()}: {entry.completed ? 'Completed' : 'Not Completed'}
-          </Text>
-        ))
-      ) : (
-        <Text style={styles.detailText}>No completion history yet.</Text>
-      )}
-
-      <View style={styles.buttonContainer}>
-        <Button title="Edit Habit" onPress={handleEditHabit} />
-        <Button title="Delete Habit" onPress={handleDeleteHabit} color="red" />
+    <View style={styles.pageContainer}>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={handleGoBack} style={styles.backButton} disabled={isDeleting}>
+          <Image source={require('../../assets/icons/back_arrow.png')} style={styles.backArrow} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">{habit.name}</Text>
+        <View style={styles.headerRightPlaceholder} />
       </View>
-      <Button title="Back to Habits" onPress={() => router.back()} />
-    </ScrollView>
+
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
+        <View style={styles.detailSection}>
+          <Text style={styles.detailLabel}>Description</Text>
+          <Text style={styles.detailValue}>{habit.description || 'N/A'}</Text>
+        </View>
+
+        <View style={styles.detailSection}>
+          <Text style={styles.detailLabel}>Frequency</Text>
+          <Text style={styles.detailValue}>
+            {habit.frequency.type === 'daily'
+              ? `${habit.frequency.times} time(s) a day`
+              : `${habit.frequency.times} time(s) a week on ${habit.frequency.days?.map((d: number) => DAYS_OF_WEEK[d]).join(', ') || 'N/A'}`}
+          </Text>
+        </View>
+
+        <View style={styles.detailSection}>
+            <Text style={styles.detailLabel}>Current Streak</Text>
+            <Text style={styles.detailValue}>{habit.streak} day(s)</Text>
+        </View>
+        
+        <View style={styles.detailSection}>
+            <Text style={styles.detailLabel}>Longest Streak</Text>
+            <Text style={styles.detailValue}>{habit.longestStreak} day(s)</Text>
+        </View>
+
+        {habit.notes && (
+          <View style={styles.detailSection}>
+            <Text style={styles.detailLabel}>Notes</Text>
+            <Text style={styles.detailValue}>{habit.notes}</Text>
+          </View>
+        )}
+
+        <View style={styles.detailSection}>
+          <Text style={styles.detailLabel}>Created On</Text>
+          <Text style={styles.detailValue}>{new Date(habit.createdAt).toLocaleDateString()}</Text>
+        </View>
+        
+        <View style={styles.detailSection}>
+          <Text style={styles.detailLabel}>Completion History</Text>
+          {habit.completionHistory && habit.completionHistory.length > 0 ? (
+            habit.completionHistory.slice(0, 10).map((entry, index) => ( // Show last 10 entries for brevity
+              <Text key={index} style={styles.historyEntry}>
+                {new Date(entry.date).toLocaleDateString()}: Count: {entry.count}
+              </Text>
+            ))
+          ) : (
+            <Text style={styles.detailValue}>No completion history yet.</Text>
+          )}
+        </View>
+
+        <TouchableOpacity 
+            style={[styles.primaryButton, { marginTop: 30 }, isDeleting && styles.disabledButtonOpacity]} 
+            onPress={handleEditHabit} 
+            disabled={isDeleting}
+        >
+          <Text style={styles.primaryButtonText}>Edit Habit</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+            style={[styles.secondaryButton, isDeleting && styles.disabledButtonBackground]} 
+            onPress={handleDeleteHabit} 
+            disabled={isDeleting}
+        >
+          <Text style={styles.secondaryButtonText}>{isDeleting ? "Deleting..." : "Delete Habit"}</Text>
+        </TouchableOpacity>
+
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  pageContainer: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#FFFFFF',
+    paddingTop: Platform.OS === 'android' ? 25 : 40,
   },
-  centered: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    backgroundColor: '#FFFFFF',
   },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
-  },
-  detailText: {
+  loadingText: {
+    marginTop: 10,
     fontSize: 16,
-    marginBottom: 8,
-    color: '#555',
+    color: '#d05b52'
+  },
+  centeredMessageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  backButton: {
+    padding: 10,
+  },
+  backArrow: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000000',
+    flex: 1, // Allow title to take space and truncate
+    textAlign: 'center',
+    marginHorizontal: 5, // Give some space if title is long
+  },
+  headerRightPlaceholder: {
+    width: 24 + 20, 
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  detailSection: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 5,
+    fontWeight: '500',
+  },
+  detailValue: {
+    fontSize: 16,
+    color: '#333333',
     lineHeight: 22,
   },
-  historyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 10,
-    color: '#444',
-  },
   historyEntry: {
-    fontSize: 14,
-    marginBottom: 5,
-    color: '#666',
+    fontSize: 15,
+    color: '#444444',
+    marginBottom: 3,
   },
   errorText: {
     fontSize: 16,
-    color: 'red',
+    color: '#d05b52',
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 25,
-    marginBottom: 15,
+  infoText: {
+    fontSize: 16,
+    color: '#333333',
+    textAlign: 'center',
+    marginBottom: 20,
   },
+  primaryButton: {
+    backgroundColor: '#d05b52',
+    borderRadius: 25,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  secondaryButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 25,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#d05b52',
+  },
+  secondaryButtonText: {
+    color: '#d05b52',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  disabledButtonBackground: {
+    backgroundColor: '#cccccc',
+    borderColor: '#cccccc',
+  },
+  disabledButtonOpacity: {
+    opacity: 0.5,
+  }
 }); 

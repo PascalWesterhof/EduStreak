@@ -1,7 +1,7 @@
 import { DrawerActions, useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth'; // Import onAuthStateChanged and User type
-import { collection, doc, getDocs, query, setDoc, Timestamp, updateDoc } from 'firebase/firestore'; // Firestore functions
+import { collection, doc, getDoc, getDocs, increment, query, setDoc, Timestamp, updateDoc } from 'firebase/firestore'; // Firestore functions
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-get-random-values'; // For uuid
@@ -9,9 +9,12 @@ import Svg, { Circle, Text as SvgText } from 'react-native-svg'; // Added for Ci
 import { v4 as uuidv4 } from 'uuid';
 import { auth, db } from '../../config/firebase'; // Import db and auth
 import { Habit } from '../../types'; // Adjusted path
-import AddHabitScreen from '../AddHabitScreen'; // Adjusted path
+import AddHabitScreen from '../habit/AddHabitScreen'; // Adjusted path for new location
 
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Helper to get date as YYYY-MM-DD string
+const getIsoDateString = (date: Date) => date.toISOString().split('T')[0];
 
 // Helper for Circular Progress
 const CircularProgress = ({ percentage, radius = 40, strokeWidth = 8, color = "#d05b52" }: { percentage: number; radius?: number; strokeWidth?: number; color?: string }) => {
@@ -234,125 +237,179 @@ export default function Index() {
   };
 
   const handleCompleteHabit = async (habitId: string) => {
-    if (!currentUserId) {
-        alert("You must be logged in to complete habits. Please sign in.");
-        return;
-    }
-    const dateStr = selectedDate.toISOString().split('T')[0];
-    let pointsAwarded = 0;
-    let updatedHabitLocally: Habit | undefined;
+    if (!currentUserId) { alert("You must be logged in to complete habits."); return; }
+
+    const todayStr = getIsoDateString(new Date()); 
+    const selectedDateStr = getIsoDateString(selectedDate);
+    let wasCompletionIncremented = false;
+    let didHabitBecomeFullyCompleted = false; // New flag for points
 
     setHabits(prevHabits =>
       prevHabits.map(h => {
         if (h.id === habitId) {
-          const todaysEntryIndex = h.completionHistory.findIndex(entry => entry.date === dateStr);
-          let currentCountToday = 0;
-          if (todaysEntryIndex > -1) {
-            currentCountToday = h.completionHistory[todaysEntryIndex].count;
-          }
-
+          const newCompletionHistory = [...h.completionHistory];
+          const entryIndex = newCompletionHistory.findIndex(entry => entry.date === selectedDateStr);
           const targetCompletions = h.frequency.type === 'daily' ? (h.frequency.times || 1) : 1;
+          let currentCompletionsToday = 0;
+          let newCountForEntry = 0;
 
-          if (currentCountToday >= targetCompletions) {
-            console.log(`Habit ${h.name} already completed ${currentCountToday}/${targetCompletions} times today.`);
-            return h; 
-          }
-
-          const newCountToday = currentCountToday + 1;
-          let newStreak = h.streak;
-          let newLongestStreak = h.longestStreak;
-          let newCompletionHistory = [...h.completionHistory];
-
-          if (todaysEntryIndex > -1) {
-            newCompletionHistory[todaysEntryIndex] = { ...newCompletionHistory[todaysEntryIndex], count: newCountToday };
-          } else {
-            newCompletionHistory.push({ date: dateStr, count: newCountToday });
-          }
-
-          if (newCountToday >= targetCompletions) {
-            pointsAwarded = 10; 
-            
-            newStreak += 1; 
-            if (newStreak > newLongestStreak) {
-              newLongestStreak = newStreak;
+          if (entryIndex > -1) {
+            currentCompletionsToday = newCompletionHistory[entryIndex].count;
+            if (currentCompletionsToday < targetCompletions) {
+              newCountForEntry = currentCompletionsToday + 1;
+              newCompletionHistory[entryIndex] = { ...newCompletionHistory[entryIndex], count: newCountForEntry };
+              wasCompletionIncremented = true;
+              if (newCountForEntry >= targetCompletions) {
+                didHabitBecomeFullyCompleted = true; // Habit is now fully complete for selectedDate
+              }
             }
-            console.log(`Habit ${h.name} fully completed for today. Streak: ${newStreak}, Points: ${pointsAwarded}`);
-
           } else {
-            console.log(`Habit ${h.name} progress: ${newCountToday}/${targetCompletions}. No points yet.`);
+            newCountForEntry = 1;
+            newCompletionHistory.push({ date: selectedDateStr, count: newCountForEntry });
+            wasCompletionIncremented = true;
+            if (newCountForEntry >= targetCompletions) {
+              didHabitBecomeFullyCompleted = true; // Habit is now fully complete for selectedDate
+            }
           }
-
-          updatedHabitLocally = {
-            ...h,
-            streak: newStreak,
-            longestStreak: newLongestStreak,
-            completionHistory: newCompletionHistory,
-          };
-          return updatedHabitLocally;
+          return { ...h, completionHistory: newCompletionHistory };
         }
         return h;
       })
     );
 
-    if (updatedHabitLocally) { 
+    if (wasCompletionIncremented) {
+      // Update Firestore for the specific habit's completionHistory
+      const habitDocRef = doc(db, 'users', currentUserId, 'habits', habitId);
+      const habitToUpdate = habits.find(h => h.id === habitId);
+      let firestoreCompletionHistoryForHabit: {date: string, count: number}[] = [];
+      if(habitToUpdate){ // Construct the latest history for this habit
+        const tempHabit = { ...habitToUpdate }; 
+        const entryIndex = tempHabit.completionHistory.findIndex(e => e.date === selectedDateStr);
+        if (entryIndex > -1) { tempHabit.completionHistory[entryIndex].count = tempHabit.completionHistory[entryIndex].count +1 > (tempHabit.frequency.times || 1) && tempHabit.frequency.type ==='daily' ? (tempHabit.frequency.times || 1) : tempHabit.completionHistory[entryIndex].count +1;}
+        else { tempHabit.completionHistory.push({ date: selectedDateStr, count: 1 });}
+        firestoreCompletionHistoryForHabit = tempHabit.completionHistory.map(e => ({date: e.date, count: e.count}));
+      }
+
       try {
-        const habitDocRef = doc(db, 'users', currentUserId!, 'habits', habitId); // Added non-null assertion for currentUserId
-        await updateDoc(habitDocRef, {
-          streak: updatedHabitLocally.streak,
-          longestStreak: updatedHabitLocally.longestStreak,
-          completionHistory: updatedHabitLocally.completionHistory,
-        });
-        // console.log(`Habit ${updatedHabitLocally.name} updated in Firestore. Progress: ${newCountToday}/${targetCompletions}`);
-      } catch (error) {
-        console.error("Error updating habit in Firestore: ", error);
-        alert("Failed to update habit completion. Please check your connection.");
+        await updateDoc(habitDocRef, { completionHistory: firestoreCompletionHistoryForHabit }); 
+        console.log('Habit ' + habitId + ' completion history updated.');
+      } catch (error) { console.error("Error updating habit completion: ", error); }
+
+      // Award points only if this specific habit became fully completed due to this action
+      if (didHabitBecomeFullyCompleted) {
+        const userDocRef = doc(db, "users", currentUserId);
+        try {
+          await updateDoc(userDocRef, { points: increment(10) }); // Award 10 points
+          console.log('User ' + currentUserId + ' awarded 10 points for completing habit ' + habitId);
+        } catch (error) { console.error("Error awarding points: ", error); }
+      }
+      
+      // Call the function to check for daily streak after habit state might have changed
+      // This needs to be called carefully, potentially after setHabits has flushed
+      // For now, let's call it, but be mindful of state synchronization for the check
+      await checkAndUpdateDailyStreak(); 
+    }
+  };
+
+  // New function to check all daily habits and update overall user streak
+  const checkAndUpdateDailyStreak = async () => {
+    if (!currentUserId) return;
+
+    const todayStr = getIsoDateString(new Date());
+    let allTodaysHabitsCompleted = true;
+
+    // Filter for habits scheduled for *today*
+    const todaysScheduledHabits = habits.filter(h => {
+      const dayOfWeek = new Date().getDay(); // Today's day index
+      if (h.frequency.type === 'daily') return true;
+      if (h.frequency.type === 'weekly') return h.frequency.days?.includes(dayOfWeek);
+      return false;
+    });
+
+    if (todaysScheduledHabits.length === 0) {
+      // No habits scheduled for today, so can't complete all daily habits.
+      // Or, decide if this means the streak is maintained by default (e.g. a rest day)
+      // For now, let's assume streak is not updated if no habits are scheduled for today.
+      console.log("No habits scheduled for today. Streak not updated.");
+      return; 
+    }
+
+    for (const habit of todaysScheduledHabits) {
+      const targetCompletions = habit.frequency.type === 'daily' ? (habit.frequency.times || 1) : 1;
+      const todaysEntry = habit.completionHistory.find(entry => entry.date === todayStr);
+      if (!todaysEntry || todaysEntry.count < targetCompletions) {
+        allTodaysHabitsCompleted = false;
+        break;
       }
     }
 
-    if (pointsAwarded > 0 && updatedHabitLocally && currentUserId) { // Added check for currentUserId
-      console.log(`Awarded ${pointsAwarded} points for completing ${updatedHabitLocally.name}. (Firestore update would go here)`);
-      const userProfileRef = doc(db, "users", currentUserId, "profile", "userData");
+    if (allTodaysHabitsCompleted) {
+      console.log("All habits for today are completed! Updating daily streak.");
+      const userDocRef = doc(db, "users", currentUserId);
       try {
-        // IMPORTANT: Ensure you have 'increment' imported from 'firebase/firestore'
-        // import { increment } from 'firebase/firestore';
-        // await updateDoc(userProfileRef, {
-        //   points: increment(pointsAwarded) 
-        // });
-        // console.log("Points updated in Firestore.");
-      } catch (err) {
-        // console.error("Error updating points in Firestore: ", err);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          let newCurrentStreak = userData.currentStreak || 0;
+          let newLongestStreak = userData.longestStreak || 0;
+          const lastCompletionDate = userData.lastCompletionDate; // This is the user's overall last daily completion
+
+          // IMPORTANT: Streak logic is for *overall daily activity*, not per-habit streak.
+          // It updates only if ALL of today's habits are done, and it's the first time today this condition is met.
+          if (lastCompletionDate !== todayStr) { // Check if we haven't already awarded streak for today
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = getIsoDateString(yesterday);
+
+            if (userData.lastCompletionDate === yesterdayStr) {
+              newCurrentStreak += 1;
+            } else {
+              newCurrentStreak = 1; // Reset if last completion wasn't yesterday
+            }
+            if (newCurrentStreak > newLongestStreak) {
+              newLongestStreak = newCurrentStreak;
+            }
+            // Update user document with new streak and today as lastCompletionDate
+            await updateDoc(userDocRef, {
+              currentStreak: newCurrentStreak,
+              longestStreak: newLongestStreak,
+              lastCompletionDate: todayStr 
+            });
+            console.log('User ' + currentUserId + ' daily streak updated to ' + newCurrentStreak);
+          } else {
+            console.log("Daily streak already awarded for today or condition not met previously.");
+          }
+        }
+      } catch (error) {
+        console.error("Error updating user daily streak: ", error);
       }
+    } else {
+      console.log("Not all habits for today are completed. Daily streak not updated yet.");
     }
   };
 
   const renderHabit = ({ item }: { item: Habit }) => {
-    const dateString = selectedDate.toISOString().split('T')[0];
+    const dateString = getIsoDateString(selectedDate);
     const todaysEntry = item.completionHistory.find(entry => entry.date === dateString);
     const currentCompletions = todaysEntry ? todaysEntry.count : 0;
-    
-    // Target completions: for daily, it's frequency.times (default 1). For weekly, it's 1 for the day.
     const targetCompletions = item.frequency.type === 'daily' ? (item.frequency.times || 1) : 1;
     const isFullyCompleted = currentCompletions >= targetCompletions;
     const progress = targetCompletions > 0 ? (currentCompletions / targetCompletions) * 100 : 0;
-
     const showCircularProgress = item.frequency.type === 'daily' && (item.frequency.times || 1) > 1;
+    const isButtonDisabled = getIsoDateString(selectedDate) !== getIsoDateString(new Date()) || isFullyCompleted;
 
     return (
       <View style={styles.habitCard}>
         <TouchableOpacity style={styles.habitInfoTouchable} onPress={() => router.push(`/habit/${item.id}`)}>
-            <Text style={styles.habitName}>{item.name}</Text>
-            {showCircularProgress ? (
-                 <View style={styles.habitProgressCircleContainer}>
-                    <CircularProgress percentage={progress} radius={25} strokeWidth={5} />
-                 </View>
-            ) : (
-                <Text style={styles.habitPercentageText}>{Math.round(progress)}% completed</Text>
-            )}
+          <Text style={styles.habitName}>{item.name}</Text>
+          {showCircularProgress ? 
+            (<CircularProgress percentage={progress} radius={25} strokeWidth={5} />) : 
+            (<Text style={styles.habitPercentageText}>{`${Math.round(progress)}% completed`}</Text>)}
         </TouchableOpacity>
         <TouchableOpacity 
-            style={[styles.completeButton, isFullyCompleted ? styles.completedButton : {}]} 
-            onPress={() => handleCompleteHabit(item.id)}
-            disabled={isFullyCompleted}
+          style={[styles.completeButton, isButtonDisabled ? styles.completedButton : {}]} 
+          onPress={() => handleCompleteHabit(item.id)}
+          disabled={isButtonDisabled}
         >
           <Text style={styles.completeButtonText}>{isFullyCompleted ? "COMPLETED" : "COMPLETE"}</Text>
         </TouchableOpacity>
@@ -389,7 +446,7 @@ export default function Index() {
           })}
         </ScrollView>
          <TouchableOpacity onPress={() => { /* Logic to go to next set of dates or a calendar picker */ }}>
-             <Text style={styles.dateChevron}>{'>'}{'>'}</Text>
+             <Text style={styles.dateChevron}>{`>>`}</Text>
         </TouchableOpacity>
       </View>
 

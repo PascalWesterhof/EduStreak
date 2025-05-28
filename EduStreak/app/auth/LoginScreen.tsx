@@ -1,9 +1,10 @@
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
-import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, signInWithPopup, User } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { auth } from '../../config/firebase'; // Adjust path as necessary
+import { auth, db } from '../../config/firebase'; // Adjust path as necessary
 
 // Configure Google Sign In only for native platforms
 if (Platform.OS !== 'web') {
@@ -17,6 +18,38 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const router = useRouter();
 
+  // Helper function to create or update user document in Firestore
+  const createOrUpdateUserDocument = async (user: User) => {
+    if (!user) return;
+    const userDocRef = doc(db, "users", user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
+      // Document doesn't exist, create it
+      try {
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          displayName: user.displayName || user.email || "Anonymous User", // Fallback if displayName and email are null/empty
+          email: user.email,
+          photoURL: user.photoURL || null, // Store photoURL if available
+          points: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastCompletionDate: null, // Added this field
+          bio: '' // Added default empty bio
+        });
+        console.log("Firestore user document created for Google user:", user.uid);
+      } catch (error) {
+        console.error("Error creating Firestore document for Google user:", error);
+        Alert.alert("Error", "Could not save user profile data after Google Sign-In.");
+      }
+    } else {
+      // Optional: Update existing document if needed (e.g., displayName or photoURL changed)
+      // For now, we just ensure it exists. You can add update logic here if desired.
+      console.log("Firestore user document already exists for Google user:", user.uid);
+    }
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password.');
@@ -24,8 +57,7 @@ export default function LoginScreen() {
     }
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Navigate to a different screen on successful login, e.g., home
-      router.replace('/(tabs)'); // Navigate to the default tab screen
+      router.replace('/(tabs)');
     } catch (error: any) {
       Alert.alert('Login Failed', error.message);
     }
@@ -35,9 +67,9 @@ export default function LoginScreen() {
     if (Platform.OS === 'web') {
       try {
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
-        // Firebase auth state change will handle navigation via RootLayout
-        router.replace('/(tabs)'); // Or rely on RootLayout's auth listener
+        const result = await signInWithPopup(auth, provider);
+        await createOrUpdateUserDocument(result.user); // Create/update Firestore doc
+        router.replace('/(tabs)');
       } catch (error: any) {
         Alert.alert('Google Sign In Error (Web)', error.message);
         console.error('Google Sign In Error (Web): ', error);
@@ -49,7 +81,8 @@ export default function LoginScreen() {
         const userInfo = await GoogleSignin.signIn();
         if (userInfo.idToken) {
           const googleCredential = GoogleAuthProvider.credential(userInfo.idToken);
-          await signInWithCredential(auth, googleCredential);
+          const result = await signInWithCredential(auth, googleCredential);
+          await createOrUpdateUserDocument(result.user); // Create/update Firestore doc
           router.replace('/(tabs)');
         } else {
           Alert.alert('Google Sign In Error', 'No ID token present in Google User Info.');
