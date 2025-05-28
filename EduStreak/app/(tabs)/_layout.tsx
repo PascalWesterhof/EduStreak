@@ -14,7 +14,7 @@ const TabsLayout = () =>
             <Drawer 
                 drawerContent={CustomDrawerContent}
                 screenOptions={{
-                    headerShown: true, // Ensure headers are shown
+                    headerShown: false, // Ensure headers are hidden
                     drawerActiveTintColor: 'white',
                     drawerInactiveTintColor: '#ccc',
                     drawerActiveBackgroundColor: '#D05B52',

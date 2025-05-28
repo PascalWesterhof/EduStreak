@@ -1,17 +1,19 @@
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore'; // Added for Firestore
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { auth } from '../../config/firebase'; // Adjust path as necessary
+import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { auth, db } from '../../config/firebase'; // Adjust path as necessary
 
 export default function RegisterScreen() {
+  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
 
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!displayName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields.');
       return;
     }
@@ -20,9 +22,25 @@ export default function RegisterScreen() {
       return;
     }
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      // Navigate to a different screen on successful registration, login or home
-      router.replace('/auth/LoginScreen' as any); // Example navigation, redirect to login
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await updateProfile(user, { displayName: displayName });
+
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        displayName: displayName,
+        email: user.email,
+        friends: [],
+        friendRequestsSent: [],
+        friendRequestsReceived: [],
+        points: 0,
+        currentStreak: 0,
+        longestStreak: 0
+      });
+
+      Alert.alert('Registration Successful', 'Your account has been created.');
+      router.replace('/auth/LoginScreen');
     } catch (error: any) {
       Alert.alert('Registration Failed', error.message);
     }
@@ -30,11 +48,24 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Register</Text>
+      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <Image source={require('../../assets/icons/back_arrow.png')} style={styles.backArrow} />
+      </TouchableOpacity>
+      <Image source={require('../../assets/images/splash_icon_edustreak.png')} style={styles.logo} />
+      <Text style={styles.headerText}>CREATE ACCOUNT</Text>
+
       <TextInput
         style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#ccc"
+        placeholder="Display Name"
+        placeholderTextColor="#A9A9A9"
+        value={displayName}
+        onChangeText={setDisplayName}
+        autoCapitalize="words"
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Email address"
+        placeholderTextColor="#A9A9A9"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -43,7 +74,7 @@ export default function RegisterScreen() {
       <TextInput
         style={styles.input}
         placeholder="Password"
-        placeholderTextColor="#ccc"
+        placeholderTextColor="#A9A9A9"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -51,16 +82,16 @@ export default function RegisterScreen() {
       <TextInput
         style={styles.input}
         placeholder="Confirm Password"
-        placeholderTextColor="#ccc"
+        placeholderTextColor="#A9A9A9"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.buttonContainer} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Register</Text>
+      <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+        <Text style={styles.registerButtonText}>CREATE ACCOUNT</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.linkButton} onPress={() => router.push('/auth/LoginScreen' as any)}>
-        <Text style={styles.linkButtonText}>Already have an account? Login</Text>
+      <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/auth/LoginScreen')}>
+        <Text style={styles.loginLinkText}>Already have an account? <Text style={styles.loginLinkTextHighlight}>LOG IN</Text></Text>
       </TouchableOpacity>
     </View>
   );
@@ -69,43 +100,70 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 16,
-    backgroundColor: '#000', // Black background
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'android' ? 40 : 60,
+    paddingHorizontal: 20,
   },
-  title: {
-    fontSize: 24,
-    marginBottom: 24, // Increased margin
-    textAlign: 'center',
-    color: '#d05b52', // Updated color
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? 45 : 65,
+    left: 20,
+    zIndex: 1,
+    padding:10,
+  },
+  backArrow: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+  },
+  logo: {
+    width: 180, // Slightly smaller for register if needed
+    height: 90,
+    resizeMode: 'contain',
+    marginBottom: 20,
+    marginTop: 20,
+  },
+  headerText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 30,
   },
   input: {
-    height: 40,
-    borderColor: '#d05b52', // Updated color
-    borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 8,
-    color: '#fff', // White text for input
-    backgroundColor: '#333', // Darker background for input
-  },
-  buttonContainer: {
-    backgroundColor: '#d05b52', // Updated color
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  buttonText: {
-    color: '#fff', // White text for buttons
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    marginBottom: 15,
+    width: '100%',
     fontSize: 16,
+    color: '#000000',
   },
-  linkButton: {
+  registerButton: {
+    backgroundColor: '#d05b52',
+    borderRadius: 25,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    alignItems: 'center',
+    marginBottom: 20,
+    width: '100%',
+  },
+  registerButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  loginLink: {
     marginTop: 10,
-    alignItems: 'center',
   },
-  linkButtonText: {
-    color: '#d05b52', // Updated color
-    fontSize: 16,
+  loginLinkText: {
+    color: '#000000',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  loginLinkTextHighlight: {
+    color: '#d05b52',
+    fontWeight: 'bold',
   },
 }); 

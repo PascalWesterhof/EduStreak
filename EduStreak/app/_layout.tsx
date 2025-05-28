@@ -55,8 +55,9 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
         {/* Add auth screens to the stack if they are not in a group */}
-        {/* <Stack.Screen name="auth/LoginScreen" options={{ headerShown: false }} /> */}
-        {/* <Stack.Screen name="auth/RegisterScreen" options={{ headerShown: false }} /> */}
+        <Stack.Screen name="auth/LoginScreen" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/RegisterScreen" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/ForgotPasswordScreen" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

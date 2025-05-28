@@ -3,13 +3,58 @@ import { useNavigation, useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth'; // Import onAuthStateChanged and User type
 import { collection, doc, getDocs, query, setDoc, Timestamp, updateDoc } from 'firebase/firestore'; // Firestore functions
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Button, FlatList, Modal, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-get-random-values'; // For uuid
+import Svg, { Circle, Text as SvgText } from 'react-native-svg'; // Added for Circular Progress
 import { v4 as uuidv4 } from 'uuid';
 import { auth, db } from '../../config/firebase'; // Import db and auth
 import { Habit } from '../../types'; // Adjusted path
 import AddHabitScreen from '../AddHabitScreen'; // Adjusted path
 
+const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Helper for Circular Progress
+const CircularProgress = ({ percentage, radius = 40, strokeWidth = 8, color = "#d05b52" }: { percentage: number; radius?: number; strokeWidth?: number; color?: string }) => {
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <Svg height={radius * 2 + strokeWidth} width={radius * 2 + strokeWidth}>
+        <Circle
+          stroke="#e6e6e6"
+          fill="none"
+          cx={(radius * 2 + strokeWidth)/2}
+          cy={(radius * 2 + strokeWidth)/2}
+          r={radius}
+          strokeWidth={strokeWidth}
+        />
+        <Circle
+          stroke={color}
+          fill="none"
+          cx={(radius * 2 + strokeWidth)/2}
+          cy={(radius * 2 + strokeWidth)/2}
+          r={radius}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${ (radius * 2 + strokeWidth)/2} ${(radius * 2 + strokeWidth)/2})`}
+        />
+        <SvgText
+            x="50%"
+            y="50%"
+            textAnchor="middle"
+            dy=".3em"
+            fontSize="16"
+            fill="#000000"
+            fontWeight="bold"
+        >
+            {`${Math.round(percentage)}%`}
+        </SvgText>
+      </Svg>
+    </View>
+  );
+};
 
 export default function Index() {
   const appNavigation = useNavigation();
@@ -18,6 +63,8 @@ export default function Index() {
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true); // For loading indicator
   const [currentUserId, setCurrentUserId] = useState<string | null>(null); // Initialize to null
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [userName, setUserName] = useState("User"); // Default user name
 
   // Listen for auth state changes
   useEffect(() => {
@@ -26,10 +73,12 @@ export default function Index() {
       if (user) {
         console.log("User is signed in with ID: ", user.uid);
         setCurrentUserId(user.uid);
+        setUserName(user.displayName || "User"); // Set user display name
       } else {
         console.log("User is signed out.");
         setCurrentUserId(null);
         setHabits([]); // Clear habits if user signs out
+        setUserName("User");
         setIsLoading(false); // Stop loading if no user
       }
       // Note: setIsLoading(false) for the habits fetch is handled in the habits useEffect
@@ -52,6 +101,12 @@ export default function Index() {
       const fetchHabits = async () => {
         setIsLoading(true);
         try {
+          // Add an explicit check for currentUserId and db before using them
+          if (!db || typeof currentUserId !== 'string') {
+            console.error("Firestore instance (db) is not available or currentUserId is not a string.");
+            setIsLoading(false);
+            return;
+          }
           const habitsCollectionRef = collection(db, 'users', currentUserId, 'habits');
           const q = query(habitsCollectionRef); // Consider adding orderBy('createdAt', 'desc')
           const querySnapshot = await getDocs(q);
@@ -92,38 +147,48 @@ export default function Index() {
     }, [currentUserId]) // Dependency: re-run if currentUserId changes
   );
 
-  // Calculate daily progress
-  const dailyProgressPercentage = useMemo(() => {
-    const today = new Date();
-    const todayDateString = today.toISOString().split('T')[0]; // YYYY-MM-DD
-    const currentDayOfWeek = today.getDay(); // 0 for Sunday, 1 for Monday, ...
+  // Generate dates for the horizontal selector
+  const dateRange = useMemo(() => {
+    const range = [];
+    for (let i = -2; i <= 2; i++) { // Show 5 days: 2 past, today, 2 future
+      const date = new Date(selectedDate);
+      date.setDate(selectedDate.getDate() + i);
+      range.push(date);
+    }
+    return range;
+  }, [selectedDate]);
 
-    const habitsScheduledForToday = habits.filter(habit => {
-      if (habit.frequency.type === 'daily') {
-        return true;
-      }
-      if (habit.frequency.type === 'weekly') {
-        // Ensure habit.frequency.days is defined before calling includes
-        return habit.frequency.days?.includes(currentDayOfWeek);
-      }
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    // Potentially re-filter habits or re-fetch for the selected date if needed
+  };
+
+  // Calculate daily progress for the *selectedDate*
+  const dailyProgress = useMemo(() => {
+    const dateString = selectedDate.toISOString().split('T')[0];
+    const dayOfWeek = selectedDate.getDay();
+
+    const habitsScheduledForDay = habits.filter(habit => {
+      if (habit.frequency.type === 'daily') return true;
+      if (habit.frequency.type === 'weekly') return habit.frequency.days?.includes(dayOfWeek);
       return false;
     });
 
-    if (habitsScheduledForToday.length === 0) {
-      return 0; // No habits scheduled for today
-    }
+    if (habitsScheduledForDay.length === 0) return { count: 0, total: 0, percentage: 0 };
 
-    const fullyCompletedTodayCount = habitsScheduledForToday.filter(habit => {
-      const todaysEntry = habit.completionHistory.find(entry => entry.date === todayDateString);
-      if (!todaysEntry) return false;
-      // For daily habits, check if count meets frequency.times. Default to 1 if times is not set.
-      // For weekly habits, count >= 1 means completed for that scheduled day.
-      const targetCompletions = habit.frequency.type === 'daily' ? (habit.frequency.times || 1) : 1;
-      return todaysEntry.count >= targetCompletions;
+    const completedCount = habitsScheduledForDay.filter(habit => {
+      const entry = habit.completionHistory.find(e => e.date === dateString);
+      if (!entry) return false;
+      const target = habit.frequency.type === 'daily' ? (habit.frequency.times || 1) : 1;
+      return entry.count >= target;
     }).length;
-
-    return (fullyCompletedTodayCount / habitsScheduledForToday.length) * 100;
-  }, [habits]);
+    
+    return {
+        count: completedCount,
+        total: habitsScheduledForDay.length,
+        percentage: (completedCount / habitsScheduledForDay.length) * 100
+    };
+  }, [habits, selectedDate]);
 
   const onToggleDrawer = () => {
       appNavigation.dispatch(DrawerActions.openDrawer());
@@ -173,77 +238,55 @@ export default function Index() {
         alert("You must be logged in to complete habits. Please sign in.");
         return;
     }
-    const todayDateStr = new Date().toISOString().split('T')[0];
+    const dateStr = selectedDate.toISOString().split('T')[0];
     let pointsAwarded = 0;
     let updatedHabitLocally: Habit | undefined;
 
     setHabits(prevHabits =>
       prevHabits.map(h => {
         if (h.id === habitId) {
-          const todaysEntryIndex = h.completionHistory.findIndex(entry => entry.date === todayDateStr);
+          const todaysEntryIndex = h.completionHistory.findIndex(entry => entry.date === dateStr);
           let currentCountToday = 0;
           if (todaysEntryIndex > -1) {
             currentCountToday = h.completionHistory[todaysEntryIndex].count;
           }
 
-          // Allow completion only if current count is less than target times for daily habits
-          // For weekly habits, assume target is 1 for the day if it's a scheduled day.
-          // This might need refinement if weekly habits can also have multiple completions per scheduled day.
           const targetCompletions = h.frequency.type === 'daily' ? (h.frequency.times || 1) : 1;
 
           if (currentCountToday >= targetCompletions) {
             console.log(`Habit ${h.name} already completed ${currentCountToday}/${targetCompletions} times today.`);
-            return h; // Already fully completed for today
+            return h; 
           }
 
           const newCountToday = currentCountToday + 1;
           let newStreak = h.streak;
           let newLongestStreak = h.longestStreak;
+          let newCompletionHistory = [...h.completionHistory];
 
-          // Award points and update streak only on the *first* completion of the day
-          if (currentCountToday === 0) {
-            pointsAwarded = 10; // Example points for first completion
-            
-            // Streak logic: Check if the habit was completed yesterday to continue the streak
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayDateStr = yesterday.toISOString().split('T')[0];
-
-            const completedYesterday = h.completionHistory.some(
-              entry => entry.date === yesterdayDateStr && entry.count > 0 // Check if completed at least once yesterday
-            );
-
-            if (completedYesterday) {
-              newStreak = h.streak + 1;
-            } else {
-              // If not completed yesterday, or if it's the first ever completion, reset/start streak
-              // Check if there's ANY completion history to decide if it's a reset or first time.
-              const lastCompletion = h.completionHistory.length > 0 ? h.completionHistory[h.completionHistory.length -1] : null;
-              // If the last completion was not today (meaning it's a new day) and not yesterday, streak resets to 1
-              if (lastCompletion && lastCompletion.date !== todayDateStr && lastCompletion.date !== yesterdayDateStr) {
-                 newStreak = 1;
-              } else if (!lastCompletion || lastCompletion.date !== todayDateStr) { 
-                // If no last completion, or last completion was not today (it's a new day of activity)
-                newStreak = 1;
-              }
-              // If last completion *was* today, streak already handled by `currentCountToday === 0` condition (remains same unless it's a new day)
-            }
-          }
-          
-          newLongestStreak = Math.max(h.longestStreak, newStreak);
-
-          const updatedCompletionHistory = [...h.completionHistory];
           if (todaysEntryIndex > -1) {
-            updatedCompletionHistory[todaysEntryIndex] = { ...updatedCompletionHistory[todaysEntryIndex], count: newCountToday };
+            newCompletionHistory[todaysEntryIndex] = { ...newCompletionHistory[todaysEntryIndex], count: newCountToday };
           } else {
-            updatedCompletionHistory.push({ date: todayDateStr, count: newCountToday });
+            newCompletionHistory.push({ date: dateStr, count: newCountToday });
           }
-          
+
+          if (newCountToday >= targetCompletions) {
+            pointsAwarded = 10; 
+            
+            newStreak += 1; 
+            if (newStreak > newLongestStreak) {
+              newLongestStreak = newStreak;
+            }
+            console.log(`Habit ${h.name} fully completed for today. Streak: ${newStreak}, Points: ${pointsAwarded}`);
+
+          } else {
+            console.log(`Habit ${h.name} progress: ${newCountToday}/${targetCompletions}. No points yet.`);
+          }
+
           updatedHabitLocally = {
             ...h,
             streak: newStreak,
             longestStreak: newLongestStreak,
-            completionHistory: updatedCompletionHistory,
+            completionHistory: newCompletionHistory,
           };
           return updatedHabitLocally;
         }
@@ -251,115 +294,133 @@ export default function Index() {
       })
     );
 
-    if (updatedHabitLocally) { // updatedHabitLocally will exist if a completion was made
+    if (updatedHabitLocally) { 
       try {
-        const habitDocRef = doc(db, 'users', currentUserId, 'habits', habitId);
+        const habitDocRef = doc(db, 'users', currentUserId!, 'habits', habitId); // Added non-null assertion for currentUserId
         await updateDoc(habitDocRef, {
           streak: updatedHabitLocally.streak,
           longestStreak: updatedHabitLocally.longestStreak,
           completionHistory: updatedHabitLocally.completionHistory,
         });
-        if (pointsAwarded > 0) {
-            console.log(`Habit ${updatedHabitLocally.name} first completion today. Awarded ${pointsAwarded} points. Progress: ${updatedHabitLocally.completionHistory.find(e=>e.date === todayDateStr)?.count}/${updatedHabitLocally.frequency.times}`);
-            // Here you would also update the user's total points in Firestore
-        } else {
-            console.log(`Habit ${updatedHabitLocally.name} further completion today. Progress: ${updatedHabitLocally.completionHistory.find(e=>e.date === todayDateStr)?.count}/${updatedHabitLocally.frequency.times}`);
-        }
+        // console.log(`Habit ${updatedHabitLocally.name} updated in Firestore. Progress: ${newCountToday}/${targetCompletions}`);
       } catch (error) {
         console.error("Error updating habit in Firestore: ", error);
         alert("Failed to update habit completion. Please check your connection.");
-        // Consider reverting local state if Firestore update fails
+      }
+    }
+
+    if (pointsAwarded > 0 && updatedHabitLocally && currentUserId) { // Added check for currentUserId
+      console.log(`Awarded ${pointsAwarded} points for completing ${updatedHabitLocally.name}. (Firestore update would go here)`);
+      const userProfileRef = doc(db, "users", currentUserId, "profile", "userData");
+      try {
+        // IMPORTANT: Ensure you have 'increment' imported from 'firebase/firestore'
+        // import { increment } from 'firebase/firestore';
+        // await updateDoc(userProfileRef, {
+        //   points: increment(pointsAwarded) 
+        // });
+        // console.log("Points updated in Firestore.");
+      } catch (err) {
+        // console.error("Error updating points in Firestore: ", err);
       }
     }
   };
 
   const renderHabit = ({ item }: { item: Habit }) => {
-    const today = new Date().toISOString().split('T')[0];
-    const todaysEntry = item.completionHistory.find(entry => entry.date === today);
-    const currentCompletionsToday = todaysEntry ? todaysEntry.count : 0;
+    const dateString = selectedDate.toISOString().split('T')[0];
+    const todaysEntry = item.completionHistory.find(entry => entry.date === dateString);
+    const currentCompletions = todaysEntry ? todaysEntry.count : 0;
     
     // Target completions: for daily, it's frequency.times (default 1). For weekly, it's 1 for the day.
     const targetCompletions = item.frequency.type === 'daily' ? (item.frequency.times || 1) : 1;
-    const isFullyCompletedToday = currentCompletionsToday >= targetCompletions;
-    const progressPercentage = targetCompletions > 0 ? (currentCompletionsToday / targetCompletions) * 100 : 0;
+    const isFullyCompleted = currentCompletions >= targetCompletions;
+    const progress = targetCompletions > 0 ? (currentCompletions / targetCompletions) * 100 : 0;
 
-    let buttonTitle = "Complete";
-    if (item.frequency.type === 'daily' && (item.frequency.times || 1) > 1) {
-      buttonTitle = isFullyCompletedToday ? "Completed" : `Complete (${currentCompletionsToday}/${targetCompletions})`;
-    } else {
-      buttonTitle = isFullyCompletedToday ? "Completed" : "Complete";
-    }
-    
+    const showCircularProgress = item.frequency.type === 'daily' && (item.frequency.times || 1) > 1;
+
     return (
-      <TouchableOpacity onPress={() => router.push(`/habit/${item.id}` as any)}>
-        <View style={styles.habitItem}>
-          <View style={styles.habitInfo}>
+      <View style={styles.habitCard}>
+        <TouchableOpacity style={styles.habitInfoTouchable} onPress={() => router.push(`/habit/${item.id}`)}>
             <Text style={styles.habitName}>{item.name}</Text>
-            <Text>Streak: {item.streak} (Longest: {item.longestStreak})</Text>
-            <Text>
-              Frequency: {item.frequency.type === 'daily' 
-                ? `${item.frequency.times || 1} time(s) a day` 
-                : `${item.frequency.times || 1} time(s) a week on ${item.frequency.days?.map((d: number) => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ')}`}
-            </Text>
-            {/* Habit Progress Bar */}
-            {item.frequency.type === 'daily' && (item.frequency.times || 1) > 0 && (
-                 <View style={styles.habitProgressContainer}>
-                    <View style={[styles.habitProgressBarFill, { width: `${progressPercentage}%` }]} />
+            {showCircularProgress ? (
+                 <View style={styles.habitProgressCircleContainer}>
+                    <CircularProgress percentage={progress} radius={25} strokeWidth={5} />
                  </View>
+            ) : (
+                <Text style={styles.habitPercentageText}>{Math.round(progress)}% completed</Text>
             )}
-            {item.description && <Text style={styles.habitDescription}>Description: {item.description}</Text>}
-            {item.notes && <Text style={styles.habitNotes}>Notes: {item.notes}</Text>}
-          </View>
-          <Button 
-            title={buttonTitle}
-            onPress={(e) => {
-              e.stopPropagation(); 
-              handleCompleteHabit(item.id);
-            }} 
-            disabled={isFullyCompletedToday} 
-          />
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+        <TouchableOpacity 
+            style={[styles.completeButton, isFullyCompleted ? styles.completedButton : {}]} 
+            onPress={() => handleCompleteHabit(item.id)}
+            disabled={isFullyCompleted}
+        >
+          <Text style={styles.completeButtonText}>{isFullyCompleted ? "COMPLETED" : "COMPLETE"}</Text>
+        </TouchableOpacity>
+      </View>
     );
   };
 
+  if (isLoading) {
+    return <View style={styles.loaderContainer}><ActivityIndicator size="large" color="#d05b52" /></View>;
+  }
+
   return (
-    <View style = {styles.container}>
-      <Text style={styles.screenTitle}>My Habits</Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      {/* Header */}
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => appNavigation.dispatch(DrawerActions.openDrawer())}>
+          <Image source={require('../../assets/icons/burger_menu_icon.png')} style={styles.menuIcon} />
+        </TouchableOpacity>
+        <Text style={styles.greetingText}>Hello, <Text style={styles.userNameText}>{userName}!</Text></Text>
+      </View>
 
-      {/* Daily Progress Bar */}
-      {!isLoading && habits.length > 0 && (
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressLabel}>Daily Progress: {Math.round(dailyProgressPercentage)}%</Text>
-          <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBarFill, { width: `${dailyProgressPercentage}%` }]} />
-          </View>
-        </View>
-      )}
+      {/* Date Selector */}
+      <View style={styles.dateSelectorContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateScrollContent}>
+          {dateRange.map((date, index) => {
+            const isSelected = date.toDateString() === selectedDate.toDateString();
+            return (
+              <TouchableOpacity key={index} onPress={() => handleDateSelect(date)} style={[styles.dateItem, isSelected && styles.selectedDateItem]}>
+                <Text style={[styles.dateDayText, isSelected && styles.selectedDateText]}>{days[date.getDay()]}</Text>
+                <Text style={[styles.dateNumberText, isSelected && styles.selectedDateText]}>{date.getDate()}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+         <TouchableOpacity onPress={() => { /* Logic to go to next set of dates or a calendar picker */ }}>
+             <Text style={styles.dateChevron}>{'>'}{'>'}</Text>
+        </TouchableOpacity>
+      </View>
 
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#D05B52" style={styles.loader}/>
-      ) : (
-        <FlatList
-          data={habits}
-          renderItem={renderHabit}
-          keyExtractor={(item) => item.id}
-          ListEmptyComponent={<Text style={styles.emptyText}>No habits yet. Add one or check your connection.</Text>}
-          style={styles.list}
-          extraData={habits} // Ensure FlatList re-renders when habit items change
-        />
-      )}
-      <Button title="Add New Habit" onPress={() => setIsAddModalVisible(true)} />
+      {/* Overall Progress */}
+      <View style={styles.overallProgressContainer}>
+        <CircularProgress percentage={dailyProgress.percentage} radius={60} strokeWidth={10} />
+        <Text style={styles.progressText}>{dailyProgress.count}/{dailyProgress.total} habits completed</Text>
+      </View>
 
-      <Modal
-        visible={isAddModalVisible}
-        animationType="slide"
-        onRequestClose={() => setIsAddModalVisible(false)}
-      >
-        <AddHabitScreen 
-          onAddHabit={handleAddHabit} 
-          onCancel={() => setIsAddModalVisible(false)} 
-        />
+      {/* Habits List */}
+      <FlatList
+        data={habits.filter(habit => {
+            const dayOfWeek = selectedDate.getDay();
+            if (habit.frequency.type === 'daily') return true;
+            if (habit.frequency.type === 'weekly') return habit.frequency.days?.includes(dayOfWeek);
+            return false;
+        })}
+        renderItem={renderHabit}
+        keyExtractor={(item) => item.id}
+        numColumns={2} // For grid layout
+        columnWrapperStyle={styles.row}
+        ListEmptyComponent={<Text style={styles.emptyText}>No habits scheduled for {selectedDate.toDateString()}.</Text>}
+        contentContainerStyle={styles.listContentContainer}
+      />
+
+      <TouchableOpacity style={styles.addHabitFab} onPress={() => setIsAddModalVisible(true)}>
+        <Text style={styles.addHabitFabText}>+</Text>
+      </TouchableOpacity>
+
+      <Modal visible={isAddModalVisible} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
+        <AddHabitScreen onAddHabit={handleAddHabit} onCancel={() => setIsAddModalVisible(false)} />
       </Modal>
     </View>
   );
@@ -368,75 +429,139 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 20,
-    paddingHorizontal: 20,
-    backgroundColor: '#f0f0f0', // Changed background slightly
+    backgroundColor: '#F4F6F8', // Light greyish background
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
   },
-  screenTitle: {
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F4F6F8',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  menuIcon: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    marginRight: 15,
+  },
+  greetingText: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginVertical: 20, // Added vertical margin
-    textAlign: 'center',
+    color: '#2c3e50', // Darker text color
   },
-  progressContainer: {
-    marginBottom: 15, // Spacing below progress bar
+  userNameText: {
+    color: '#d05b52', // Theme color for user name
   },
-  progressLabel: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 5,
-    textAlign: 'center',
-  },
-  progressBarBackground: {
-    height: 20,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 10,
-    overflow: 'hidden', // Ensures the fill stays within bounds
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#4CAF50', // Green color for progress
-    borderRadius: 10,
-  },
-  list: {
-    flex: 1, // Ensure list takes available space
-  },
-  habitItem: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    flexDirection: 'row', // Arrange info and button side-by-side
-    justifyContent: 'space-between',
+  dateSelectorContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2.62,
-    elevation: 4,
+    paddingHorizontal: 10,
+    marginBottom: 20,
   },
-  habitInfo: {
-    flex: 1, // Allow text to take up available space before button
-    marginRight: 10, // Space between text and button
+  dateScrollContent: {
+    alignItems: 'center',
   },
-  habitName: {
+  dateItem: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginHorizontal: 4,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  selectedDateItem: {
+    backgroundColor: '#d05b52',
+  },
+  dateDayText: {
+    fontSize: 12,
+    color: '#7f8c8d', // Greyish text
+  },
+  dateNumberText: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
+    color: '#2c3e50',
   },
-  habitDescription: {
-    fontSize: 14,
-    color: '#555',
-    marginTop: 3,
+  selectedDateText: {
+    color: '#FFFFFF',
   },
-  habitNotes: {
+  dateChevron: {
+      fontSize: 20,
+      color: '#7f8c8d',
+      paddingHorizontal: 10,
+  },
+  overallProgressContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  progressText: {
+    fontSize: 16,
+    color: '#d05b52',
+    marginTop: 10,
+    fontWeight: 'bold',
+  },
+  listContentContainer: {
+    paddingHorizontal: 15,
+  },
+   row: {
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  habitCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 15,
+    width: '48%', // For 2 columns with a bit of space
+    aspectRatio: 1, // Makes it a square
+    justifyContent: 'space-between', // Pushes button to bottom
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  habitInfoTouchable: {
+      alignItems: 'center', // Center name and progress/text
+      width: '100%',
+  },
+  habitName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  habitPercentageText: {
     fontSize: 14,
-    color: '#777',
-    fontStyle: 'italic',
-    marginTop: 3,
+    color: '#d05b52',
+  },
+  habitProgressCircleContainer: {
+      marginVertical: 8,
+  },
+  completeButton: {
+    backgroundColor: '#d05b52',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    width: '80%',
+    alignItems: 'center',
+    marginTop: 'auto', // Pushes button to bottom when habitInfoTouchable content is small
+  },
+  completedButton: {
+    backgroundColor: '#7f8c8d', // Greyed out when completed
+  },
+  completeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   emptyText: {
     textAlign: 'center',
@@ -444,23 +569,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'gray',
   },
-  loader: {
-    flex: 1,
+  addHabitFab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    backgroundColor: '#d05b52',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 8,
   },
-  // Styles for individual habit progress bar
-  habitProgressContainer: {
-    height: 10, // Smaller height for individual habit progress
-    backgroundColor: '#e0e0e0',
-    borderRadius: 5,
-    marginTop: 5,
-    marginBottom: 5,
-    overflow: 'hidden',
-  },
-  habitProgressBarFill: {
-    height: '100%',
-    backgroundColor: '#68B96B', // Slightly different green or same as main
-    borderRadius: 5,
+  addHabitFabText: {
+    fontSize: 30,
+    color: 'white',
   },
 });

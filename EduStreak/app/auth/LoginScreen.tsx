@@ -2,7 +2,7 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { useRouter } from 'expo-router';
 import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import React, { useState } from 'react';
-import { Alert, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth } from '../../config/firebase'; // Adjust path as necessary
 
 // Configure Google Sign In only for native platforms
@@ -25,7 +25,7 @@ export default function LoginScreen() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // Navigate to a different screen on successful login, e.g., home
-      router.replace('/(tabs)/' as any); // Navigate to the default tab screen
+      router.replace('/(tabs)'); // Navigate to the default tab screen
     } catch (error: any) {
       Alert.alert('Login Failed', error.message);
     }
@@ -37,7 +37,7 @@ export default function LoginScreen() {
         const provider = new GoogleAuthProvider();
         await signInWithPopup(auth, provider);
         // Firebase auth state change will handle navigation via RootLayout
-        router.replace('/(tabs)/' as any); // Or rely on RootLayout's auth listener
+        router.replace('/(tabs)'); // Or rely on RootLayout's auth listener
       } catch (error: any) {
         Alert.alert('Google Sign In Error (Web)', error.message);
         console.error('Google Sign In Error (Web): ', error);
@@ -50,7 +50,7 @@ export default function LoginScreen() {
         if (userInfo.idToken) {
           const googleCredential = GoogleAuthProvider.credential(userInfo.idToken);
           await signInWithCredential(auth, googleCredential);
-          router.replace('/(tabs)/' as any);
+          router.replace('/(tabs)');
         } else {
           Alert.alert('Google Sign In Error', 'No ID token present in Google User Info.');
         }
@@ -71,11 +71,19 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Image source={require('../../assets/images/splash_icon_edustreak.png')} style={styles.logo} />
+      
+      <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
+        <Image source={require('../../assets/images/google_icon.png')} style={styles.googleIcon} />
+        <Text style={styles.googleButtonText}>CONTINUE WITH GOOGLE</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.orText}>OR LOG IN WITH EMAIL</Text>
+
       <TextInput
         style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#ccc"
+        placeholder="Email address"
+        placeholderTextColor="#A9A9A9" // Light grey placeholder text
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -84,24 +92,22 @@ export default function LoginScreen() {
       <TextInput
         style={styles.input}
         placeholder="Password"
-        placeholderTextColor="#ccc"
+        placeholderTextColor="#A9A9A9" // Light grey placeholder text
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.buttonContainer} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+        <Text style={styles.loginButtonText}>LOG IN</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.linkButton} onPress={() => router.push('/auth/ForgotPasswordScreen' as any)}>
-        <Text style={styles.linkButtonText}>Forgot Password?</Text>
-      </TouchableOpacity>
-      <View style={styles.spacer} />
-      <TouchableOpacity style={styles.buttonContainer} onPress={handleGoogleSignIn}>
-        <Text style={styles.buttonText}>Sign in with Google</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.linkButton} onPress={() => router.push('/auth/RegisterScreen' as any)}>
-        <Text style={styles.linkButtonText}>Don't have an account? Register</Text>
-      </TouchableOpacity>
+      <View style={styles.linksContainer}>
+        <TouchableOpacity onPress={() => router.push('/auth/ForgotPasswordScreen')}>
+          <Text style={styles.linkText}>Forgot Password?</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/auth/RegisterScreen')}>
+          <Text style={[styles.linkText, styles.signUpText]}>SIGN UP</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -109,46 +115,95 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 16,
-    backgroundColor: '#000', // Black background
+    backgroundColor: '#FFFFFF', // White background
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'android' ? 40 : 60, // Adjust top padding for status bar
+    paddingHorizontal: 20,
   },
-  title: {
-    fontSize: 24,
-    marginBottom: 24, // Increased margin
-    textAlign: 'center',
-    color: '#d05b52', // Updated color
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? 45 : 65, // Adjust for status bar
+    left: 20,
+    zIndex: 1, // Ensure it's above other elements
+    padding: 10, // Add padding for easier touch
+  },
+  backArrow: {
+    width: 24, // Adjust as needed
+    height: 24, // Adjust as needed
+    resizeMode: 'contain',
+  },
+  logo: {
+    width: 200, // Adjust as needed
+    height: 100, // Adjust as needed
+    resizeMode: 'contain',
+    marginBottom: 40,
+    marginTop: 20, // Add some margin top if back button is present
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0', // Light grey border
+    borderRadius: 25, // Rounded corners
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    marginBottom: 20,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 15,
+  },
+  googleButtonText: {
+    color: '#000000', // Black text
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  orText: {
+    color: '#d05b52', // Theme color
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 20,
   },
   input: {
-    height: 40,
-    borderColor: '#d05b52', // Updated color
-    borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 8,
-    color: '#fff', // White text for input
-    backgroundColor: '#333', // Darker background for input
-  },
-  buttonContainer: {
-    backgroundColor: '#d05b52', // Updated color
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  buttonText: {
-    color: '#fff', // White text for buttons
+    backgroundColor: '#F5F5F5', // Light grey background
+    borderRadius: 10, // Rounded corners
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    marginBottom: 15,
+    width: '100%',
     fontSize: 16,
+    color: '#000000', // Black text
   },
-  linkButton: {
-    marginTop: 10,
+  loginButton: {
+    backgroundColor: '#d05b52', // Theme color
+    borderRadius: 25, // Rounded corners
+    paddingVertical: 15,
+    paddingHorizontal: 30,
     alignItems: 'center',
+    marginBottom: 20,
+    width: '100%',
   },
-  linkButtonText: {
-    color: '#d05b52', // Updated color
+  loginButtonText: {
+    color: '#FFFFFF', // White text
     fontSize: 16,
+    fontWeight: 'bold',
   },
-  spacer: {
-    height: 10,
-  }
+  linksContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 10, // Add some padding if needed
+  },
+  linkText: {
+    color: '#000000', // Black text
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  signUpText: {
+    color: '#d05b52', // Theme color
+  },
 }); 

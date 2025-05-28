@@ -4,12 +4,13 @@
     "slug": "EduStreak",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/splash_icon_edustreak.png",
     "scheme": "edustreak",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.edustreak.edustreak",
       "infoPlist": {
         "CFBundleURLTypes": [
           {
@@ -24,11 +25,12 @@
           }
         ]
       },
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "icon": "./assets/images/splash_icon_edustreak.png"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/splash_icon_edustreak.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -44,7 +46,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash_icon_edustreak.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -61,6 +63,9 @@
       "eas": {
         "projectId": "b88cb93c-a732-41af-9fc5-dea010c1994b"
       }
+    },
+    "splash": {
+      "image": "./assets/images/splash_icon_edustreak.png"
     }
   }
 }
