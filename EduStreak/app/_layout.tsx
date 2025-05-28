@@ -31,9 +31,12 @@ const DrawerLayout = () =>
                 options={{drawerLabel: 'Settings', headerTitle: 'Settings',}}/>
                 <Drawer.Screen name='leaderboard'
                 options={{drawerLabel: 'Leaderboard', headerTitle: 'Leaderboard'}}/>
+                <Drawer.Screen name='signup'
+                options={{drawerLabel:'signup', headerTitle:'signup'}}/>
             </Drawer>
         </GestureHandlerRootView>
     );
 };
 
 export default DrawerLayout;
+
