@@ -1,13 +1,35 @@
 import { Text, View, StyleSheet, Switch, SafeAreaView, ScrollView, Pressable } from "react-native";
 import React, { useState } from 'react';
+import { useLayoutEffect } from "react";
+import { useNavigation } from "expo-router";
 
 export default function Settings() {
       const [notificationsEnabled, setNotificationsEnabled] = useState(true);
       const [aiAssistanceEnabled, setAiAssistanceEnabled] = useState(true);
 
+      const navigation = useNavigation();
+
+    const onToggle = () =>
+    {
+        navigation.dispatch(DrawerActions.openDrawer());
+    };
+      useLayoutEffect(() => {
+            navigation.setOptions({
+                headerTitleStyle: {
+                  color: '#fff',       // Your desired text color
+                  fontSize: 24,        // Your desired font size
+                  fontWeight: 'bold',
+
+                },
+                headerStyle: {
+                  backgroundColor: '#D1624A', // Optional: white background
+                },
+             headerTintColor: '#fff'
+              });
+            }, [navigation]);
+
     return (
          <SafeAreaView style={styles.container}>
-          <Text style={styles.header}>Settings</Text>
                <ScrollView contentContainerStyle={styles.content}>
                  <View style={styles.box}>
                    <Text style={styles.label}>Profile</Text>
@@ -59,6 +81,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#D1624A',
     paddingHorizontal: 20,
+    paddingTop: 12,
   },
   header:
   {
@@ -75,7 +98,7 @@ const styles = StyleSheet.create({
   box:
   {
     backgroundColor: '#DE7460',
-    borderRadius: 6,
+    borderRadius: 3,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
