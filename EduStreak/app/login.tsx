@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Image,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -29,6 +30,14 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+       {Platform.OS !== "web" && (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButtonContainer}
+            >
+              <Text style={styles.backButtonText}>←</Text>
+            </TouchableOpacity>
+          )}
       <Image source={logo} style={styles.logo} />
 
       <TouchableOpacity
@@ -84,6 +93,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 50,
+  },
+
+    backButtonContainer: {
+      position: "absolute",
+      top: Platform.OS === "ios" ? 50 : 30,
+      left: 20,
+      zIndex: 1,
+    },
+
+  backButtonText: {
+    fontSize: 24,
+    color: "#000",
   },
 
   logo: {
