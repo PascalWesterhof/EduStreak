@@ -1,0 +1,40 @@
+import React, { useEffect } from "react";
+import { View, Text, StyleSheet, PermissionsAndroid } from "react-native";
+import messaging from "@react-native-firebase/messaging";
+
+
+export default function App() {
+  useEffect(() => {
+    const requestPermission = async () => {
+      await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+      const authStatus = await messaging().requestPermission();
+      console.log("Authorization status:", authStatus);
+
+      const token = await messaging().getToken();
+      console.log("FCM token:", token);
+    };
+
+    requestPermission();
+
+    // Handle notification when the app is in foreground
+    const unsubscribe = messaging().onMessage(async (remoteMessage) => {
+      console.log("A new FCM message arrived!", remoteMessage);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <Text>Push Notifications Test</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

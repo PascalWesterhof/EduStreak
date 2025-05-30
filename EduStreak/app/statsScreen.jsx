@@ -1,30 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
-import { getHabitData, calculateStats } from './statsUtils';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';  // Adjust path if needed
 
-const StatsScreen = ({ userId, habitId }) => {
+export default function StatsScreen({ userId, habitId }) {
   const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!userId || !habitId) return;
+
     const fetchStats = async () => {
-      const habit = await getHabitData(userId, habitId);
-      if (habit) {
-        const stats = calculateStats(habit.completions, habit.createdAt);
-        setStats(stats);
+      setLoading(true);
+      try {
+        const docRef = doc(db, 'users', userId, 'habits', habitId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setStats(data);
+        } else {
+          setStats(null); // no data found
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchStats();
-  }, []);
 
-  if (!stats) return <Text>Loading...</Text>;
+    fetchStats();
+  }, [userId, habitId]);
+
+  if (loading) return <Text>Loading...</Text>;
+  if (!stats) return <Text>No stats found for this habit.</Text>;
 
   return (
     <View>
-      <Text>🔥 Current Streak: {stats.currentStreak} days</Text>
-      <Text>✅ Completion Rate: {stats.completionRate}%</Text>
-      <Text>📅 Total Days Completed: {stats.totalCompleted}</Text>
+      <Text>Stats: {JSON.stringify(stats)}</Text>
     </View>
   );
-};
-
-export default StatsScreen;
+}

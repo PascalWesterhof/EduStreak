@@ -13,6 +13,7 @@ export default function Calendar() {
       const dates = Array.from({ length: totalCells }, (_, i) => {
         if (i < offset) return null;
         return i - offset + 1;
+
       });
 
       const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
