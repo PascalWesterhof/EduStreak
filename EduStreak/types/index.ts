@@ -13,6 +13,7 @@ export interface Habit {
   notes?: string; // Optional notes
   createdAt: string; // ISO date string
   isDefault?: boolean; // To identify default habits
+  reminderTime?: string; // Optional: custom time for a reminder (e.g., "09:00")
 }
 
 export interface HabitCompletion {
@@ -20,4 +21,13 @@ export interface HabitCompletion {
   date: string; // ISO date string, format YYYY-MM-DD
   isCompleted: boolean;
   notes?: string; // Notes specific to this day's completion
+}
+
+export interface InAppNotification {
+  id: string;
+  message: string;
+  timestamp: string; // ISO date string
+  read: boolean;
+  type?: 'reminder' | 'achievement' | 'general'; // Optional: categorize notifications
+  relatedHabitId?: string; // Optional: link to a specific habit
 } 

@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import 'react-native-get-random-values';
 import 'react-native-reanimated';
-import { auth } from '../config/firebase'; // Adjust path if your firebase.js is elsewhere
+import { auth } from '../config/firebase';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -54,8 +54,8 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
-        {/* Add auth screens to the stack if they are not in a group */}
         <Stack.Screen name="auth/LoginScreen" options={{ headerShown: false }} />
         <Stack.Screen name="auth/RegisterScreen" options={{ headerShown: false }} />
         <Stack.Screen name="auth/ForgotPasswordScreen" options={{ headerShown: false }} />
@@ -89,17 +89,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
     alignItems: 'center', 
-    // justifyContent: 'center', // Removed to allow inner to stick to top if not full height by default
   },
   webInnerContainer: {
     width: '100%',
-    maxWidth: 1200, // Increased width
-    height: '100%', // Full height
-    // maxHeight: Dimensions.get('window').height * 0.9, // This is no longer needed if height is 100%
+    maxWidth: 1200, 
+    height: '100%', 
     backgroundColor: 'white', 
-    borderRadius: Platform.OS === 'web' ? 8 : 0, // Subtle rounded corners for the "app window"
-    overflow: 'hidden', // Important to contain the drawer and rounded corners
-    elevation: Platform.OS === 'web' ? 5 : 0, // Shadow for web
+    borderRadius: Platform.OS === 'web' ? 8 : 0, 
+    overflow: 'hidden', 
+    elevation: Platform.OS === 'web' ? 5 : 0, 
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

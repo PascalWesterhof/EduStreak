@@ -38,8 +38,6 @@ export default function HabitDetailScreen() {
         setHabit(null); 
         setIsLoading(false); 
         setError("User not authenticated. Please sign in.");
-        // Optionally redirect to login if critical
-        // router.replace('/auth/LoginScreen');
       }
     });
     return () => unsubscribe();

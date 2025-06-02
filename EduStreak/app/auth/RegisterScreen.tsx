@@ -1,9 +1,11 @@
 import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore'; // Added for Firestore
+import { doc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { auth, db } from '../../config/firebase'; // Adjust path as necessary
+import { auth, db } from '../../config/firebase';
+import { colors } from '../../constants/Colors';
+import { globalStyles } from '../../styles/globalStyles';
 
 export default function RegisterScreen() {
   const [displayName, setDisplayName] = useState('');
@@ -51,46 +53,46 @@ export default function RegisterScreen() {
         <Image source={require('../../assets/icons/back_arrow.png')} style={styles.backArrow} />
       </TouchableOpacity>
       <Image source={require('../../assets/images/splash_icon_edustreak.png')} style={styles.logo} />
-      <Text style={styles.headerText}>CREATE ACCOUNT</Text>
+      <Text style={[globalStyles.titleText, styles.headerTextCustom]}>CREATE ACCOUNT</Text>
 
       <TextInput
-        style={styles.input}
+        style={[globalStyles.inputBase, styles.inputCustom]}
         placeholder="Display Name"
-        placeholderTextColor="#A9A9A9"
+        placeholderTextColor={colors.placeholderText}
         value={displayName}
         onChangeText={setDisplayName}
         autoCapitalize="words"
       />
       <TextInput
-        style={styles.input}
+        style={[globalStyles.inputBase, styles.inputCustom]}
         placeholder="Email address"
-        placeholderTextColor="#A9A9A9"
+        placeholderTextColor={colors.placeholderText}
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
       />
       <TextInput
-        style={styles.input}
+        style={[globalStyles.inputBase, styles.inputCustom]}
         placeholder="Password"
-        placeholderTextColor="#A9A9A9"
+        placeholderTextColor={colors.placeholderText}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
       <TextInput
-        style={styles.input}
+        style={[globalStyles.inputBase, styles.inputCustom]}
         placeholder="Confirm Password"
-        placeholderTextColor="#A9A9A9"
+        placeholderTextColor={colors.placeholderText}
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-        <Text style={styles.registerButtonText}>CREATE ACCOUNT</Text>
+      <TouchableOpacity style={[globalStyles.inputBase, styles.registerButtonCustom]} onPress={handleRegister}>
+        <Text style={[globalStyles.bodyText, styles.registerButtonTextCustom]}>CREATE ACCOUNT</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/auth/LoginScreen')}>
-        <Text style={styles.loginLinkText}>Already have an account? <Text style={styles.loginLinkTextHighlight}>LOG IN</Text></Text>
+      <TouchableOpacity style={styles.loginLinkContainer} onPress={() => router.push('/auth/LoginScreen')}>
+        <Text style={[globalStyles.bodyText, styles.loginLinkTextCustom]}>Already have an account? <Text style={[styles.loginLinkTextHighlightCustom]}>LOG IN</Text></Text>
       </TouchableOpacity>
     </View>
   );
@@ -99,7 +101,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     alignItems: 'center',
     paddingTop: Platform.OS === 'android' ? 40 : 60,
     paddingHorizontal: 20,
@@ -115,54 +117,49 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     resizeMode: 'contain',
+    tintColor: colors.textDefault,
   },
   logo: {
-    width: 180, // Slightly smaller for register if needed
+    width: 180,
     height: 90,
     resizeMode: 'contain',
     marginBottom: 20,
     marginTop: 20,
   },
-  headerText: {
-    fontSize: 18,
+  headerTextCustom: {
+    color: colors.textDefault,
     fontWeight: 'bold',
-    color: '#000000',
     marginBottom: 30,
   },
-  input: {
-    backgroundColor: '#F5F5F5',
+  inputCustom: {
+    width: '100%',
     borderRadius: 10,
     paddingVertical: 15,
     paddingHorizontal: 20,
     marginBottom: 15,
-    width: '100%',
-    fontSize: 16,
-    color: '#000000',
   },
-  registerButton: {
-    backgroundColor: '#d05b52',
+  registerButtonCustom: {
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    width: '100%',
     borderRadius: 25,
     paddingVertical: 15,
     paddingHorizontal: 30,
-    alignItems: 'center',
     marginBottom: 20,
-    width: '100%',
   },
-  registerButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+  registerButtonTextCustom: {
+    color: colors.white,
     fontWeight: 'bold',
   },
-  loginLink: {
+  loginLinkContainer: {
     marginTop: 10,
   },
-  loginLinkText: {
-    color: '#000000',
-    fontSize: 14,
+  loginLinkTextCustom: {
+    color: colors.textDefault,
     textAlign: 'center',
   },
-  loginLinkTextHighlight: {
-    color: '#d05b52',
+  loginLinkTextHighlightCustom: {
+    color: colors.primary,
     fontWeight: 'bold',
   },
 }); 

@@ -1,8 +1,10 @@
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, Platform, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { auth, db } from '../../config/firebase';
+import { colors } from '../../constants/Colors';
+import { globalStyles } from '../../styles/globalStyles';
 
 // Define a type for our leaderboard item
 interface LeaderboardItem {
@@ -88,8 +90,10 @@ export default function Leaderboard() {
   }, [fetchLeaderboardData]); // fetchLeaderboardData is memoized with all its dependencies
 
   const renderItem = ({ item }: { item: LeaderboardItem }) => {
-    const isTopUser = item.rank === 1; // Highlight only for global top user
-    const rankCircleStyle = item.rank && item.rank <= 3 ? styles.rankCircleTop : styles.rankCircleDefault;
+    const isTopUser = item.rank === 1;
+    const isTopThree = item.rank !== undefined && item.rank <= 3;
+    const rankCircleStyle = isTopThree ? styles.rankCircleTop : styles.rankCircleDefault;
+    const rankTextStyle = isTopThree ? styles.rankTextTop : styles.rankText;
     // Determine score based on sortMetric
     let scoreValue: number;
     switch (sortMetric) {
@@ -102,7 +106,7 @@ export default function Leaderboard() {
     return (
       <View style={[styles.itemContainer, isTopUser && styles.topUserItemContainer]}>
         <View style={[styles.rankCircle, rankCircleStyle]}>
-          <Text style={styles.rankText}>{item.rank}</Text>
+          <Text style={rankTextStyle}>{item.rank}</Text>
         </View>
         {item.photoURL ? (
           <Image source={{ uri: item.photoURL }} style={styles.avatar} />
@@ -121,7 +125,7 @@ export default function Leaderboard() {
   };
 
   return (
-    <View style={styles.outerContainer}>
+    <View style={[globalStyles.screenContainer, styles.outerContainerCustom]}>
       <StatusBar barStyle="dark-content" />
       {/* Custom Header */}
       <View style={styles.headerContainer}>
@@ -129,17 +133,17 @@ export default function Leaderboard() {
           <Image source={require('../../assets/icons/burger_menu_icon.png')} style={styles.menuIcon} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Group </Text>
-          <Text style={[styles.headerTitle, styles.headerTitleHighlight]}>Leaderboard</Text>
+          <Text style={[globalStyles.headerText, styles.headerTitleCustom]}>Group </Text>
+          <Text style={[globalStyles.headerText, styles.headerTitleCustom, styles.headerTitleHighlight]}>Leaderboard</Text>
         </View>
       </View>
 
-      {/* Sort Options RESTORED */}
+      {/* Sort Options */}
       <View style={styles.sortOptionsContainer}>
         {SORT_METRICS.map((option, index) => (
           <React.Fragment key={option.value}>
             <TouchableOpacity onPress={() => setSortMetric(option.value)}>
-              <Text style={[styles.sortOptionText, sortMetric === option.value && styles.sortOptionTextActive]}>
+              <Text style={[globalStyles.mutedText, styles.sortOptionTextCustom, sortMetric === option.value && styles.sortOptionTextActive]}>
                 {option.label}
               </Text>
             </TouchableOpacity>
@@ -149,11 +153,11 @@ export default function Leaderboard() {
       </View>
 
       {isLoading ? (
-        <ActivityIndicator size="large" color="#d05b52" style={styles.loader} />
+        <ActivityIndicator size="large" color={colors.accent} style={globalStyles.centeredContainer} />
       ) : error ? (
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={[globalStyles.errorText, styles.errorTextCustom]}>{error}</Text>
       ) : leaderboardData.length === 0 ? (
-        <Text style={styles.emptyText}>
+        <Text style={[globalStyles.bodyText, styles.emptyTextCustom]}>
           {"Leaderboard is empty or no users match the criteria."}
         </Text>
       ) : (
@@ -169,10 +173,8 @@ export default function Leaderboard() {
 }
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    flex: 1,
-    backgroundColor: '#F4F6F8', // Light greyish background, similar to image
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
+  outerContainerCustom: {
+    backgroundColor: colors.lightGray,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -189,57 +191,44 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     resizeMode: 'contain',
-    tintColor: '#2c3e50', // Darker icon for light background
+    tintColor: colors.textDefault,
   },
   headerTitleContainer: {
     flexDirection: 'row',
   },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#2c3e50', // Dark grey
+  headerTitleCustom: {
+    color: colors.textDefault,
   },
   headerTitleHighlight: {
-    color: '#d05b52', // Theme color
+    color: colors.accent,
   },
   sortOptionsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 10, // Reduced padding a bit
+    paddingVertical: 10,
     paddingHorizontal: 20,
     marginBottom: 10,
   },
-  sortOptionText: {
-    fontSize: 14,
-    color: '#7f8c8d', // Muted grey
+  sortOptionTextCustom: {
     marginHorizontal: 5,
   },
   sortOptionTextActive: {
-    color: '#d05b52', // Theme color
+    color: colors.accent,
     fontWeight: 'bold',
   },
   sortSeparator: {
     fontSize: 14,
-    color: '#bdc3c7', // Lighter grey for separator
+    color: colors.mediumGray,
   },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: 'red',
-    textAlign: 'center',
+  errorTextCustom: {
     marginTop: 20,
-    fontSize: 16,
     paddingHorizontal: 20,
   },
-  emptyText: {
-    color: '#7f8c8d',
+  emptyTextCustom: {
+    color: colors.textMuted,
     textAlign: 'center',
     marginTop: 50,
-    fontSize: 16,
     paddingHorizontal: 20,
   },
   listContentContainer: {
@@ -248,22 +237,22 @@ const styles = StyleSheet.create({
   itemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    marginBottom: 10,
-    shadowColor: "#000",
+    backgroundColor: colors.cardBackground,
+    padding: 10,
+    marginVertical: 6,
+    marginHorizontal: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.borderColor,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
     elevation: 2,
-    borderWidth: 1,
-    borderColor: 'transparent', // Default no border
   },
   topUserItemContainer: {
-    borderColor: '#d05b52', // Theme color border for top user
-    borderWidth: 2,
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.accent,
   },
   rankCircle: {
     width: 30,
@@ -273,56 +262,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  rankCircleTop: {
-    backgroundColor: '#d05b52', // Theme color for top 3
-  },
   rankCircleDefault: {
-    backgroundColor: '#e0e0e0', // Light grey for others
+    backgroundColor: colors.borderColor,
+  },
+  rankCircleTop: {
+    backgroundColor: colors.accent,
   },
   rankText: {
     fontSize: 14,
-    color: '#FFFFFF', // White text for rank on colored circle
+    color: colors.textDefault,
     fontWeight: 'bold',
+  },
+  rankTextTop: {
+    color: colors.primaryText,
   },
   avatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
     marginRight: 10,
-    backgroundColor: '#f0f0f0', // Placeholder background
+    backgroundColor: '#f0f0f0',
   },
   avatarPlaceholder: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 10,
-    backgroundColor: '#cccccc', // A slightly darker grey for placeholder
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.mediumGray,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarPlaceholderText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: colors.primaryText,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   nameText: {
+    flex: 1,
     fontSize: 16,
-    color: '#2c3e50',
     fontWeight: '500',
-    flex: 1, // Take remaining space
-    marginRight: 10,
+    color: colors.textDefault,
+    marginLeft: 12,
   },
   separator: {
+    height: '60%',
     width: 1,
-    height: '60%', // Vertical line height
-    backgroundColor: '#e0e0e0', // Light grey separator
+    backgroundColor: colors.lightGray,
     marginHorizontal: 10,
   },
   scoreText: {
     fontSize: 16,
-    color: '#2c3e50',
     fontWeight: 'bold',
-    minWidth: 50, // Ensure some space for score
-    textAlign: 'right',
+    color: colors.accent,
   },
 });

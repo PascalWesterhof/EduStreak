@@ -33,8 +33,7 @@ yarn-error.*
 # local env files
 .env*.local
 
-# Firebase config
-config/firebase.js
+# Google Services
 google-services.json
 GoogleService-Info.plist
 
@@ -45,3 +44,6 @@ app-example
 
 # Environment variables
 .env
+
+# Android files
+android/

@@ -1,15 +1,17 @@
 import { DrawerActions, useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth'; // Import onAuthStateChanged and User type
-import { collection, doc, getDoc, getDocs, increment, query, setDoc, Timestamp, updateDoc } from 'firebase/firestore'; // Firestore functions
+import { addDoc, collection, doc, getDoc, getDocs, increment, query, setDoc, Timestamp, updateDoc } from 'firebase/firestore'; // Firestore functions
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-get-random-values'; // For uuid
-import Svg, { Circle, Text as SvgText } from 'react-native-svg'; // Added for Circular Progress
+import Svg, { Circle, Text as SvgText } from 'react-native-svg'; // Added for Circular Progress bar
 import { v4 as uuidv4 } from 'uuid';
 import { auth, db } from '../../config/firebase'; // Import db and auth
-import { Habit } from '../../types'; // Adjusted path
-import AddHabitScreen from '../habit/AddHabitScreen'; // Adjusted path for new location
+import { colors } from '../../constants/Colors'; // Import global colors
+import { globalStyles } from '../../styles/globalStyles'; // Import global styles
+import { Habit, InAppNotification } from '../../types'; // Path for types
+import AddHabitScreen from '../habit/AddHabitScreen';
 
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -17,14 +19,14 @@ const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const getIsoDateString = (date: Date) => date.toISOString().split('T')[0];
 
 // Helper for Circular Progress
-const CircularProgress = ({ percentage, radius = 40, strokeWidth = 8, color = "#d05b52" }: { percentage: number; radius?: number; strokeWidth?: number; color?: string }) => {
+const CircularProgress = ({ percentage, radius = 40, strokeWidth = 8, color = colors.accent }: { percentage: number; radius?: number; strokeWidth?: number; color?: string }) => {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
       <Svg height={radius * 2 + strokeWidth} width={radius * 2 + strokeWidth}>
         <Circle
-          stroke="#e6e6e6"
+          stroke={colors.lightGray}
           fill="none"
           cx={(radius * 2 + strokeWidth)/2}
           cy={(radius * 2 + strokeWidth)/2}
@@ -49,7 +51,7 @@ const CircularProgress = ({ percentage, radius = 40, strokeWidth = 8, color = "#
             textAnchor="middle"
             dy=".3em"
             fontSize="16"
-            fill="#000000"
+            fill={colors.black}
             fontWeight="bold"
         >
             {`${Math.round(percentage)}%`}
@@ -68,63 +70,62 @@ export default function Index() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null); // Initialize to null
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [userName, setUserName] = useState("User"); // Default user name
+  const [inAppNotifications, setInAppNotifications] = useState<InAppNotification[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
-  // Listen for auth state changes
-  useEffect(() => {
-    setIsLoading(true); // Start loading when checking auth state
-    const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
-      if (user) {
-        console.log("User is signed in with ID: ", user.uid);
-        setCurrentUserId(user.uid);
-        setUserName(user.displayName || "User"); // Set user display name
-      } else {
-        console.log("User is signed out.");
-        setCurrentUserId(null);
-        setHabits([]); // Clear habits if user signs out
-        setUserName("User");
-        setIsLoading(false); // Stop loading if no user
-      }
-      // Note: setIsLoading(false) for the habits fetch is handled in the habits useEffect
-    });
-
-    return () => unsubscribe(); // Cleanup subscription on unmount
-  }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
-
-  // Fetch habits from Firestore when the screen is focused or userId changes
+  // Listen for auth state changes and fetch habits when the screen is focused or userId/auth state changes
   useFocusEffect(
     useCallback(() => {
+      setIsLoading(true); // Start loading when checking auth state or focusing
+      console.log("IndexScreen focus effect running.");
+
+      const authUnsubscribe = onAuthStateChanged(auth, (user: User | null) => {
+        if (user) {
+          console.log("IndexScreen: User is signed in with ID: ", user.uid, "Name:", user.displayName);
+          setCurrentUserId(user.uid);
+          setUserName(user.displayName || "User"); // Set user display name
+        } else {
+          console.log("IndexScreen: User is signed out.");
+          setCurrentUserId(null);
+          setHabits([]); // Clear habits if user signs out
+          setInAppNotifications([]); // Clear notifications
+          setUnreadNotificationCount(0);
+          setUserName("User");
+          setIsLoading(false); 
+        }
+      });
+
       if (!currentUserId) {
-        console.log("IndexScreen focused, but no user ID. Clearing habits.");
+        console.log("IndexScreen: No user ID during focus. Clearing habits and notifications.");
         setHabits([]);
-        setIsLoading(false);
-        return; // Don't try to fetch if no user
+        setInAppNotifications([]);
+        setUnreadNotificationCount(0);
+        if (auth.currentUser === null) setIsLoading(false);
+        return () => {
+          console.log("IndexScreen: Cleaning up auth listener (no user path).");
+          authUnsubscribe();
+        };
       }
 
-      console.log(`IndexScreen focused for user: ${currentUserId}. Fetching habits.`);
-      const fetchHabits = async () => {
-        setIsLoading(true);
+      console.log(`IndexScreen: User ${currentUserId} is present. Fetching data.`);
+      const fetchData = async () => {
         try {
-          // Add an explicit check for currentUserId and db before using them
           if (!db || typeof currentUserId !== 'string') {
             console.error("Firestore instance (db) is not available or currentUserId is not a string.");
-            setIsLoading(false);
             return;
           }
+          // Fetch Habits
           const habitsCollectionRef = collection(db, 'users', currentUserId, 'habits');
-          const q = query(habitsCollectionRef); // Consider adding orderBy('createdAt', 'desc')
-          const querySnapshot = await getDocs(q);
+          const habitsQuery = query(habitsCollectionRef);
+          const habitsSnapshot = await getDocs(habitsQuery);
           const fetchedHabits: Habit[] = [];
-          querySnapshot.forEach((doc) => {
+          habitsSnapshot.forEach((doc) => {
             const data = doc.data();
             const createdAt = data.createdAt instanceof Timestamp 
                               ? data.createdAt.toDate().toISOString() 
                               : data.createdAt || new Date().toISOString();
-            // Ensure completionHistory has 'count' and defaults to 0 if migrating from 'completed'
             const completionHistory = (data.completionHistory || []).map((entry: any) => ({
               date: entry.date instanceof Timestamp ? entry.date.toDate().toISOString().split('T')[0] : entry.date,
-              // If migrating from old structure, 'completed: true' becomes 'count: 1' (or frequency.times if it was daily and only one click)
-              // For simplicity, new habits or habits not touched by old logic will correctly use count.
-              // A more robust migration would be needed for existing boolean 'completed' fields if target completions > 1
               count: typeof entry.count === 'number' ? entry.count : (entry.completed ? 1 : 0),
             }));
             fetchedHabits.push({
@@ -136,19 +137,122 @@ export default function Index() {
           });
           setHabits(fetchedHabits);
           console.log("Habits fetched successfully for IndexScreen:", fetchedHabits.length);
+
+          // Fetch In-App Notifications
+          const notificationsCollectionRef = collection(db, 'users', currentUserId, 'inAppNotifications');
+          // Optionally, order by timestamp descending: const notificationsQuery = query(notificationsCollectionRef, orderBy("timestamp", "desc"));
+          const notificationsQuery = query(notificationsCollectionRef);
+          const notificationsSnapshot = await getDocs(notificationsQuery);
+          const fetchedNotifications: InAppNotification[] = [];
+          let unreadCount = 0;
+          notificationsSnapshot.forEach((doc) => {
+            const data = doc.data();
+            const notification = {
+              id: doc.id,
+              ...data,
+              timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate().toISOString() : data.timestamp,
+            } as InAppNotification;
+            fetchedNotifications.push(notification);
+            if (!notification.read) {
+              unreadCount++;
+            }
+          });
+          setInAppNotifications(fetchedNotifications);
+          setUnreadNotificationCount(unreadCount);
+          console.log("In-app notifications fetched:", fetchedNotifications.length, "Unread:", unreadCount);
+
         } catch (error) {
-          console.error("Error fetching habits for IndexScreen: ", error);
+          console.error("Error fetching data for IndexScreen: ", error);
         } finally {
-          setIsLoading(false);
+          setIsLoading(false); 
         }
       };
 
-      fetchHabits();
+      fetchData();
       
-      // Optional: Return a cleanup function if fetchHabits sets up any subscriptions
-      // return () => { /* cleanup */ };
-    }, [currentUserId]) // Dependency: re-run if currentUserId changes
+      return () => {
+        console.log("IndexScreen: Cleaning up auth listener (user path).");
+        authUnsubscribe();
+      };
+    }, [currentUserId]) 
   );
+
+  const checkAndCreateReminderNotifications = async () => {
+    if (!currentUserId || getIsoDateString(selectedDate) !== getIsoDateString(new Date())) {
+      return; // Only run for current user and if selectedDate is today
+    }
+
+    const now = new Date();
+    const todayStr = getIsoDateString(now);
+    const dayOfWeek = now.getDay();
+
+    const habitsScheduledForToday = habits.filter(habit => {
+      if (habit.frequency.type === 'daily') return true;
+      if (habit.frequency.type === 'weekly') return habit.frequency.days?.includes(dayOfWeek);
+      return false;
+    });
+
+    for (const habit of habitsScheduledForToday) {
+      // Skip if habit is already fully completed for today
+      const habitEntry = habit.completionHistory.find(e => e.date === todayStr);
+      const targetCompletions = habit.frequency.type === 'daily' ? (habit.frequency.times || 1) : 1;
+      const isHabitCompleted = habitEntry && habitEntry.count >= targetCompletions;
+      if (isHabitCompleted) {
+        // console.log(`Habit '${habit.name}' already completed. Skipping reminder.`);
+        continue;
+      }
+
+      // Check for custom reminder time for this specific habit
+      if (habit.reminderTime) {
+        const [hours, minutes] = habit.reminderTime.split(':').map(Number);
+        const reminderDateTime = new Date(now);
+        reminderDateTime.setHours(hours, minutes, 0, 0);
+
+        if (now >= reminderDateTime) {
+          // Check if a reminder for this specific habit and for today already exists
+          const existingReminderForHabitToday = inAppNotifications.find(n => {
+            if (n.type === 'reminder' && n.relatedHabitId === habit.id) {
+              // Check if the notification's timestamp is for today
+              const notificationDateStr = getIsoDateString(new Date(n.timestamp));
+              return notificationDateStr === todayStr;
+            }
+            return false;
+          });
+
+          if (!existingReminderForHabitToday) {
+            console.log(`Creating reminder for specific habit: ${habit.name} at ${habit.reminderTime}`);
+            const newNotification: Omit<InAppNotification, 'id'> = {
+              message: `Reminder: It's time for '${habit.name}'! Don't forget to complete it. `,
+              timestamp: now.toISOString(),
+              read: false,
+              type: 'reminder',
+              relatedHabitId: habit.id,
+            };
+            try {
+              const notificationsCollectionRef = collection(db, 'users', currentUserId, 'inAppNotifications');
+              const docRef = await addDoc(notificationsCollectionRef, newNotification);
+              const notificationToAdd = { ...newNotification, id: docRef.id };
+              setInAppNotifications(prev => [...prev, notificationToAdd].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+              setUnreadNotificationCount(prev => prev + 1);
+            } catch (error) {
+              console.error(`Error creating reminder for ${habit.name}: `, error);
+            }
+          }
+        }
+      } 
+      // General end-of-day reminder (fallback if no specific reminder or if that logic is kept separate)
+      // For now, this is merged. If habit.reminderTime is not set, this won't trigger for this habit.
+      // The old generic 8 PM reminder logic is effectively replaced by per-habit reminders.
+    }
+    // The old generic 8 PM reminder can be removed or adapted if needed as a fallback
+  };
+
+  // useEffect to run reminder check 
+  useEffect(() => {
+    if (getIsoDateString(selectedDate) === getIsoDateString(new Date())) {
+      checkAndCreateReminderNotifications();
+    }
+  }, [habits, selectedDate, currentUserId]);
 
   // Generate dates for the horizontal selector
   const dateRange = useMemo(() => {
@@ -203,32 +307,45 @@ export default function Index() {
       return;
     }
     const newHabitId = uuidv4();
+    // Construct the full habit object including all potential fields from newHabitData
     const newHabit: Habit = {
-      ...newHabitData,
+      ...newHabitData, // Spread first to include description, notes, reminderTime if present
       id: newHabitId, 
       streak: 0,
       longestStreak: 0,
-      completionHistory: [], // Initialize with count structure
+      completionHistory: [],
       createdAt: new Date().toISOString(),
+      // isDefault will be handled by dataToSave construction if not in newHabitData
     };
 
     try {
-      // Add to Firestore - use a subcollection for user-specific habits
       const habitDocRef = doc(db, 'users', currentUserId, 'habits', newHabitId);
-      await setDoc(habitDocRef, {
-        // Explicitly list fields to save, omitting local 'id' if Firestore generates it
-        name: newHabit.name,
-        description: newHabit.description,
-        frequency: newHabit.frequency,
-        streak: newHabit.streak,
-        longestStreak: newHabit.longestStreak,
-        completionHistory: newHabit.completionHistory,
-        createdAt: Timestamp.fromDate(new Date(newHabit.createdAt)), // Store as Firestore Timestamp
-        isDefault: newHabit.isDefault,
-        notes: newHabit.notes,
-      });
+      
+      // Prepare data for Firestore, excluding undefined optional fields
+      const dataToSave: any = {
+        name: newHabit.name, // name is required
+        frequency: newHabit.frequency, // frequency is required
+        streak: newHabit.streak, // required, initialized to 0
+        longestStreak: newHabit.longestStreak, // required, initialized to 0
+        completionHistory: newHabit.completionHistory, // required, initialized to []
+        createdAt: Timestamp.fromDate(new Date(newHabit.createdAt)), // required
+        isDefault: newHabit.isDefault || false, // Ensure boolean, default to false if undefined
+      };
+
+      // Conditionally add optional fields to dataToSave
+      if (newHabit.description !== undefined) {
+        dataToSave.description = newHabit.description;
+      }
+      if (newHabit.notes !== undefined) {
+        dataToSave.notes = newHabit.notes;
+      }
+      if (newHabit.reminderTime !== undefined) {
+        dataToSave.reminderTime = newHabit.reminderTime;
+      }
+
+      await setDoc(habitDocRef, dataToSave);
       console.log("Habit added to Firestore with ID: ", newHabitId);
-      setHabits(prevHabits => [...prevHabits, { ...newHabit, id: newHabitId }]); // Add to local state with confirmed ID
+      setHabits(prevHabits => [...prevHabits, newHabit]); // Add the full newHabit object to local state
       setIsAddModalVisible(false);
     } catch (error) {
       console.error("Error adding habit to Firestore: ", error);
@@ -305,8 +422,6 @@ export default function Index() {
       }
       
       // Call the function to check for daily streak after habit state might have changed
-      // This needs to be called carefully, potentially after setHabits has flushed
-      // For now, let's call it, but be mindful of state synchronization for the check
       await checkAndUpdateDailyStreak(); 
     }
   };
@@ -329,7 +444,6 @@ export default function Index() {
     if (todaysScheduledHabits.length === 0) {
       // No habits scheduled for today, so can't complete all daily habits.
       // Or, decide if this means the streak is maintained by default (e.g. a rest day)
-      // For now, let's assume streak is not updated if no habits are scheduled for today.
       console.log("No habits scheduled for today. Streak not updated.");
       return; 
     }
@@ -418,7 +532,7 @@ export default function Index() {
   };
 
   if (isLoading) {
-    return <View style={styles.loaderContainer}><ActivityIndicator size="large" color="#d05b52" /></View>;
+    return <View style={globalStyles.centeredContainer}><ActivityIndicator size="large" color={colors.accent} /></View>;
   }
 
   return (
@@ -426,10 +540,18 @@ export default function Index() {
       <StatusBar barStyle="dark-content" />
       {/* Header */}
       <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => appNavigation.dispatch(DrawerActions.openDrawer())}>
+        <TouchableOpacity onPress={() => appNavigation.dispatch(DrawerActions.openDrawer())} style={styles.menuButtonContainer}>
           <Image source={require('../../assets/icons/burger_menu_icon.png')} style={styles.menuIcon} />
         </TouchableOpacity>
         <Text style={styles.greetingText}>Hello, <Text style={styles.userNameText}>{userName}!</Text></Text>
+        <TouchableOpacity onPress={() => router.push('/notifications/notifications')} style={styles.notificationIconButton}>
+          <Image source={require('../../assets/icons/bell_icon.png')} style={styles.notificationBellIcon} /> 
+          {unreadNotificationCount > 0 && (
+            <View style={styles.notificationBadgeOnIcon}>
+              <Text style={styles.notificationBadgeText}>{unreadNotificationCount > 0 ? unreadNotificationCount : ''}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Date Selector */}
@@ -489,15 +611,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4F6F8', // Light greyish background
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
   },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F4F6F8',
-  },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 10,
     marginBottom: 10,
@@ -506,15 +623,37 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     resizeMode: 'contain',
-    marginRight: 15,
+  },
+  menuButtonContainer: {
+    position: 'relative',
+    padding: 10,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: colors.error,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  notificationBadgeText: {
+    color: colors.primaryText,
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   greetingText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2c3e50', // Darker text color
+    color: colors.textDefault,
+    textAlign: 'center',
+    marginHorizontal: 10,
   },
   userNameText: {
-    color: '#d05b52', // Theme color for user name
+    color: colors.accent,
   },
   dateSelectorContainer: {
     flexDirection: 'row',
@@ -531,26 +670,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginHorizontal: 4,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   selectedDateItem: {
-    backgroundColor: '#d05b52',
+    backgroundColor: colors.accent,
   },
   dateDayText: {
     fontSize: 12,
-    color: '#7f8c8d', // Greyish text
+    color: colors.textMuted,
   },
   dateNumberText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: colors.textDefault,
   },
   selectedDateText: {
-    color: '#FFFFFF',
+    color: colors.primaryText,
   },
   dateChevron: {
       fontSize: 20,
-      color: '#7f8c8d',
+      color: colors.textMuted,
       paddingHorizontal: 10,
   },
   overallProgressContainer: {
@@ -560,7 +699,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 16,
-    color: '#d05b52',
+    color: colors.accent,
     marginTop: 10,
     fontWeight: 'bold',
   },
@@ -572,7 +711,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   habitCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 15,
     padding: 15,
     width: '48%', // For 2 columns with a bit of space
@@ -592,19 +731,19 @@ const styles = StyleSheet.create({
   habitName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2c3e50',
+    color: colors.textDefault,
     textAlign: 'center',
     marginBottom: 8,
   },
   habitPercentageText: {
     fontSize: 14,
-    color: '#d05b52',
+    color: colors.accent,
   },
   habitProgressCircleContainer: {
       marginVertical: 8,
   },
   completeButton: {
-    backgroundColor: '#d05b52',
+    backgroundColor: colors.accent,
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
@@ -613,10 +752,10 @@ const styles = StyleSheet.create({
     marginTop: 'auto', // Pushes button to bottom when habitInfoTouchable content is small
   },
   completedButton: {
-    backgroundColor: '#7f8c8d', // Greyed out when completed
+    backgroundColor: colors.textMuted,
   },
   completeButtonText: {
-    color: '#FFFFFF',
+    color: colors.primaryText,
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -624,13 +763,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 50,
     fontSize: 16,
-    color: 'gray',
+    color: colors.textMuted,
   },
   addHabitFab: {
     position: 'absolute',
     right: 20,
     bottom: 20,
-    backgroundColor: '#d05b52',
+    backgroundColor: colors.accent,
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -640,6 +779,28 @@ const styles = StyleSheet.create({
   },
   addHabitFabText: {
     fontSize: 30,
-    color: 'white',
+    color: colors.primaryText,
+  },
+  notificationIconButton: {
+    position: 'relative',
+    padding: 10,
+  },
+  notificationBellIcon: { 
+    width: 24, 
+    height: 24, 
+    resizeMode: 'contain',
+  },
+  notificationBadgeOnIcon: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: colors.error,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+    paddingHorizontal: 4,
   },
 });

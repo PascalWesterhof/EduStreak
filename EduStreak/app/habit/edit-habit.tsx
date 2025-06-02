@@ -1,20 +1,21 @@
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { deleteField, doc, getDoc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { auth, db } from '../../config/firebase'; // Adjusted path
-import { Habit } from '../../types'; // Adjusted path
+import { auth, db } from '../../config/firebase';
+import { Habit } from '../../types';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -31,9 +32,28 @@ export default function EditHabitScreen() {
   const [timesPerWeek, setTimesPerWeek] = useState('1');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [notes, setNotes] = useState('');
+  // Reminder Time States
+  const [reminderTime, setReminderTime] = useState<Date | undefined>(undefined);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  const parseTimeStringToDate = (timeString: string): Date | undefined => {
+    if (!timeString || !timeString.includes(':')) return undefined;
+    const [hours, minutes] = timeString.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return undefined;
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  };
+
+  const formatTime = (date: Date | undefined): string => {
+    if (!date) return '';
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -48,7 +68,7 @@ export default function EditHabitScreen() {
         const habitDocRef = doc(db, 'users', currentUserId, 'habits', routeHabitId as string);
         const docSnap = await getDoc(habitDocRef);
         if (docSnap.exists()) {
-          const habitData = docSnap.data() as Omit<Habit, 'id'>;
+          const habitData = docSnap.data() as Habit; // Cast to full Habit to get reminderTime 
           setName(habitData.name);
           setDescription(habitData.description || '');
           setFrequencyType(habitData.frequency.type);
@@ -59,6 +79,9 @@ export default function EditHabitScreen() {
             setSelectedDays(habitData.frequency.days || []);
           }
           setNotes(habitData.notes || '');
+          if (habitData.reminderTime) {
+            setReminderTime(parseTimeStringToDate(habitData.reminderTime));
+          }
         } else {
           Alert.alert("Error", "Habit not found for editing.");
           if(router.canGoBack()) router.back(); else router.replace('/(tabs)');
@@ -73,6 +96,23 @@ export default function EditHabitScreen() {
     };
     fetchHabitDetails();
   }, [navigation, routeHabitId, currentUserId, router]);
+
+  const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
+    setShowTimePicker(Platform.OS === 'ios');
+    if (event.type === 'dismissed') {
+      // User dismissed the picker, do nothing or reset to previous time if needed
+      if (Platform.OS !== 'ios') setShowTimePicker(false); // Close on Android if dismissed
+      return;
+    }
+    if (selectedTime) {
+      setReminderTime(selectedTime);
+    }
+    if (Platform.OS !== 'ios') setShowTimePicker(false); // Close on Android after selection
+  };
+
+  const clearReminderTime = () => {
+    setReminderTime(undefined);
+  };
 
   const handleUpdateHabit = async () => {
     if (!routeHabitId || !currentUserId) {
@@ -105,12 +145,35 @@ export default function EditHabitScreen() {
       frequency = { type: 'weekly', times, days: selectedDays.sort((a, b) => a - b) };
     }
 
-    const updatedHabitData = {
+    // Prepare data for Firestore update, handling deletions correctly
+    const updatedHabitData: { [key: string]: any } = {
       name: name.trim(),
-      description: description.trim(),
-      frequency,
-      notes: notes.trim(),
+      frequency: frequency,
     };
+
+    const descTrimmed = description.trim();
+    if (descTrimmed) {
+      updatedHabitData.description = descTrimmed;
+    } else {
+      updatedHabitData.description = deleteField();
+    }
+
+    const notesTrimmed = notes.trim();
+    if (notesTrimmed) {
+      updatedHabitData.notes = notesTrimmed;
+    } else {
+      updatedHabitData.notes = deleteField();
+    }
+
+    if (reminderTime) {
+      updatedHabitData.reminderTime = formatTime(reminderTime);
+    } else {
+      updatedHabitData.reminderTime = deleteField();
+    }
+
+    // isDefault is not editable in this screen, so it's not included in updates
+    // createdAt is set on creation and should not be updated here.
+    // streak and longestStreak are managed by other logic (e.g., completion checks)
 
     setIsSaving(true);
     try {
@@ -261,6 +324,30 @@ export default function EditHabitScreen() {
           numberOfLines={4}
           editable={!isSaving}
         />
+
+        <Text style={styles.label}>Reminder Time (Optional)</Text>
+        <View style={styles.timeInputContainer}>
+            <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.timePickerButton} disabled={isSaving}>
+              <Text style={styles.timePickerButtonText}>
+                {reminderTime ? formatTime(reminderTime) : 'Select Reminder Time'}
+              </Text>
+            </TouchableOpacity>
+            {reminderTime && (
+                <TouchableOpacity onPress={clearReminderTime} style={styles.clearTimeButton} disabled={isSaving}>
+                    <Text style={styles.clearTimeButtonText}>Clear</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+        {showTimePicker && (
+          <DateTimePicker
+            testID="editTimePicker"
+            value={reminderTime || new Date()} // Default to now if no time is set
+            mode="time"
+            is24Hour={true}
+            display="default"
+            onChange={onTimeChange}
+          />
+        )}
 
         <TouchableOpacity 
             style={[styles.primaryButton, isSaving && styles.disabledButtonBackground]} 
@@ -443,5 +530,34 @@ const styles = StyleSheet.create({
   },
   disabledButtonOpacity: {
     opacity: 0.5,
-  }
+  },
+  timeInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  timePickerButton: {
+    flex: 1, // Take available space
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    alignItems: 'center',
+    marginRight: 5, // Space if clear button is present
+  },
+  timePickerButtonText: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  clearTimeButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    backgroundColor: '#e74c3c', // A red color for clear
+    borderRadius: 10,
+  },
+  clearTimeButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
 }); 

@@ -4,7 +4,7 @@
     "slug": "EduStreak",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/splash_icon_edustreak.png",
+    "icon": "./assets/icons/app_icon_edustreak.png",
     "scheme": "edustreak",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -26,11 +26,11 @@
         ]
       },
       "googleServicesFile": "./GoogleService-Info.plist",
-      "icon": "./assets/images/splash_icon_edustreak.png"
+      "icon": "./assets/icons/app_icon_edustreak.png"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/splash_icon_edustreak.png",
+        "foregroundImage": "./assets/icons/app_icon_edustreak.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

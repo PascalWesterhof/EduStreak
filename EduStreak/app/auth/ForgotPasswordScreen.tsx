@@ -2,7 +2,9 @@ import { useRouter } from 'expo-router';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import React, { useState } from 'react';
 import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { auth } from '../../config/firebase'; // Adjust path as necessary
+import { auth } from '../../config/firebase';
+import { colors } from '../../constants/Colors';
+import { globalStyles } from '../../styles/globalStyles';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
@@ -17,8 +19,7 @@ export default function ForgotPasswordScreen() {
       await sendPasswordResetEmail(auth, email);
       Alert.alert('Password Reset', 'If an account exists for this email, a password reset link has been sent.', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (error: any) {
-      // It's good practice not to reveal if an email exists or not for security reasons
-      // So, show a generic message even if there's an error like 'auth/user-not-found'
+      // Show a generic message even if there's an error like 'auth/user-not-found'
       console.error('Forgot Password Error:', error);
       Alert.alert('Password Reset', 'If an account exists for this email, a password reset link has been sent.', [{ text: 'OK', onPress: () => router.back() }]);
     }
@@ -30,25 +31,25 @@ export default function ForgotPasswordScreen() {
         <Image source={require('../../assets/icons/back_arrow.png')} style={styles.backArrow} />
       </TouchableOpacity>
       <Image source={require('../../assets/images/splash_icon_edustreak.png')} style={styles.logo} />
-      <Text style={styles.headerText}>FORGOT PASSWORD?</Text>
-      <Text style={styles.subHeaderText}>
+      <Text style={[globalStyles.titleText, styles.headerTextCustom]}>FORGOT PASSWORD?</Text>
+      <Text style={[globalStyles.bodyText, styles.subHeaderTextCustom]}>
 Enter your email address and we'll send you a link to reset your password.
       </Text>
 
       <TextInput
-        style={styles.input}
+        style={[globalStyles.inputBase, styles.inputCustom]}
         placeholder="Email address"
-        placeholderTextColor="#A9A9A9"
+        placeholderTextColor={colors.placeholderText}
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
       />
-      <TouchableOpacity style={styles.sendButton} onPress={handleResetPassword}>
-        <Text style={styles.sendButtonText}>SEND RESET LINK</Text>
+      <TouchableOpacity style={[globalStyles.inputBase, styles.sendButtonCustom]} onPress={handleResetPassword}>
+        <Text style={[globalStyles.bodyText, styles.sendButtonTextCustom]}>SEND RESET LINK</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.backToLoginLink} onPress={() => router.back()}>
-        <Text style={styles.backToLoginLinkText}>Back to <Text style={styles.backToLoginLinkTextHighlight}>LOG IN</Text></Text>
+      <TouchableOpacity style={styles.backToLoginLinkContainer} onPress={() => router.back()}>
+        <Text style={[globalStyles.bodyText, styles.backToLoginLinkTextCustom]}>Back to <Text style={styles.backToLoginLinkTextHighlightCustom}>LOG IN</Text></Text>
       </TouchableOpacity>
     </View>
   );
@@ -57,7 +58,7 @@ Enter your email address and we'll send you a link to reset your password.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     alignItems: 'center',
     paddingTop: Platform.OS === 'android' ? 40 : 60,
     paddingHorizontal: 20,
@@ -73,6 +74,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     resizeMode: 'contain',
+    tintColor: colors.textDefault,
   },
   logo: {
     width: 180,
@@ -81,54 +83,47 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     marginTop: 20,
   },
-  headerText: {
-    fontSize: 18,
+  headerTextCustom: {
+    color: colors.textDefault,
     fontWeight: 'bold',
-    color: '#000000',
     marginBottom: 10,
     textAlign: 'center',
   },
-  subHeaderText: {
-    fontSize: 14,
-    color: '#666666', // Grey color for subtext
+  subHeaderTextCustom: {
+    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 30,
-    paddingHorizontal: 20, // Add some horizontal padding for better text wrapping
+    paddingHorizontal: 20, 
   },
-  input: {
-    backgroundColor: '#F5F5F5',
+  inputCustom: {
+    width: '100%',
     borderRadius: 10,
     paddingVertical: 15,
     paddingHorizontal: 20,
-    marginBottom: 20, // Increased margin
-    width: '100%',
-    fontSize: 16,
-    color: '#000000',
+    marginBottom: 20,
   },
-  sendButton: {
-    backgroundColor: '#d05b52',
+  sendButtonCustom: {
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    width: '100%',
     borderRadius: 25,
     paddingVertical: 15,
     paddingHorizontal: 30,
-    alignItems: 'center',
     marginBottom: 20,
-    width: '100%',
   },
-  sendButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+  sendButtonTextCustom: {
+    color: colors.white,
     fontWeight: 'bold',
   },
-  backToLoginLink: {
+  backToLoginLinkContainer: {
     marginTop: 10,
   },
-  backToLoginLinkText: {
-    color: '#000000',
-    fontSize: 14,
+  backToLoginLinkTextCustom: {
+    color: colors.textDefault,
     textAlign: 'center',
   },
-  backToLoginLinkTextHighlight: {
-    color: '#d05b52',
+  backToLoginLinkTextHighlightCustom: {
+    color: colors.primary,
     fontWeight: 'bold',
   },
 }); 

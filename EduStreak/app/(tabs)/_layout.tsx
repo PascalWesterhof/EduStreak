@@ -2,8 +2,6 @@ import React from 'react';
 import 'react-native-gesture-handler';
 
 import { FontAwesome } from '@expo/vector-icons';
-// import { Tabs } from 'expo-router'; // No longer using Tabs directly here
-// import { MaterialIcons } from '@expo/vector-icons'; // Remove if not used elsewhere, FontAwesome provides leaderboard
 import { Drawer } from "expo-router/drawer";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CustomDrawerContent from '../../components/CustomDrawerContent';
@@ -25,6 +23,9 @@ const TabsLayout = () =>
                           borderRadius: 12,
                           marginHorizontal: 8,
                     },
+                    drawerStyle: {
+                        backgroundColor: '#F4F6F8',
+                    }
                    }}>
                 <Drawer.Screen 
                     name='index'
@@ -32,23 +33,6 @@ const TabsLayout = () =>
                         drawerLabel: 'Home',
                         title: 'Home', // Set header title for Home
                         drawerIcon: ({ color, size }) => <FontAwesome name="home" size={size} color={color} />,
-                    }}
-                />
-                <Drawer.Screen 
-                    name='calendar'
-                    options={{
-                        drawerLabel: 'Calendar',
-                        title: 'Calendar',
-                        drawerIcon: ({ color, size }) => <FontAwesome name="calendar" size={size} color={color} />,
-                    }}
-                />
-                {/* Add other existing Drawer.Screen items here if they were missed */}
-                <Drawer.Screen 
-                    name='notifications'
-                    options={{
-                        drawerLabel: 'Notifications',
-                        title: 'Notifications',
-                        drawerIcon: ({ color, size }) => <FontAwesome name="bell" size={size} color={color} />,
                     }}
                 />
                 <Drawer.Screen 
@@ -61,16 +45,14 @@ const TabsLayout = () =>
                         ),
                     }}
                 />
-                {/* Friends Screen in Drawer REMOVED
                 <Drawer.Screen 
-                    name='friends' // This now correctly points to app/(tabs)/friends.tsx
+                    name='calendar'
                     options={{
-                        drawerLabel: 'Friends',
-                        title: 'Friends', // This title would apply if the redirect screen itself showed UI
-                        drawerIcon: ({ color, size }) => <FontAwesome5 name="user-friends" size={size} color={color} />,
+                        drawerLabel: 'Calendar',
+                        title: 'Calendar',
+                        drawerIcon: ({ color, size }) => <FontAwesome name="calendar" size={size} color={color} />,
                     }}
-                /> 
-                */}
+                />
                 <Drawer.Screen 
                     name='settings'
                     options={{
@@ -79,17 +61,7 @@ const TabsLayout = () =>
                         drawerIcon: ({ color, size }) => <FontAwesome name="cog" size={size} color={color} />,
                     }}
                 />
-                {/* Removed Habits Screen from Drawer */}
-                {/* <Drawer.Screen 
-                    name='habits' // This should match the filename `habits.tsx`
-                    options={{
-                        drawerLabel: 'Habits',
-                        title: 'My Habits',
-                        drawerIcon: ({ color, size }) => <FontAwesome name="check-square-o" size={size} color={color} />,
-                    }}
-                /> */}
             </Drawer>
-            {/* Removed the separate Tabs navigator that was here */}
         </GestureHandlerRootView>
     );
 };

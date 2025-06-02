@@ -1,7 +1,9 @@
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { colors } from '../../constants/Colors';
+import { globalStyles } from '../../styles/globalStyles';
 
 export default function Settings() {
   const navigation = useNavigation();
@@ -10,54 +12,54 @@ export default function Settings() {
   const [aiAssistanceEnabled, setAiAssistanceEnabled] = useState(true);
 
   return (
-    <SafeAreaView style={styles.outerContainer}>
+    <SafeAreaView style={globalStyles.screenContainer}> 
       <StatusBar barStyle="light-content" />
       <View style={styles.headerContainer}>
         <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())} style={styles.menuButton}>
           <Image source={require('../../assets/icons/burger_menu_icon.png')} style={styles.menuIcon} />
         </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+            <Text style={[globalStyles.headerText, styles.headerTitleCustom]}>Settings</Text>
+        </View>
+        <View style={styles.headerRightPlaceholder} />
       </View>
-      <View style={styles.container}>
-        <Text style={styles.header}>Settings</Text>
+      <View style={[globalStyles.contentContainer, styles.containerCustom]}>
         <ScrollView contentContainerStyle={styles.content}>
-          <View style={styles.box}>
-            <Text style={styles.label}>Profile</Text>
-          </View>
+          <TouchableOpacity onPress={() => router.push('/settings/profileSettings')} style={styles.box}>
+            <Text style={[globalStyles.bodyText, styles.labelCustom]}>Profile</Text>
+            <Text style={styles.arrowIcon}>{'>'}</Text>
+          </TouchableOpacity>
 
           <View style={styles.box}>
-            <Text style={styles.label}>Notifications</Text>
+            <Text style={[globalStyles.bodyText, styles.labelCustom]}>Notifications</Text>
             <Switch
               value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
-              trackColor={{ false: "#D1624A", true: "#fff"}}
-              thumbColor={notificationsEnabled ? "#fff" : "#fff"}
+              trackColor={{ false: colors.primary, true: colors.primaryText}}
+              thumbColor={colors.primaryText}
             />
           </View>
 
           <View style={styles.box}>
-            <Text style={styles.label}>AI Assistance</Text>
+            <Text style={[globalStyles.bodyText, styles.labelCustom]}>AI Assistance</Text>
             <Switch
               value={aiAssistanceEnabled}
               onValueChange={setAiAssistanceEnabled}
-              trackColor={{ false: "#D1624A", true: "#fff"}}
-              thumbColor={notificationsEnabled ? "#fff" : "#fff"}
+              trackColor={{ false: colors.primary, true: colors.primaryText}}
+              thumbColor={colors.primaryText}
             />
           </View>
 
           <View style={styles.box}>
-            <Text style={styles.label}>Appearance</Text>
+            <Text style={[globalStyles.bodyText, styles.labelCustom]}>Appearance</Text>
           </View>
 
           <View style={styles.box}>
-            <Text style={styles.label}>Gamification</Text>
+            <Text style={[globalStyles.bodyText, styles.labelCustom]}>Privacy & Data</Text>
           </View>
 
           <View style={styles.box}>
-            <Text style={styles.label}>Privacy & Data</Text>
-          </View>
-
-          <View style={styles.box}>
-            <Text style={styles.label}>Extras</Text>
+            <Text style={[globalStyles.bodyText, styles.labelCustom]}>Extras</Text>
           </View>
 
         </ScrollView>
@@ -67,14 +69,10 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    flex: 1,
-    backgroundColor: '#D1624A',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 15,
     paddingVertical: 10,
   },
@@ -85,19 +83,20 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     resizeMode: 'contain',
-    tintColor: 'white',
+    tintColor: colors.primaryText, 
   },
-  container: {
+  headerTitleContainer: {
     flex: 1,
-    paddingHorizontal: 20,
+    alignItems: 'center',
   },
-  header:
-  {
-    fontSize: 24,
-    color: '#fff',
-    fontWeight: 'bold',
-    alignSelf: 'center',
-    marginVertical: 20,
+  headerTitleCustom: {
+    color: colors.primaryText, 
+  },
+  headerRightPlaceholder: {
+    width: 24 + 10,
+  },
+  containerCustom: {
+    paddingHorizontal: 20,
   },
   content:
   {
@@ -113,14 +112,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  label:
+  labelCustom:
   {
-    color: '#fff',
-    fontSize: 16,
+    color: colors.primaryText, 
   },
   arrowIcon: {
-    color: '#fff',
-    fontSize: 16,
+    color: colors.primaryText, 
+    fontSize: 20,
     fontWeight: 'bold',
   }
 });

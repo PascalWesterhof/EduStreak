@@ -5,6 +5,8 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '../../config/firebase'; // Adjust path as necessary
+import { colors } from '../../constants/Colors'; // Corrected path
+import { globalStyles } from '../../styles/globalStyles';
 
 // Configure Google Sign In only for native platforms
 if (Platform.OS !== 'web') {
@@ -44,8 +46,6 @@ export default function LoginScreen() {
         Alert.alert("Error", "Could not save user profile data after Google Sign-In.");
       }
     } else {
-      // Optional: Update existing document if needed (e.g., displayName or photoURL changed)
-      // For now, we just ensure it exists. You can add update logic here if desired.
       console.log("Firestore user document already exists for Google user:", user.uid);
     }
   };
@@ -108,37 +108,37 @@ export default function LoginScreen() {
       
       <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
         <Image source={require('../../assets/images/google_icon.png')} style={styles.googleIcon} />
-        <Text style={styles.googleButtonText}>CONTINUE WITH GOOGLE</Text>
+        <Text style={[globalStyles.bodyText, styles.googleButtonTextCustom]}>CONTINUE WITH GOOGLE</Text>
       </TouchableOpacity>
 
-      <Text style={styles.orText}>OR LOG IN WITH EMAIL</Text>
+      <Text style={[globalStyles.mutedText, styles.orTextCustom]}>OR LOG IN WITH EMAIL</Text>
 
       <TextInput
-        style={styles.input}
+        style={[globalStyles.inputBase, styles.inputCustom]}
         placeholder="Email address"
-        placeholderTextColor="#A9A9A9" // Light grey placeholder text
+        placeholderTextColor={colors.placeholderText} 
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
       />
       <TextInput
-        style={styles.input}
+        style={[globalStyles.inputBase, styles.inputCustom]}
         placeholder="Password"
-        placeholderTextColor="#A9A9A9" // Light grey placeholder text
+        placeholderTextColor={colors.placeholderText} 
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>LOG IN</Text>
+      <TouchableOpacity style={[globalStyles.inputBase, styles.loginButtonCustom]} onPress={handleLogin}>
+        <Text style={[globalStyles.bodyText, styles.loginButtonTextCustom]}>LOG IN</Text>
       </TouchableOpacity>
       <View style={styles.linksContainer}>
         <TouchableOpacity onPress={() => router.push('/auth/ForgotPasswordScreen')}>
-          <Text style={styles.linkText}>Forgot Password?</Text>
+          <Text style={[globalStyles.bodyText, styles.linkTextCustom]}>Forgot Password?</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push('/auth/RegisterScreen')}>
-          <Text style={[styles.linkText, styles.signUpText]}>SIGN UP</Text>
+          <Text style={[globalStyles.bodyText, styles.linkTextCustom, styles.signUpTextCustom]}>SIGN UP</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -148,7 +148,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF', // White background
+    backgroundColor: colors.white, // Use theme white for auth screens
     alignItems: 'center',
     paddingTop: Platform.OS === 'android' ? 40 : 60, // Adjust top padding for status bar
     paddingHorizontal: 20,
@@ -175,10 +175,10 @@ const styles = StyleSheet.create({
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: '#E0E0E0', // Light grey border
-    borderRadius: 25, // Rounded corners
+    borderColor: colors.borderColor,
+    borderRadius: 25,
     paddingVertical: 12,
     paddingHorizontal: 30,
     marginBottom: 20,
@@ -190,39 +190,33 @@ const styles = StyleSheet.create({
     height: 20,
     marginRight: 15,
   },
-  googleButtonText: {
-    color: '#000000', // Black text
-    fontSize: 14,
+  googleButtonTextCustom: { // Based on globalStyles.bodyText
+    color: colors.textDefault, // Was black
     fontWeight: 'bold',
   },
-  orText: {
-    color: '#d05b52', // Theme color
-    fontSize: 12,
+  orTextCustom: { // Based on globalStyles.mutedText
+    color: colors.primary, // Theme color (was #d05b52)
     fontWeight: 'bold',
     marginBottom: 20,
   },
-  input: {
-    backgroundColor: '#F5F5F5', // Light grey background
-    borderRadius: 10, // Rounded corners
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    marginBottom: 15,
-    width: '100%',
-    fontSize: 16,
-    color: '#000000', // Black text
+  inputCustom: { // Based on globalStyles.inputBase
+    width: '100%', // Kept local
+    borderRadius: 10, // Keep local override if different from inputBase
+    paddingVertical: 15, // Keep local override
+    paddingHorizontal: 20, // Keep local override
+    marginBottom: 15, // Keep local override
   },
-  loginButton: {
-    backgroundColor: '#d05b52', // Theme color
-    borderRadius: 25, // Rounded corners
-    paddingVertical: 15,
-    paddingHorizontal: 30,
+  loginButtonCustom: { // Based on globalStyles.inputBase for shape, then color override
+    backgroundColor: colors.primary, // Theme color (was #d05b52)
     alignItems: 'center',
-    marginBottom: 20,
     width: '100%',
+    borderRadius: 25, // Specific for this button
+    paddingVertical: 15, // Specific for this button
+    paddingHorizontal: 30, // Specific for this button
+    marginBottom: 20, // Specific for this button
   },
-  loginButtonText: {
-    color: '#FFFFFF', // White text
-    fontSize: 16,
+  loginButtonTextCustom: { // Based on globalStyles.bodyText
+    color: colors.white, // White text
     fontWeight: 'bold',
   },
   linksContainer: {
@@ -231,12 +225,11 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 10, // Add some padding if needed
   },
-  linkText: {
-    color: '#000000', // Black text
-    fontSize: 14,
+  linkTextCustom: { // Based on globalStyles.bodyText
+    color: colors.textDefault, // Was black
     fontWeight: 'bold',
   },
-  signUpText: {
-    color: '#d05b52', // Theme color
+  signUpTextCustom: { // Extends linkTextCustom
+    color: colors.primary, // Theme color (was #d05b52)
   },
 }); 
