@@ -1,30 +1,20 @@
 import { useRouter } from 'expo-router';
-import { onAuthStateChanged, updateProfile, User } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth } from '../../config/firebase';
 import { colors } from '../../constants/Colors';
+import { updateUserAuthProfile } from '../../services/authService';
 import { globalStyles } from '../../styles/globalStyles';
 
-// Placeholder for a function that would update the user's display name on the backend
-const updateUserDisplayName = async (newName: string) => {
-  console.log(`Attempting to update display name to: ${newName}`);
-  const user = auth.currentUser;
-  if (user) {
-    try {
-      await updateProfile(user, { displayName: newName });
-      console.log(`Display name updated to: ${newName} in Firebase`);
-      return true;
-    } catch (error) {
-      console.error("Error updating Firebase profile: ", error);
-      return false;
-    }
-  } else {
-    console.log("No user found to update display name.");
-    return false;
-  }
-};
-
+/**
+ * `ProfileSettingsScreen` allows users to manage their profile information.
+ * It displays the user's current display name and provides an option to update it.
+ * It also offers navigation to change their password (if applicable) and to delete their account.
+ * The screen fetches and updates user data via `authService`.
+ * It handles loading and saving states, and distinguishes between users signed in
+ * with email/password versus external providers for certain actions (e.g., password change).
+ */
 export default function ProfileSettingsScreen() {
   const router = useRouter();
 
@@ -33,61 +23,68 @@ export default function ProfileSettingsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isPasswordProvider, setIsPasswordProvider] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
     setIsLoading(true);
     const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
+      setCurrentUser(user);
       if (user) {
         const name = user.displayName || "User Name";
         setDisplayName(name);
         setOriginalDisplayName(name);
-        console.log("User display name set to:", name);
-
         const passwordProvider = user.providerData.find(p => p.providerId === 'password');
         setIsPasswordProvider(!!passwordProvider);
-        if (!passwordProvider) {
-          console.log("User signed in with a third-party provider.");
-        }
-
       } else {
-        console.log("ProfileSettings: User is signed out.");
         setDisplayName("Guest");
         setOriginalDisplayName("Guest");
         setIsPasswordProvider(false);
       }
       setIsLoading(false);
     });
-
-    return () => unsubscribe(); // Cleanup subscription
+    return () => unsubscribe();
   }, []);
 
+  /**
+   * Handles saving changes to the user's display name.
+   * Validates that the display name has actually changed and is not empty.
+   * Calls the `updateUserAuthProfile` service function to persist the changes
+   * to Firebase Auth and the user's Firestore document.
+   * Displays alerts for success or failure.
+   */
   const handleSaveChanges = async () => {
+    if (!currentUser) {
+        Alert.alert("Error", "No user session found. Please re-login.");
+        setIsSaving(false);
+        return;
+    }
     if (displayName === originalDisplayName) {
       Alert.alert("No Changes", "Your display name is the same.");
       return;
     }
-    if (!displayName.trim()) {
+    const trimmedDisplayName = displayName.trim();
+    if (!trimmedDisplayName) {
       Alert.alert("Invalid Name", "Display name cannot be empty.");
       return;
     }
     setIsSaving(true);
     try {
-      const success = await updateUserDisplayName(displayName.trim());
-      if (success) {
-        setOriginalDisplayName(displayName.trim());
-        Alert.alert('Success', 'Display name updated successfully!');
-        router.back();
-      } else {
-        Alert.alert('Error', 'Failed to update display name. Please try again.');
-      }
-    } catch (error) {
-      console.error("Error updating display name:", error);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      await updateUserAuthProfile(currentUser, { displayName: trimmedDisplayName });
+      setOriginalDisplayName(trimmedDisplayName);
+      Alert.alert('Success', 'Display name updated successfully!');
+    } catch (error: any) {
+      console.error("[ProfileSettings] Error updating display name via service:", error);
+      Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
+  /**
+   * Navigates to the Change Password screen.
+   * If the user is signed in via an external provider (e.g., Google), an alert is shown
+   * informing them to manage their password through their provider, and navigation is blocked.
+   */
   const handleChangePassword = () => {
     if (!isPasswordProvider) {
       Alert.alert(
@@ -100,6 +97,11 @@ export default function ProfileSettingsScreen() {
     console.log('Navigating to Change Password Screen');
   };
 
+  /**
+   * Initiates the account deletion process.
+   * Displays a confirmation alert to the user. If confirmed, navigates to the
+   * `DeleteAccountScreen` for the final steps of account deletion.
+   */
   const handleDeleteAccount = () => {
     Alert.alert(
       "Delete Account",

@@ -1,103 +1,69 @@
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { statusCodes } from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
-import { GoogleAuthProvider, signInWithCredential, signInWithEmailAndPassword, signInWithPopup, User } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { auth, db } from '../../config/firebase'; // Adjust path as necessary
-import { colors } from '../../constants/Colors'; // Corrected path
+import { colors } from '../../constants/Colors';
+import { signInWithEmail, signInWithGoogle as signInWithGoogleService } from '../../services/authService';
 import { globalStyles } from '../../styles/globalStyles';
 
-// Configure Google Sign In only for native platforms
-if (Platform.OS !== 'web') {
-  GoogleSignin.configure({
-    webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
-  });
-}
-
+/**
+ * `LoginScreen` provides options for user authentication.
+ * It allows users to sign in using their email and password or via Google Sign-In.
+ * Successful authentication navigates the user to the main application area (tabs).
+ * It handles various states including input validation and error messages from the auth services.
+ */
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
 
-  // Helper function to create or update user document in Firestore
-  const createOrUpdateUserDocument = async (user: User) => {
-    if (!user) return;
-    const userDocRef = doc(db, "users", user.uid);
-    const userDocSnap = await getDoc(userDocRef);
-
-    if (!userDocSnap.exists()) {
-      // Document doesn't exist, create it
-      try {
-        await setDoc(userDocRef, {
-          uid: user.uid,
-          displayName: user.displayName || user.email || "Anonymous User", // Fallback if displayName and email are null/empty
-          email: user.email,
-          photoURL: user.photoURL || null, // Store photoURL if available
-          points: 0,
-          currentStreak: 0,
-          longestStreak: 0,
-          lastCompletionDate: null, // Added this field
-          bio: '' // Added default empty bio
-        });
-        console.log("Firestore user document created for Google user:", user.uid);
-      } catch (error) {
-        console.error("Error creating Firestore document for Google user:", error);
-        Alert.alert("Error", "Could not save user profile data after Google Sign-In.");
-      }
-    } else {
-      console.log("Firestore user document already exists for Google user:", user.uid);
-    }
-  };
-
+  /**
+   * Handles the email and password login process.
+   * Validates that both email and password fields are filled.
+   * Calls the `signInWithEmail` service function from `authService`.
+   * On successful login, navigates the user to the main app section ('/(tabs)').
+   * Displays an alert if login fails.
+   */
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password.');
       return;
     }
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmail(email, password);
       router.replace('/(tabs)');
     } catch (error: any) {
       Alert.alert('Login Failed', error.message);
     }
   };
 
+  /**
+   * Handles the Google Sign-In process.
+   * Calls the `signInWithGoogleService` function from `authService` which encapsulates
+   * platform-specific Google Sign-In logic and user document creation/update.
+   * On successful sign-in, navigates the user to the main app section ('/(tabs)').
+   * Handles specific Google Sign-In errors (e.g., cancelled, in progress, play services unavailable)
+   * as well as generic errors, displaying appropriate alerts to the user.
+   */
   const handleGoogleSignIn = async () => {
-    if (Platform.OS === 'web') {
-      try {
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        await createOrUpdateUserDocument(result.user); // Create/update Firestore doc
-        router.replace('/(tabs)');
-      } catch (error: any) {
-        Alert.alert('Google Sign In Error (Web)', error.message);
-        console.error('Google Sign In Error (Web): ', error);
-      }
-    } else {
-      // Native Google Sign-In
-      try {
-        await GoogleSignin.hasPlayServices();
-        const userInfo = await GoogleSignin.signIn();
-        if (userInfo.idToken) {
-          const googleCredential = GoogleAuthProvider.credential(userInfo.idToken);
-          const result = await signInWithCredential(auth, googleCredential);
-          await createOrUpdateUserDocument(result.user); // Create/update Firestore doc
-          router.replace('/(tabs)');
-        } else {
-          Alert.alert('Google Sign In Error', 'No ID token present in Google User Info.');
-        }
-      } catch (error: any) {
-        if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-          Alert.alert('Cancelled', 'Google Sign In was cancelled.');
-        } else if (error.code === statusCodes.IN_PROGRESS) {
-          Alert.alert('In Progress', 'Google Sign In is already in progress.');
-        } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-          Alert.alert('Play Services Error', 'Google Play Services not available or outdated.');
-        } else {
-          Alert.alert('Google Sign In Error', error.message);
-          console.error('Google Sign In Error: ', error);
-        }
+    try {
+      // Platform-specific logic is now within the service
+      // The service also handles ensureUserDocument
+      await signInWithGoogleService(); 
+      console.log("[LoginScreen] Google Sign-In successful via service, navigating to tabs.");
+      router.replace('/(tabs)');
+    } catch (error: any) {
+      // Handle specific Google Sign-In errors returned by the service
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        Alert.alert('Cancelled', 'Google Sign In was cancelled.');
+      } else if (error.code === statusCodes.IN_PROGRESS && Platform.OS !== 'web') { // IN_PROGRESS is native only
+        Alert.alert('In Progress', 'Google Sign In is already in progress.');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE && Platform.OS !== 'web') { // PLAY_SERVICES_NOT_AVAILABLE is native only
+        Alert.alert('Play Services Error', 'Google Play Services not available or outdated.');
+      } else {
+        // Generic error from service (could be network, no ID token, or re-thrown Firebase error)
+        Alert.alert('Google Sign In Error', error.message || "An unexpected error occurred during Google Sign-In.");
+        console.error('[LoginScreen] Google Sign In Error: ', error);
       }
     }
   };

@@ -1,11 +1,20 @@
 import { useRouter } from 'expo-router';
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+// Firebase Auth imports to be removed or reduced:
+// import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import { Alert, Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth } from '../../config/firebase';
 import { colors } from '../../constants/Colors';
+import { changeUserPassword, reauthenticateCurrentUser } from '../../services/authService'; // Import service functions
 import { globalStyles } from '../../styles/globalStyles';
 
+/**
+ * `ChangePasswordScreen` allows users who signed up with email and password to change their password.
+ * It requires the user to enter their current password, a new password, and confirm the new password.
+ * It performs validation for all fields, including password strength and matching new passwords.
+ * Re-authentication and password update operations are handled by `authService` functions.
+ * Users signed in via external providers (e.g., Google) are informed that they cannot change their password here.
+ */
 export default function ChangePasswordScreen() {
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState('');
@@ -14,10 +23,22 @@ export default function ChangePasswordScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
+  /**
+   * Handles the password update process.
+   * It performs several client-side validations:
+   * - Checks if the user is signed in with an email/password provider.
+   * - Ensures all fields are filled.
+   * - Verifies that the new password and confirmation match.
+   * - Checks for minimum password length.
+   * If validations pass, it calls `reauthenticateCurrentUser` and then `changeUserPassword`
+   * from the `authService` to update the password.
+   * Displays success or error alerts based on the outcome.
+   */
   const handleUpdatePassword = async () => {
-    setError(''); // Clear previous errors
-
+    setError(''); 
     const user = auth.currentUser;
+
+    // Initial checks remain in component
     if (user) {
       const passwordProvider = user.providerData.find(p => p.providerId === 'password');
       if (!passwordProvider) {
@@ -29,7 +50,6 @@ export default function ChangePasswordScreen() {
         return;
       }
     }
-
     if (!currentPassword || !newPassword || !confirmNewPassword) {
       Alert.alert('Missing Fields', 'Please fill in all password fields.');
       return;
@@ -38,29 +58,25 @@ export default function ChangePasswordScreen() {
       Alert.alert('Password Mismatch', 'New passwords do not match.');
       return;
     }
-    if (newPassword.length < 6) { // Basic Firebase password strength check
+    if (newPassword.length < 6) {
       Alert.alert('Weak Password', 'New password should be at least 6 characters long.');
+      return;
+    }
+    if (!user) { // Should ideally not happen if passwordProvider check passed
+      Alert.alert('Error', 'User not found. Please re-login.');
       return;
     }
 
     setIsSaving(true);
-
-    if (!user || !user.email) { // user.email is needed for EmailAuthProvider.credential
-      Alert.alert('Error', 'User not found or email is missing. Please re-login.');
-      setIsSaving(false);
-      return;
-    }
-
     try {
-      // Step 1: Create credential for re-authentication
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
-      
-      // Step 2: Re-authenticate the user
-      await reauthenticateWithCredential(user, credential);
-      console.log("User re-authenticated successfully.");
+      // Use service to re-authenticate
+      await reauthenticateCurrentUser(user, currentPassword);
+      console.log("[ChangePasswordScreen] User re-authenticated successfully via service.");
 
-      // Step 3: Update the password
-      await updatePassword(user, newPassword);
+      // Use service to update password
+      await changeUserPassword(user, newPassword);
+      console.log("[ChangePasswordScreen] User password updated successfully via service.");
+
       Alert.alert('Success', 'Password updated successfully!', [
         { text: 'OK', onPress: () => router.back() }
       ]);
@@ -69,7 +85,7 @@ export default function ChangePasswordScreen() {
       setConfirmNewPassword('');
 
     } catch (err: any) {
-      console.error("Change Password Error:", err);
+      console.error("[ChangePasswordScreen] Change Password Error via service:", err);
       let errorMessage = 'Failed to update password. Please try again.';
       if (err.code === 'auth/wrong-password') {
         errorMessage = 'Incorrect current password. Please try again.';
@@ -78,7 +94,11 @@ export default function ChangePasswordScreen() {
       } else if (err.code === 'auth/requires-recent-login') {
         errorMessage = 'This operation is sensitive and requires recent authentication. Please log out and log back in.';
       }
-      setError(errorMessage); // Display error message on screen
+      // Consider also specific errors from our service if we threw custom ones
+      else if (err.message === "User or user email not available for re-authentication.") {
+        errorMessage = "Could not verify your current session. Please re-login.";
+      }
+      setError(errorMessage);
       Alert.alert('Error', errorMessage);
     } finally {
       setIsSaving(false);

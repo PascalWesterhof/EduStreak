@@ -6,6 +6,15 @@ import { Drawer } from "expo-router/drawer";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CustomDrawerContent from '../../components/CustomDrawerContent';
 
+/**
+ * `TabsLayout` defines the main navigation structure of the application using a Drawer navigator.
+ * It configures the drawer's appearance, custom content, and lists all the screens 
+ * accessible through the drawer menu (Home, Leaderboard, Calendar, Settings).
+ * 
+ * Each screen in the drawer is configured with a label, title, and an icon.
+ * `GestureHandlerRootView` is used as the root component to ensure gesture handling
+ * works correctly across the application, especially for the drawer.
+ */
 const TabsLayout = () =>
 {
     return (
@@ -13,7 +22,7 @@ const TabsLayout = () =>
             <Drawer 
                 drawerContent={CustomDrawerContent}
                 screenOptions={{
-                    headerShown: false, // Ensure headers are hidden
+                    headerShown: false,
                     drawerActiveTintColor: 'white',
                     drawerInactiveTintColor: '#ccc',
                     drawerActiveBackgroundColor: '#D05B52',
@@ -31,7 +40,7 @@ const TabsLayout = () =>
                     name='index'
                     options={{
                         drawerLabel: 'Home',
-                        title: 'Home', // Set header title for Home
+                        title: 'Home',
                         drawerIcon: ({ color, size }) => <FontAwesome name="home" size={size} color={color} />,
                     }}
                 />

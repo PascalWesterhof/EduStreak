@@ -1,26 +1,42 @@
 import { useRouter } from 'expo-router';
-import { sendPasswordResetEmail } from 'firebase/auth';
 import React, { useState } from 'react';
 import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { auth } from '../../config/firebase';
 import { colors } from '../../constants/Colors';
+import { resetPassword } from '../../services/authService'; // Import the service function
 import { globalStyles } from '../../styles/globalStyles';
 
+/**
+ * `ForgotPasswordScreen` allows users to request a password reset link.
+ * Users enter their email address, and upon submission, a request is made to the
+ * `authService.resetPassword` function. A generic confirmation message is shown
+ * regardless of whether an account exists for the provided email, to prevent
+ * account enumeration.
+ */
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const router = useRouter();
 
+  /**
+   * Handles the password reset process.
+   * It validates that an email is entered, then calls the `resetPassword` service function.
+   * Displays a generic alert message to the user indicating that if an account exists,
+   * a reset link has been sent. This is done for security reasons to avoid confirming
+   * whether an email address is registered.
+   * Navigates back to the previous screen after the alert.
+   */
   const handleResetPassword = async () => {
     if (!email) {
       Alert.alert('Error', 'Please enter your email address.');
       return;
     }
     try {
-      await sendPasswordResetEmail(auth, email);
+      // Call the service function for password reset
+      await resetPassword(email);
+      // Show generic success/info message regardless of actual outcome, as per original logic
       Alert.alert('Password Reset', 'If an account exists for this email, a password reset link has been sent.', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (error: any) {
-      // Show a generic message even if there's an error like 'auth/user-not-found'
-      console.error('Forgot Password Error:', error);
+      // Show a generic message even if there's an error from the service
+      console.error('[ForgotPasswordScreen] Password Reset Error:', error.message);
       Alert.alert('Password Reset', 'If an account exists for this email, a password reset link has been sent.', [{ text: 'OK', onPress: () => router.back() }]);
     }
   };

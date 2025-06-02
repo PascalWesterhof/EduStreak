@@ -1,69 +1,47 @@
 import { DrawerActions, useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth'; // Import onAuthStateChanged and User type
-import { addDoc, collection, doc, getDoc, getDocs, increment, query, setDoc, Timestamp, updateDoc } from 'firebase/firestore'; // Firestore functions
+import { doc, increment, updateDoc } from 'firebase/firestore'; // Firestore functions
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-get-random-values'; // For uuid
-import Svg, { Circle, Text as SvgText } from 'react-native-svg'; // Added for Circular Progress bar
-import { v4 as uuidv4 } from 'uuid';
+import { CircularProgress } from '../../components/CircularProgress'; // Added import
 import { auth, db } from '../../config/firebase'; // Import db and auth
 import { colors } from '../../constants/Colors'; // Import global colors
+import {
+  addNewHabit as addNewHabitService,
+  checkAndCreateReminderNotificationsLogic as checkAndCreateReminderNotificationsService // Import service
+  ,
+
+
+
+
+
+  completeHabitLogic as completeHabitService,
+  fetchUserHabitsAndNotifications,
+  updateDailyStreakLogic as updateDailyStreakService
+} from '../../services/habitService'; // Import the service
 import { globalStyles } from '../../styles/globalStyles'; // Import global styles
 import { Habit, InAppNotification } from '../../types'; // Path for types
+import { getIsoDateString } from '../../utils/dateUtils'; // Added import
 import AddHabitScreen from '../habit/AddHabitScreen';
 
+/**
+ * Array of day abbreviations for the date selector.
+ */
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// Helper to get date as YYYY-MM-DD string
-const getIsoDateString = (date: Date) => date.toISOString().split('T')[0];
-
-// Helper for Circular Progress
-const CircularProgress = ({ percentage, radius = 40, strokeWidth = 8, color = colors.accent }: { percentage: number; radius?: number; strokeWidth?: number; color?: string }) => {
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
-  return (
-    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <Svg height={radius * 2 + strokeWidth} width={radius * 2 + strokeWidth}>
-        <Circle
-          stroke={colors.lightGray}
-          fill="none"
-          cx={(radius * 2 + strokeWidth)/2}
-          cy={(radius * 2 + strokeWidth)/2}
-          r={radius}
-          strokeWidth={strokeWidth}
-        />
-        <Circle
-          stroke={color}
-          fill="none"
-          cx={(radius * 2 + strokeWidth)/2}
-          cy={(radius * 2 + strokeWidth)/2}
-          r={radius}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${ (radius * 2 + strokeWidth)/2} ${(radius * 2 + strokeWidth)/2})`}
-        />
-        <SvgText
-            x="50%"
-            y="50%"
-            textAnchor="middle"
-            dy=".3em"
-            fontSize="16"
-            fill={colors.black}
-            fontWeight="bold"
-        >
-            {`${Math.round(percentage)}%`}
-        </SvgText>
-      </Svg>
-    </View>
-  );
-};
-
+/**
+ * `Index` component serves as the Home screen of the application.
+ * It displays the user's habits for a selected date, overall daily progress,
+ * and provides functionality to add new habits, complete habits, and navigate to notifications.
+ * It also handles user authentication state to fetch and display user-specific data.
+ */
 export default function Index() {
   const appNavigation = useNavigation();
   const router = useRouter();
+
+  // State for habits, modal visibility, loading status, user ID, selected date, etc.
   const [habits, setHabits] = useState<Habit[]>([]);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true); // For loading indicator
@@ -73,191 +51,222 @@ export default function Index() {
   const [inAppNotifications, setInAppNotifications] = useState<InAppNotification[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
-  // Listen for auth state changes and fetch habits when the screen is focused or userId/auth state changes
+  /**
+   * `useFocusEffect` hook to manage actions when the screen comes into focus.
+   * - Resets `selectedDate` to the current day if it's in the past.
+   * - Sets up an `onAuthStateChanged` listener to get the current user.
+   * - Fetches user habits and notifications if a user is logged in.
+   * - Clears local data if the user signs out.
+   */
   useFocusEffect(
     useCallback(() => {
-      setIsLoading(true); // Start loading when checking auth state or focusing
-      console.log("IndexScreen focus effect running.");
+      const today = new Date();
+      const todayIso = getIsoDateString(today);
+      // Ensure selectedDate is always today upon focusing, if it was a past or future date.
+      if (getIsoDateString(selectedDate) !== todayIso) {
+        console.log(`[IndexScreen] Focus: selectedDate (${getIsoDateString(selectedDate)}) is not today. Resetting to today (${todayIso}).`);
+        setSelectedDate(today);
+      }
+
+      setIsLoading(true); 
+      console.log("[IndexScreen] Focus effect triggered.");
 
       const authUnsubscribe = onAuthStateChanged(auth, (user: User | null) => {
         if (user) {
-          console.log("IndexScreen: User is signed in with ID: ", user.uid, "Name:", user.displayName);
+          console.log("[IndexScreen] Auth: User signed in - ID:", user.uid, "Name:", user.displayName);
           setCurrentUserId(user.uid);
-          setUserName(user.displayName || "User"); // Set user display name
+          setUserName(user.displayName || "User"); 
         } else {
-          console.log("IndexScreen: User is signed out.");
+          console.log("[IndexScreen] Auth: User signed out.");
           setCurrentUserId(null);
-          setHabits([]); // Clear habits if user signs out
-          setInAppNotifications([]); // Clear notifications
+          setHabits([]); 
+          setInAppNotifications([]); 
           setUnreadNotificationCount(0);
           setUserName("User");
           setIsLoading(false); 
         }
       });
 
-      if (!currentUserId) {
-        console.log("IndexScreen: No user ID during focus. Clearing habits and notifications.");
-        setHabits([]);
-        setInAppNotifications([]);
-        setUnreadNotificationCount(0);
-        if (auth.currentUser === null) setIsLoading(false);
-        return () => {
-          console.log("IndexScreen: Cleaning up auth listener (no user path).");
-          authUnsubscribe();
-        };
+      // If no user is found immediately after auth check, clear data and stop loading.
+      if (!auth.currentUser) {
+          console.log("[IndexScreen] Focus: No authenticated user found initially.");
+          setHabits([]);
+          setInAppNotifications([]);
+          setUnreadNotificationCount(0);
+          setIsLoading(false);
+          return () => {
+            console.log("[IndexScreen] Cleanup: Auth listener (no initial user path).");
+            authUnsubscribe();
+          };
       }
-
-      console.log(`IndexScreen: User ${currentUserId} is present. Fetching data.`);
-      const fetchData = async () => {
-        try {
-          if (!db || typeof currentUserId !== 'string') {
-            console.error("Firestore instance (db) is not available or currentUserId is not a string.");
-            return;
-          }
-          // Fetch Habits
-          const habitsCollectionRef = collection(db, 'users', currentUserId, 'habits');
-          const habitsQuery = query(habitsCollectionRef);
-          const habitsSnapshot = await getDocs(habitsQuery);
-          const fetchedHabits: Habit[] = [];
-          habitsSnapshot.forEach((doc) => {
-            const data = doc.data();
-            const createdAt = data.createdAt instanceof Timestamp 
-                              ? data.createdAt.toDate().toISOString() 
-                              : data.createdAt || new Date().toISOString();
-            const completionHistory = (data.completionHistory || []).map((entry: any) => ({
-              date: entry.date instanceof Timestamp ? entry.date.toDate().toISOString().split('T')[0] : entry.date,
-              count: typeof entry.count === 'number' ? entry.count : (entry.completed ? 1 : 0),
-            }));
-            fetchedHabits.push({
-              id: doc.id,
-              ...data,
-              createdAt,
-              completionHistory,
-            } as Habit);
-          });
-          setHabits(fetchedHabits);
-          console.log("Habits fetched successfully for IndexScreen:", fetchedHabits.length);
-
-          // Fetch In-App Notifications
-          const notificationsCollectionRef = collection(db, 'users', currentUserId, 'inAppNotifications');
-          // Optionally, order by timestamp descending: const notificationsQuery = query(notificationsCollectionRef, orderBy("timestamp", "desc"));
-          const notificationsQuery = query(notificationsCollectionRef);
-          const notificationsSnapshot = await getDocs(notificationsQuery);
-          const fetchedNotifications: InAppNotification[] = [];
-          let unreadCount = 0;
-          notificationsSnapshot.forEach((doc) => {
-            const data = doc.data();
-            const notification = {
-              id: doc.id,
-              ...data,
-              timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate().toISOString() : data.timestamp,
-            } as InAppNotification;
-            fetchedNotifications.push(notification);
-            if (!notification.read) {
-              unreadCount++;
-            }
-          });
-          setInAppNotifications(fetchedNotifications);
-          setUnreadNotificationCount(unreadCount);
-          console.log("In-app notifications fetched:", fetchedNotifications.length, "Unread:", unreadCount);
-
-        } catch (error) {
-          console.error("Error fetching data for IndexScreen: ", error);
-        } finally {
-          setIsLoading(false); 
-        }
-      };
-
-      fetchData();
       
+      // If there is a currentUserId (either from initial state or set by onAuthStateChanged)
+      if (currentUserId) {
+          console.log(`[IndexScreen] Focus: User ${currentUserId} present. Fetching data via service.`);
+          const loadData = async () => {
+            try {
+              const { habits: fetchedHabits, notifications: fetchedNotifications, unreadCount } = await fetchUserHabitsAndNotifications(currentUserId);
+              setHabits(fetchedHabits);
+              setInAppNotifications(fetchedNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+              setUnreadNotificationCount(unreadCount);
+              console.log("[IndexScreen] Data fetched and set successfully.");
+            } catch (error) {
+              console.error("[IndexScreen] Error loading data via service: ", error);
+            } finally {
+              setIsLoading(false); 
+            }
+          };
+          loadData();
+      } else if (!auth.currentUser) {
+        // This case handles if currentUserId was null and onAuthStateChanged also resulted in no user.
+        setIsLoading(false);
+      }
+      
+      // Cleanup function for the auth listener
       return () => {
-        console.log("IndexScreen: Cleaning up auth listener (user path).");
+        console.log("[IndexScreen] Cleanup: Auth listener (main path).");
         authUnsubscribe();
       };
-    }, [currentUserId]) 
+    }, [currentUserId]) // Rerun effect if currentUserId changes
   );
 
-  const checkAndCreateReminderNotifications = async () => {
-    if (!currentUserId || getIsoDateString(selectedDate) !== getIsoDateString(new Date())) {
-      return; // Only run for current user and if selectedDate is today
-    }
-
-    const now = new Date();
-    const todayStr = getIsoDateString(now);
-    const dayOfWeek = now.getDay();
-
-    const habitsScheduledForToday = habits.filter(habit => {
-      if (habit.frequency.type === 'daily') return true;
-      if (habit.frequency.type === 'weekly') return habit.frequency.days?.includes(dayOfWeek);
-      return false;
-    });
-
-    for (const habit of habitsScheduledForToday) {
-      // Skip if habit is already fully completed for today
-      const habitEntry = habit.completionHistory.find(e => e.date === todayStr);
-      const targetCompletions = habit.frequency.type === 'daily' ? (habit.frequency.times || 1) : 1;
-      const isHabitCompleted = habitEntry && habitEntry.count >= targetCompletions;
-      if (isHabitCompleted) {
-        // console.log(`Habit '${habit.name}' already completed. Skipping reminder.`);
-        continue;
-      }
-
-      // Check for custom reminder time for this specific habit
-      if (habit.reminderTime) {
-        const [hours, minutes] = habit.reminderTime.split(':').map(Number);
-        const reminderDateTime = new Date(now);
-        reminderDateTime.setHours(hours, minutes, 0, 0);
-
-        if (now >= reminderDateTime) {
-          // Check if a reminder for this specific habit and for today already exists
-          const existingReminderForHabitToday = inAppNotifications.find(n => {
-            if (n.type === 'reminder' && n.relatedHabitId === habit.id) {
-              // Check if the notification's timestamp is for today
-              const notificationDateStr = getIsoDateString(new Date(n.timestamp));
-              return notificationDateStr === todayStr;
-            }
-            return false;
-          });
-
-          if (!existingReminderForHabitToday) {
-            console.log(`Creating reminder for specific habit: ${habit.name} at ${habit.reminderTime}`);
-            const newNotification: Omit<InAppNotification, 'id'> = {
-              message: `Reminder: It's time for '${habit.name}'! Don't forget to complete it. `,
-              timestamp: now.toISOString(),
-              read: false,
-              type: 'reminder',
-              relatedHabitId: habit.id,
-            };
-            try {
-              const notificationsCollectionRef = collection(db, 'users', currentUserId, 'inAppNotifications');
-              const docRef = await addDoc(notificationsCollectionRef, newNotification);
-              const notificationToAdd = { ...newNotification, id: docRef.id };
-              setInAppNotifications(prev => [...prev, notificationToAdd].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-              setUnreadNotificationCount(prev => prev + 1);
-            } catch (error) {
-              console.error(`Error creating reminder for ${habit.name}: `, error);
-            }
-          }
-        }
-      } 
-      // General end-of-day reminder (fallback if no specific reminder or if that logic is kept separate)
-      // For now, this is merged. If habit.reminderTime is not set, this won't trigger for this habit.
-      // The old generic 8 PM reminder logic is effectively replaced by per-habit reminders.
-    }
-    // The old generic 8 PM reminder can be removed or adapted if needed as a fallback
+  /**
+   * Toggles the main application drawer open.
+   */
+  const onToggleDrawer = () => {
+      appNavigation.dispatch(DrawerActions.openDrawer());
   };
 
-  // useEffect to run reminder check 
+  /**
+   * Handles adding a new habit.
+   * Calls the `addNewHabitService` to persist the habit in Firestore and updates local state.
+   * @param newHabitData Data for the new habit, excluding system-generated fields.
+   */
+  const handleAddHabit = async (newHabitData: Omit<Habit, 'id' | 'streak' | 'longestStreak' | 'completionHistory' | 'createdAt'>) => {
+    if (!currentUserId) {
+      alert("You must be logged in to add habits. Please sign in.");
+      return;
+    }
+    try {
+      const newHabitFromService = await addNewHabitService(currentUserId, newHabitData);
+      console.log("[IndexScreen] Habit added via service. ID:", newHabitFromService.id);
+      setHabits(prevHabits => [...prevHabits, newHabitFromService]); 
+      setIsAddModalVisible(false);
+    } catch (error) {
+      console.error("[IndexScreen] Error in handleAddHabit: ", error);
+      alert("Failed to save habit. Please try again.");
+    }
+  };
+
+  /**
+   * Handles the completion of a habit for the `selectedDate`.
+   * Calls `completeHabitService` to update Firestore and then updates the local habit state.
+   * Awards points if the habit becomes fully completed and checks/updates the daily streak.
+   * @param habitId The ID of the habit to mark as complete/increment.
+   */
+  const handleCompleteHabit = async (habitId: string) => {
+    if (!currentUserId) { 
+      alert("You must be logged in to complete habits."); 
+      return; 
+    }
+
+    const selectedDateStr = getIsoDateString(selectedDate);
+
+    try {
+      const { updatedHabit, habitBecameFullyCompleted, wasIncremented } = await completeHabitService(
+        currentUserId,
+        habitId,
+        selectedDateStr,
+        habits 
+      );
+
+      if (wasIncremented && updatedHabit) {
+        const newHabitsState = habits.map(h => (h.id === updatedHabit.id ? updatedHabit : h));
+        setHabits(newHabitsState);
+        console.log(`[IndexScreen] Habit ${habitId} state updated locally after completion.`);
+
+        if (habitBecameFullyCompleted) {
+          const userDocRef = doc(db, "users", currentUserId);
+          try {
+            await updateDoc(userDocRef, { points: increment(10) });
+            console.log(`[IndexScreen] User ${currentUserId} awarded 10 points for completing habit ${habitId} on ${selectedDateStr}`);
+          } catch (error) { console.error("[IndexScreen] Error awarding points: ", error); }
+        }
+        
+        // Only check streak if completion was for today
+        if (getIsoDateString(selectedDate) === getIsoDateString(new Date())) {
+          await checkAndUpdateDailyStreak(newHabitsState); 
+        }
+      } else if (updatedHabit) {
+        console.log(`[IndexScreen] Habit ${habitId} completion not incremented for ${selectedDateStr} (already fully completed or target met).`);
+      } else {
+        console.warn("[IndexScreen] updatedHabit was undefined after completeHabitService call, unexpected issue.")
+      }
+    } catch (error) {
+      console.error("[IndexScreen] Error in handleCompleteHabit: ", error);
+      alert("Failed to update habit completion. Please try again.");
+    }
+  };
+
+  /**
+   * Checks and updates the user's daily streak by calling `updateDailyStreakService`.
+   * This is typically called after a habit is completed on the current day.
+   * @param habitsForStreakCheck The current array of habits to be evaluated for the streak.
+   */
+  const checkAndUpdateDailyStreak = async (habitsForStreakCheck: Habit[]) => {
+    if (!currentUserId) {
+        console.log("[IndexScreen] No user ID, cannot update daily streak.");
+        return;
+    }
+    try {
+        console.log("[IndexScreen] Calling daily streak update service.");
+        await updateDailyStreakService(currentUserId, habitsForStreakCheck);
+    } catch (error) {
+        console.error("[IndexScreen] Error from updateDailyStreakService (service should handle internal errors):", error);
+    }
+  };
+
+  /**
+   * Checks for due habit reminders and creates in-app notifications using `checkAndCreateReminderNotificationsService`.
+   * Updates local notification state if a new reminder is created.
+   * This effect runs when habits, selectedDate, currentUserId, or inAppNotifications change.
+   */
+  const checkAndCreateReminderNotifications = async () => {
+    if (!currentUserId || !habits.length) {
+      return;
+    }
+    try {
+      const newNotification = await checkAndCreateReminderNotificationsService(
+        currentUserId,
+        habits,
+        inAppNotifications,
+        selectedDate 
+      );
+
+      if (newNotification) {
+        setInAppNotifications(prev => [...prev, newNotification].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+        setUnreadNotificationCount(prev => prev + 1);
+        console.log("[IndexScreen] New reminder notification added via service.");
+      }
+    } catch (error) {
+      console.error("[IndexScreen] Error from checkAndCreateReminderNotificationsService: ", error);
+    }
+  };
+
   useEffect(() => {
+    // Only run reminder check if the selected date is today.
     if (getIsoDateString(selectedDate) === getIsoDateString(new Date())) {
       checkAndCreateReminderNotifications();
     }
-  }, [habits, selectedDate, currentUserId]);
+  }, [habits, selectedDate, currentUserId, inAppNotifications]); 
 
-  // Generate dates for the horizontal selector
+  /**
+   * `useMemo` hook to generate the date range for the horizontal date selector.
+   * Shows 5 days: 2 past, current `selectedDate`, and 2 future relative to `selectedDate`.
+   */
   const dateRange = useMemo(() => {
     const range = [];
-    for (let i = -2; i <= 2; i++) { // Show 5 days: 2 past, today, 2 future
+    for (let i = -2; i <= 2; i++) { 
       const date = new Date(selectedDate);
       date.setDate(selectedDate.getDate() + i);
       range.push(date);
@@ -265,14 +274,21 @@ export default function Index() {
     return range;
   }, [selectedDate]);
 
+  /**
+   * Handles selection of a date from the horizontal date selector.
+   * @param date The newly selected date.
+   */
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    // Potentially re-filter habits or re-fetch for the selected date if needed
   };
 
-  // Calculate daily progress for the *selectedDate*
+  /**
+   * `useMemo` hook to calculate the daily progress (completed habits vs. total scheduled) for the `selectedDate`.
+   * Filters habits based on their frequency (daily or weekly) for the selected day.
+   * @returns An object with `count` (completed), `total` (scheduled), and `percentage`.
+   */
   const dailyProgress = useMemo(() => {
-    const dateString = selectedDate.toISOString().split('T')[0];
+    const dateString = getIsoDateString(selectedDate);
     const dayOfWeek = selectedDate.getDay();
 
     const habitsScheduledForDay = habits.filter(habit => {
@@ -286,222 +302,23 @@ export default function Index() {
     const completedCount = habitsScheduledForDay.filter(habit => {
       const entry = habit.completionHistory.find(e => e.date === dateString);
       if (!entry) return false;
-      const target = habit.frequency.type === 'daily' ? (habit.frequency.times || 1) : 1;
+      const target = habit.frequency.type === 'daily' ? (habit.frequency.times || 1) : 1; // Corrected: item -> habit
       return entry.count >= target;
     }).length;
     
     return {
         count: completedCount,
         total: habitsScheduledForDay.length,
-        percentage: (completedCount / habitsScheduledForDay.length) * 100
+        percentage: habitsScheduledForDay.length > 0 ? (completedCount / habitsScheduledForDay.length) * 100 : 0
     };
   }, [habits, selectedDate]);
 
-  const onToggleDrawer = () => {
-      appNavigation.dispatch(DrawerActions.openDrawer());
-  };
-
-  const handleAddHabit = async (newHabitData: Omit<Habit, 'id' | 'streak' | 'longestStreak' | 'completionHistory' | 'createdAt'>) => {
-    if (!currentUserId) {
-      alert("You must be logged in to add habits. Please sign in.");
-      return;
-    }
-    const newHabitId = uuidv4();
-    // Construct the full habit object including all potential fields from newHabitData
-    const newHabit: Habit = {
-      ...newHabitData, // Spread first to include description, notes, reminderTime if present
-      id: newHabitId, 
-      streak: 0,
-      longestStreak: 0,
-      completionHistory: [],
-      createdAt: new Date().toISOString(),
-      // isDefault will be handled by dataToSave construction if not in newHabitData
-    };
-
-    try {
-      const habitDocRef = doc(db, 'users', currentUserId, 'habits', newHabitId);
-      
-      // Prepare data for Firestore, excluding undefined optional fields
-      const dataToSave: any = {
-        name: newHabit.name, // name is required
-        frequency: newHabit.frequency, // frequency is required
-        streak: newHabit.streak, // required, initialized to 0
-        longestStreak: newHabit.longestStreak, // required, initialized to 0
-        completionHistory: newHabit.completionHistory, // required, initialized to []
-        createdAt: Timestamp.fromDate(new Date(newHabit.createdAt)), // required
-        isDefault: newHabit.isDefault || false, // Ensure boolean, default to false if undefined
-      };
-
-      // Conditionally add optional fields to dataToSave
-      if (newHabit.description !== undefined) {
-        dataToSave.description = newHabit.description;
-      }
-      if (newHabit.notes !== undefined) {
-        dataToSave.notes = newHabit.notes;
-      }
-      if (newHabit.reminderTime !== undefined) {
-        dataToSave.reminderTime = newHabit.reminderTime;
-      }
-
-      await setDoc(habitDocRef, dataToSave);
-      console.log("Habit added to Firestore with ID: ", newHabitId);
-      setHabits(prevHabits => [...prevHabits, newHabit]); // Add the full newHabit object to local state
-      setIsAddModalVisible(false);
-    } catch (error) {
-      console.error("Error adding habit to Firestore: ", error);
-      alert("Failed to save habit. Please try again.");
-    }
-  };
-
-  const handleCompleteHabit = async (habitId: string) => {
-    if (!currentUserId) { alert("You must be logged in to complete habits."); return; }
-
-    const todayStr = getIsoDateString(new Date()); 
-    const selectedDateStr = getIsoDateString(selectedDate);
-    let wasCompletionIncremented = false;
-    let didHabitBecomeFullyCompleted = false; // New flag for points
-
-    setHabits(prevHabits =>
-      prevHabits.map(h => {
-        if (h.id === habitId) {
-          const newCompletionHistory = [...h.completionHistory];
-          const entryIndex = newCompletionHistory.findIndex(entry => entry.date === selectedDateStr);
-          const targetCompletions = h.frequency.type === 'daily' ? (h.frequency.times || 1) : 1;
-          let currentCompletionsToday = 0;
-          let newCountForEntry = 0;
-
-          if (entryIndex > -1) {
-            currentCompletionsToday = newCompletionHistory[entryIndex].count;
-            if (currentCompletionsToday < targetCompletions) {
-              newCountForEntry = currentCompletionsToday + 1;
-              newCompletionHistory[entryIndex] = { ...newCompletionHistory[entryIndex], count: newCountForEntry };
-              wasCompletionIncremented = true;
-              if (newCountForEntry >= targetCompletions) {
-                didHabitBecomeFullyCompleted = true; // Habit is now fully complete for selectedDate
-              }
-            }
-          } else {
-            newCountForEntry = 1;
-            newCompletionHistory.push({ date: selectedDateStr, count: newCountForEntry });
-            wasCompletionIncremented = true;
-            if (newCountForEntry >= targetCompletions) {
-              didHabitBecomeFullyCompleted = true; // Habit is now fully complete for selectedDate
-            }
-          }
-          return { ...h, completionHistory: newCompletionHistory };
-        }
-        return h;
-      })
-    );
-
-    if (wasCompletionIncremented) {
-      // Update Firestore for the specific habit's completionHistory
-      const habitDocRef = doc(db, 'users', currentUserId, 'habits', habitId);
-      const habitToUpdate = habits.find(h => h.id === habitId);
-      let firestoreCompletionHistoryForHabit: {date: string, count: number}[] = [];
-      if(habitToUpdate){ // Construct the latest history for this habit
-        const tempHabit = { ...habitToUpdate }; 
-        const entryIndex = tempHabit.completionHistory.findIndex(e => e.date === selectedDateStr);
-        if (entryIndex > -1) { tempHabit.completionHistory[entryIndex].count = tempHabit.completionHistory[entryIndex].count +1 > (tempHabit.frequency.times || 1) && tempHabit.frequency.type ==='daily' ? (tempHabit.frequency.times || 1) : tempHabit.completionHistory[entryIndex].count +1;}
-        else { tempHabit.completionHistory.push({ date: selectedDateStr, count: 1 });}
-        firestoreCompletionHistoryForHabit = tempHabit.completionHistory.map(e => ({date: e.date, count: e.count}));
-      }
-
-      try {
-        await updateDoc(habitDocRef, { completionHistory: firestoreCompletionHistoryForHabit }); 
-        console.log('Habit ' + habitId + ' completion history updated.');
-      } catch (error) { console.error("Error updating habit completion: ", error); }
-
-      // Award points only if this specific habit became fully completed due to this action
-      if (didHabitBecomeFullyCompleted) {
-        const userDocRef = doc(db, "users", currentUserId);
-        try {
-          await updateDoc(userDocRef, { points: increment(10) }); // Award 10 points
-          console.log('User ' + currentUserId + ' awarded 10 points for completing habit ' + habitId);
-        } catch (error) { console.error("Error awarding points: ", error); }
-      }
-      
-      // Call the function to check for daily streak after habit state might have changed
-      await checkAndUpdateDailyStreak(); 
-    }
-  };
-
-  // New function to check all daily habits and update overall user streak
-  const checkAndUpdateDailyStreak = async () => {
-    if (!currentUserId) return;
-
-    const todayStr = getIsoDateString(new Date());
-    let allTodaysHabitsCompleted = true;
-
-    // Filter for habits scheduled for *today*
-    const todaysScheduledHabits = habits.filter(h => {
-      const dayOfWeek = new Date().getDay(); // Today's day index
-      if (h.frequency.type === 'daily') return true;
-      if (h.frequency.type === 'weekly') return h.frequency.days?.includes(dayOfWeek);
-      return false;
-    });
-
-    if (todaysScheduledHabits.length === 0) {
-      // No habits scheduled for today, so can't complete all daily habits.
-      // Or, decide if this means the streak is maintained by default (e.g. a rest day)
-      console.log("No habits scheduled for today. Streak not updated.");
-      return; 
-    }
-
-    for (const habit of todaysScheduledHabits) {
-      const targetCompletions = habit.frequency.type === 'daily' ? (habit.frequency.times || 1) : 1;
-      const todaysEntry = habit.completionHistory.find(entry => entry.date === todayStr);
-      if (!todaysEntry || todaysEntry.count < targetCompletions) {
-        allTodaysHabitsCompleted = false;
-        break;
-      }
-    }
-
-    if (allTodaysHabitsCompleted) {
-      console.log("All habits for today are completed! Updating daily streak.");
-      const userDocRef = doc(db, "users", currentUserId);
-      try {
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          let newCurrentStreak = userData.currentStreak || 0;
-          let newLongestStreak = userData.longestStreak || 0;
-          const lastCompletionDate = userData.lastCompletionDate; // This is the user's overall last daily completion
-
-          // IMPORTANT: Streak logic is for *overall daily activity*, not per-habit streak.
-          // It updates only if ALL of today's habits are done, and it's the first time today this condition is met.
-          if (lastCompletionDate !== todayStr) { // Check if we haven't already awarded streak for today
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = getIsoDateString(yesterday);
-
-            if (userData.lastCompletionDate === yesterdayStr) {
-              newCurrentStreak += 1;
-            } else {
-              newCurrentStreak = 1; // Reset if last completion wasn't yesterday
-            }
-            if (newCurrentStreak > newLongestStreak) {
-              newLongestStreak = newCurrentStreak;
-            }
-            // Update user document with new streak and today as lastCompletionDate
-            await updateDoc(userDocRef, {
-              currentStreak: newCurrentStreak,
-              longestStreak: newLongestStreak,
-              lastCompletionDate: todayStr 
-            });
-            console.log('User ' + currentUserId + ' daily streak updated to ' + newCurrentStreak);
-          } else {
-            console.log("Daily streak already awarded for today or condition not met previously.");
-          }
-        }
-      } catch (error) {
-        console.error("Error updating user daily streak: ", error);
-      }
-    } else {
-      console.log("Not all habits for today are completed. Daily streak not updated yet.");
-    }
-  };
-
+  /**
+   * Renders a single habit item for the FlatList.
+   * Displays habit name, progress (circular or text), and a complete button.
+   * Button is disabled if the habit is already completed for the selected date or if the date is not today.
+   * @param item The habit object to render.
+   */
   const renderHabit = ({ item }: { item: Habit }) => {
     const dateString = getIsoDateString(selectedDate);
     const todaysEntry = item.completionHistory.find(entry => entry.date === dateString);
@@ -510,6 +327,7 @@ export default function Index() {
     const isFullyCompleted = currentCompletions >= targetCompletions;
     const progress = targetCompletions > 0 ? (currentCompletions / targetCompletions) * 100 : 0;
     const showCircularProgress = item.frequency.type === 'daily' && (item.frequency.times || 1) > 1;
+    // Disable completion if selected date is not today OR if already fully completed for the selected date.
     const isButtonDisabled = getIsoDateString(selectedDate) !== getIsoDateString(new Date()) || isFullyCompleted;
 
     return (
@@ -518,7 +336,7 @@ export default function Index() {
           <Text style={styles.habitName}>{item.name}</Text>
           {showCircularProgress ? 
             (<CircularProgress percentage={progress} radius={25} strokeWidth={5} />) : 
-            (<Text style={styles.habitPercentageText}>{`${Math.round(progress)}% completed`}</Text>)}
+            (<Text style={styles.habitPercentageText}>{`${Math.round(progress)}% completed`}</Text>)} {/* Changed to Math.round for cleaner display */}
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.completeButton, isButtonDisabled ? styles.completedButton : {}]} 
@@ -531,6 +349,7 @@ export default function Index() {
     );
   };
 
+  // Display loading indicator while fetching initial data.
   if (isLoading) {
     return <View style={globalStyles.centeredContainer}><ActivityIndicator size="large" color={colors.accent} /></View>;
   }
@@ -538,9 +357,9 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      {/* Header */}
+      {/* Header Section: Menu, Greeting, Notifications */}
       <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => appNavigation.dispatch(DrawerActions.openDrawer())} style={styles.menuButtonContainer}>
+        <TouchableOpacity onPress={onToggleDrawer} style={styles.menuButtonContainer}>
           <Image source={require('../../assets/icons/burger_menu_icon.png')} style={styles.menuIcon} />
         </TouchableOpacity>
         <Text style={styles.greetingText}>Hello, <Text style={styles.userNameText}>{userName}!</Text></Text>
@@ -554,7 +373,7 @@ export default function Index() {
         </TouchableOpacity>
       </View>
 
-      {/* Date Selector */}
+      {/* Horizontal Date Selector */}
       <View style={styles.dateSelectorContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateScrollContent}>
           {dateRange.map((date, index) => {
@@ -567,20 +386,20 @@ export default function Index() {
             );
           })}
         </ScrollView>
-         <TouchableOpacity onPress={() => { /* Logic to go to next set of dates or a calendar picker */ }}>
+         <TouchableOpacity onPress={() => { /* TODO: Implement navigation to a full calendar view or jump further */ }}>
              <Text style={styles.dateChevron}>{`>>`}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Overall Progress */}
+      {/* Overall Daily Progress Display */}
       <View style={styles.overallProgressContainer}>
         <CircularProgress percentage={dailyProgress.percentage} radius={60} strokeWidth={10} />
         <Text style={styles.progressText}>{dailyProgress.count}/{dailyProgress.total} habits completed</Text>
       </View>
 
-      {/* Habits List */}
+      {/* List of Habits for the Selected Date */}
       <FlatList
-        data={habits.filter(habit => {
+        data={habits.filter(habit => { // Filter habits based on selectedDate and frequency
             const dayOfWeek = selectedDate.getDay();
             if (habit.frequency.type === 'daily') return true;
             if (habit.frequency.type === 'weekly') return habit.frequency.days?.includes(dayOfWeek);
@@ -588,16 +407,18 @@ export default function Index() {
         })}
         renderItem={renderHabit}
         keyExtractor={(item) => item.id}
-        numColumns={2} // For grid layout
-        columnWrapperStyle={styles.row}
-        ListEmptyComponent={<Text style={styles.emptyText}>No habits scheduled for {selectedDate.toDateString()}.</Text>}
+        numColumns={2} // Displays habits in a 2-column grid
+        columnWrapperStyle={styles.row} // Styles for each row in the grid
+        ListEmptyComponent={<Text style={styles.emptyText}>No habits scheduled for {selectedDate.toDateString()}. Add one!</Text>} // Message when no habits
         contentContainerStyle={styles.listContentContainer}
       />
 
+      {/* Floating Action Button to Add Habit */}
       <TouchableOpacity style={styles.addHabitFab} onPress={() => setIsAddModalVisible(true)}>
         <Text style={styles.addHabitFabText}>+</Text>
       </TouchableOpacity>
 
+      {/* Modal for Adding a New Habit */}
       <Modal visible={isAddModalVisible} animationType="slide" onRequestClose={() => setIsAddModalVisible(false)}>
         <AddHabitScreen onAddHabit={handleAddHabit} onCancel={() => setIsAddModalVisible(false)} />
       </Modal>
@@ -608,7 +429,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F6F8', // Light greyish background
+    backgroundColor: '#F4F6F8', 
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
   },
   headerContainer: {
@@ -625,21 +446,10 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   menuButtonContainer: {
-    position: 'relative',
+    // position: 'relative', // Removed as badge is on notification icon
     padding: 10,
   },
-  notificationBadge: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: colors.error,
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
+  // Removed notificationBadge style as it was duplicated by notificationBadgeOnIcon
   notificationBadgeText: {
     color: colors.primaryText,
     fontSize: 10,
@@ -650,7 +460,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.textDefault,
     textAlign: 'center',
-    marginHorizontal: 10,
+    marginHorizontal: 10, // Give some space if username is very long
+    flexShrink: 1, // Allow greeting text to shrink if needed
   },
   userNameText: {
     color: colors.accent,
@@ -658,11 +469,12 @@ const styles = StyleSheet.create({
   dateSelectorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 10, // Adjusted for better spacing with chevron
     marginBottom: 20,
   },
   dateScrollContent: {
     alignItems: 'center',
+    flexGrow: 1, // Allow ScrollView to take available space before chevron
   },
   dateItem: {
     alignItems: 'center',
@@ -690,7 +502,7 @@ const styles = StyleSheet.create({
   dateChevron: {
       fontSize: 20,
       color: colors.textMuted,
-      paddingHorizontal: 10,
+      paddingHorizontal: 10, // Give chevron some touchable area
   },
   overallProgressContainer: {
     alignItems: 'center',
@@ -704,7 +516,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   listContentContainer: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 15, // Horizontal padding for the FlatList content
+    paddingBottom: 80, // Add padding to the bottom to avoid FAB overlap
   },
    row: {
     justifyContent: 'space-between',
@@ -714,9 +527,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderRadius: 15,
     padding: 15,
-    width: '48%', // For 2 columns with a bit of space
-    aspectRatio: 1, // Makes it a square
-    justifyContent: 'space-between', // Pushes button to bottom
+    width: '48%', 
+    aspectRatio: 1, 
+    justifyContent: 'space-between', 
     alignItems: 'center',
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -725,7 +538,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   habitInfoTouchable: {
-      alignItems: 'center', // Center name and progress/text
+      alignItems: 'center', 
       width: '100%',
   },
   habitName: {
@@ -739,9 +552,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.accent,
   },
-  habitProgressCircleContainer: {
-      marginVertical: 8,
-  },
+  // Removed habitProgressCircleContainer as CircularProgress is used directly
   completeButton: {
     backgroundColor: colors.accent,
     paddingVertical: 8,
@@ -749,7 +560,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: '80%',
     alignItems: 'center',
-    marginTop: 'auto', // Pushes button to bottom when habitInfoTouchable content is small
+    marginTop: 'auto', 
   },
   completedButton: {
     backgroundColor: colors.textMuted,
@@ -775,32 +586,37 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
+    elevation: 8, // For Android shadow
+    shadowColor: '#000', // For iOS shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   addHabitFabText: {
     fontSize: 30,
     color: colors.primaryText,
   },
   notificationIconButton: {
-    position: 'relative',
+    position: 'relative', // Needed for the badge positioning
     padding: 10,
   },
   notificationBellIcon: { 
     width: 24, 
     height: 24, 
     resizeMode: 'contain',
+    // Consider adding tintColor if needed, e.g., tintColor: colors.textDefault
   },
   notificationBadgeOnIcon: {
     position: 'absolute',
     top: 5,
     right: 5,
     backgroundColor: colors.error,
-    borderRadius: 8,
-    minWidth: 16,
+    borderRadius: 8, // Adjusted for a slightly smaller badge
+    minWidth: 16, // Ensure badge is visible even with single digit
     height: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1,
-    paddingHorizontal: 4,
+    zIndex: 1, // Ensure badge is on top
+    paddingHorizontal: 4, // Give some horizontal padding for text inside badge
   },
 });

@@ -26,7 +26,7 @@ export const Colors = {
 };
 
 export const colors = {
-  primary: '#D1624A',        // Main background color from Calendar screen
+  primary: '#D05B52',        // Main background color from Calendar screen
   primaryText: '#FFFFFF',   // Text color on primary background
   accent: '#D9534F',         // Accent color (streaks, loader in Calendar)
   cardBackground: '#FFFFFF', // Background for cards

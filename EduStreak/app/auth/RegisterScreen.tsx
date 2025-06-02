@@ -1,12 +1,17 @@
 import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { auth, db } from '../../config/firebase';
 import { colors } from '../../constants/Colors';
+import { registerWithEmail } from '../../services/authService'; // Import the service function
 import { globalStyles } from '../../styles/globalStyles';
 
+/**
+ * `RegisterScreen` allows new users to create an account.
+ * It collects display name, email, password, and password confirmation.
+ * Validates the input fields and calls the `registerWithEmail` service function
+ * from `authService` to create the user account and associated Firestore document.
+ * Navigates to the Login screen upon successful registration.
+ */
 export default function RegisterScreen() {
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -14,6 +19,13 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
 
+  /**
+   * Handles the user registration process.
+   * Validates that all fields are filled and that passwords match.
+   * Calls the `registerWithEmail` service function with the display name, email, and password.
+   * On successful registration, displays a success alert and navigates to the Login screen.
+   * If registration fails, displays an error alert with the message from the service.
+   */
   const handleRegister = async () => {
     if (!displayName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields.');
@@ -24,25 +36,12 @@ export default function RegisterScreen() {
       return;
     }
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      await updateProfile(user, { displayName: displayName });
-
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        displayName: displayName,
-        email: user.email,
-        points: 0,
-        currentStreak: 0,
-        longestStreak: 0,
-        lastCompletionDate: null,
-        photoURL: user.photoURL || ''
-      });
-
+      // Call the service function for registration
+      await registerWithEmail(displayName, email, password);
       Alert.alert('Registration Successful', 'Your account has been created.');
-      router.replace('/auth/LoginScreen');
+      router.replace('/auth/LoginScreen'); // Navigate to Login on success
     } catch (error: any) {
+      console.error("[RegisterScreen] Registration failed:", error.message);
       Alert.alert('Registration Failed', error.message);
     }
   };

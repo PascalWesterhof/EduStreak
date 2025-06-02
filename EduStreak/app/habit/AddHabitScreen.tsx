@@ -21,6 +21,17 @@ interface Props {
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/**
+ * `AddHabitScreen` is a form component used for creating new habits.
+ * It allows users to input habit details such as name, description, frequency (daily/weekly),
+ * target times, specific days for weekly habits, notes, and an optional reminder time.
+ *
+ * @param {Props} props - The component's props.
+ * @param props.onAddHabit - Callback function triggered when the user saves a new habit.
+ *                           It receives the new habit data (excluding system-generated fields).
+ * @param [props.onCancel] - Optional callback function triggered when the user cancels habit creation.
+ *                           If not provided, the screen will navigate back.
+ */
 export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -34,6 +45,13 @@ export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
   const [reminderTime, setReminderTime] = useState<Date | undefined>(undefined);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
+  /**
+   * Handles the change event from the DateTimePicker for reminder time selection.
+   * Updates the `reminderTime` state with the selected time.
+   * Manages the visibility of the time picker, especially for iOS where it might remain open.
+   * @param {DateTimePickerEvent} event - The event object from the DateTimePicker.
+   * @param {Date} [selectedTime] - The time selected by the user.
+   */
   const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
     setShowTimePicker(Platform.OS === 'ios'); // Keep picker open on iOS until done
     if (selectedTime) {
@@ -41,6 +59,11 @@ export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
     }
   };
 
+  /**
+   * Formats a Date object into a "HH:MM" string representation.
+   * @param {Date | undefined} date - The Date object to format. If undefined, returns an empty string.
+   * @returns {string} The formatted time string (e.g., "09:30") or an empty string.
+   */
   const formatTime = (date: Date | undefined) => {
     if (!date) return '';
     const hours = date.getHours().toString().padStart(2, '0');
@@ -48,6 +71,12 @@ export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
     return `${hours}:${minutes}`;
   };
 
+  /**
+   * Validates the habit input fields and constructs the new habit data object.
+   * Calls the `onAddHabit` prop with the new habit data.
+   * Handles validation for habit name, times per day/week, and day selection for weekly habits.
+   * Displays alerts for any validation errors.
+   */
   const handleSaveHabit = () => {
     if (!name.trim()) {
       Alert.alert('Missing Name', 'Please enter a habit name.');
@@ -95,12 +124,22 @@ export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
     onAddHabit(newHabitData);
   };
 
+  /**
+   * Toggles the selection of a specific day for weekly habits.
+   * If the day is already selected, it's removed; otherwise, it's added to the `selectedDays` state.
+   * @param {number} dayIndex - The index of the day to toggle (0 for Sun, 1 for Mon, etc.).
+   */
   const toggleDay = (dayIndex: number) => {
     setSelectedDays(prev =>
       prev.includes(dayIndex) ? prev.filter(d => d !== dayIndex) : [...prev, dayIndex]
     );
   };
 
+  /**
+   * Handles the cancellation of habit creation.
+   * If an `onCancel` prop is provided, it calls that function.
+   * Otherwise, it navigates back to the previous screen using the router.
+   */
   const handleCancel = () => {
     if (onCancel) {
       onCancel();

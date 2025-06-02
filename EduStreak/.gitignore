@@ -45,5 +45,5 @@ app-example
 # Environment variables
 .env
 
-# Android files
+# Android build files
 android/

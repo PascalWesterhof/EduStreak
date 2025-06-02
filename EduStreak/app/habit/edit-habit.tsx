@@ -1,6 +1,6 @@
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { deleteField, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { deleteField } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,11 +14,20 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { auth, db } from '../../config/firebase';
+import { auth } from '../../config/firebase';
+import { getHabitDetails, updateHabitDetails as updateHabitService } from '../../services/habitService';
 import { Habit } from '../../types';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/**
+ * `EditHabitScreen` allows users to modify an existing habit.
+ * It fetches the habit's current details using `habitId` from route parameters
+ * and populates a form similar to `AddHabitScreen`.
+ * Users can change habit name, description, frequency, reminder time, and notes.
+ * Changes are saved by calling the `updateHabitService`.
+ * Handles loading, saving, and error states.
+ */
 export default function EditHabitScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -39,6 +48,11 @@ export default function EditHabitScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  /**
+   * Parses a time string (HH:MM) into a Date object for the current day.
+   * @param {string} timeString - The time string to parse (e.g., "14:30").
+   * @returns {Date | undefined} A Date object if parsing is successful, otherwise undefined.
+   */
   const parseTimeStringToDate = (timeString: string): Date | undefined => {
     if (!timeString || !timeString.includes(':')) return undefined;
     const [hours, minutes] = timeString.split(':').map(Number);
@@ -48,6 +62,11 @@ export default function EditHabitScreen() {
     return date;
   };
 
+  /**
+   * Formats a Date object into a "HH:MM" string representation.
+   * @param {Date | undefined} date - The Date object to format. If undefined, returns an empty string.
+   * @returns {string} The formatted time string (e.g., "09:30") or an empty string.
+   */
   const formatTime = (date: Date | undefined): string => {
     if (!date) return '';
     const hours = date.getHours().toString().padStart(2, '0');
@@ -63,12 +82,10 @@ export default function EditHabitScreen() {
       return;
     }
     setIsLoading(true);
-    const fetchHabitDetails = async () => {
+    const fetchAndSetHabitDetails = async () => {
       try {
-        const habitDocRef = doc(db, 'users', currentUserId, 'habits', routeHabitId as string);
-        const docSnap = await getDoc(habitDocRef);
-        if (docSnap.exists()) {
-          const habitData = docSnap.data() as Habit; // Cast to full Habit to get reminderTime 
+        const habitData = await getHabitDetails(currentUserId, routeHabitId);
+        if (habitData) {
           setName(habitData.name);
           setDescription(habitData.description || '');
           setFrequencyType(habitData.frequency.type);
@@ -86,17 +103,24 @@ export default function EditHabitScreen() {
           Alert.alert("Error", "Habit not found for editing.");
           if(router.canGoBack()) router.back(); else router.replace('/(tabs)');
         }
-      } catch (e) {
-        console.error("Error fetching habit for editing: ", e);
-        Alert.alert("Error", "Could not load habit details for editing.");
+      } catch (e: any) {
+        console.error("[EditHabitScreen] Error fetching habit for editing via service: ", e);
+        Alert.alert("Error", e.message || "Could not load habit details for editing.");
         if(router.canGoBack()) router.back(); else router.replace('/(tabs)');
       } finally {
         setIsLoading(false);
       }
     };
-    fetchHabitDetails();
+    fetchAndSetHabitDetails();
   }, [navigation, routeHabitId, currentUserId, router]);
 
+  /**
+   * Handles the change event from the DateTimePicker for reminder time selection.
+   * Updates the `reminderTime` state with the selected time.
+   * Manages the visibility of the time picker based on platform and event type.
+   * @param {DateTimePickerEvent} event - The event object from the DateTimePicker.
+   * @param {Date} [selectedTime] - The time selected by the user.
+   */
   const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
     setShowTimePicker(Platform.OS === 'ios');
     if (event.type === 'dismissed') {
@@ -110,10 +134,20 @@ export default function EditHabitScreen() {
     if (Platform.OS !== 'ios') setShowTimePicker(false); // Close on Android after selection
   };
 
+  /**
+   * Clears the currently set reminder time by setting `reminderTime` state to undefined.
+   */
   const clearReminderTime = () => {
     setReminderTime(undefined);
   };
 
+  /**
+   * Handles the process of updating an existing habit.
+   * Validates required fields (name, frequency details).
+   * Constructs an update object, using `deleteField()` for optional fields that are cleared.
+   * Calls `updateHabitService` to persist changes to Firestore.
+   * Manages saving state and displays alerts for success or failure.
+   */
   const handleUpdateHabit = async () => {
     if (!routeHabitId || !currentUserId) {
       Alert.alert("Error", "Cannot update habit: Missing ID or User session.");
@@ -177,24 +211,32 @@ export default function EditHabitScreen() {
 
     setIsSaving(true);
     try {
-      const habitDocRef = doc(db, 'users', currentUserId, 'habits', routeHabitId as string);
-      await updateDoc(habitDocRef, updatedHabitData);
+      await updateHabitService(currentUserId, routeHabitId, updatedHabitData);
       Alert.alert("Success", "Habit updated successfully!");
       router.back(); 
-    } catch (e) {
-      console.error("Error updating habit in Firestore: ", e);
-      Alert.alert("Error", "Failed to update habit. Please try again.");
+    } catch (e: any) {
+      console.error("[EditHabitScreen] Error updating habit via service: ", e);
+      Alert.alert("Error", e.message || "Failed to update habit. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
 
+  /**
+   * Toggles the selection of a specific day for weekly habits.
+   * If the day is already selected, it's removed; otherwise, it's added to the `selectedDays` state.
+   * @param {number} dayIndex - The index of the day to toggle (0 for Sun, 1 for Mon, etc.).
+   */
   const toggleDay = (dayIndex: number) => {
     setSelectedDays(prev =>
       prev.includes(dayIndex) ? prev.filter(d => d !== dayIndex) : [...prev, dayIndex]
     );
   };
   
+  /**
+   * Handles the cancellation of habit editing.
+   * Navigates back to the previous screen if possible, otherwise replaces with the main tabs screen.
+   */
   const handleCancel = () => {
     if (router.canGoBack()) {
         router.back();

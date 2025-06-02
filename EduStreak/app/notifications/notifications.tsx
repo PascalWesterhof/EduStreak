@@ -1,12 +1,24 @@
 import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
-import { collection, doc, getDocs, onSnapshot, orderBy, query, updateDoc, writeBatch } from 'firebase/firestore';
+// Firebase SDK imports to be removed or reduced
+// import { collection, doc, getDocs, onSnapshot, orderBy, query, updateDoc, writeBatch } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { auth, db } from '../../config/firebase';
+import { auth } from '../../config/firebase'; // db import will be removed
 import { colors } from '../../constants/Colors';
+import {
+    clearAllUserNotifications as clearAllService,
+    markNotificationAsRead as markReadService,
+    subscribeToNotifications
+} from '../../services/notificationService';
 import { globalStyles } from '../../styles/globalStyles';
 import { InAppNotification } from '../../types';
 
+/**
+ * `NotificationsScreen` displays a list of in-app notifications for the current user.
+ * It subscribes to real-time updates from the `notificationService`.
+ * Users can mark individual notifications as read or clear all notifications.
+ * Handles loading states and displays a message if there are no notifications.
+ */
 export default function NotificationsScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -23,48 +35,59 @@ export default function NotificationsScreen() {
       if (!currentUserId) {
         setNotifications([]);
         setIsLoading(false);
+        // Optionally, display a message or redirect if no user
         return;
       }
 
       setIsLoading(true);
-      const notificationsCollectionRef = collection(db, 'users', currentUserId, 'inAppNotifications');
-      const q = query(notificationsCollectionRef, orderBy('timestamp', 'desc'));
-
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const fetchedNotifications: InAppNotification[] = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          fetchedNotifications.push({
-            id: doc.id,
-            ...data,
-            timestamp: data.timestamp, 
-            read: data.read,
-          } as InAppNotification);
-        });
+      
+      const handleUpdate = (fetchedNotifications: InAppNotification[]) => {
         setNotifications(fetchedNotifications);
         setIsLoading(false);
-      }, (error) => {
-        console.error("Error fetching notifications: ", error);
-        setIsLoading(false);
-      });
+      };
 
-      return () => unsubscribe();
+      const handleError = (error: Error) => {
+        console.error("[NotificationsScreen] Error from service subscription: ", error);
+        setIsLoading(false);
+        // Optionally, set an error state to display a message to the user
+      };
+
+      // Use the service to subscribe
+      const unsubscribe = subscribeToNotifications(currentUserId, handleUpdate, handleError);
+
+      return () => unsubscribe(); // Cleanup subscription on blur or unmount
     }, [currentUserId])
   );
 
+  /**
+   * Marks a specific notification as read.
+   * Calls the `markReadService` to update the notification's status in Firestore.
+   * Optimistically updates the local state to reflect the change immediately.
+   * Displays an alert if the operation fails.
+   * @param {string} notificationId - The ID of the notification to mark as read.
+   */
   const handleMarkAsRead = async (notificationId: string) => {
     if (!currentUserId) return;
-    const notificationRef = doc(db, 'users', currentUserId, 'inAppNotifications', notificationId);
     try {
-      await updateDoc(notificationRef, { read: true });
+      // Call service to mark as read
+      await markReadService(currentUserId, notificationId);
+      // Optimistic update or rely on onSnapshot to refresh
       setNotifications(prevNotifications =>
         prevNotifications.map(n => n.id === notificationId ? { ...n, read: true } : n)
       );
-    } catch (error) {
-      console.error("Error marking notification as read: ", error);
+    } catch (error: any) {
+      console.error("[NotificationsScreen] Error marking notification as read via service: ", error);
+      Alert.alert("Error", error.message || "Could not mark notification as read.");
     }
   };
 
+  /**
+   * Clears all notifications for the current user.
+   * Prompts the user for confirmation before proceeding.
+   * Calls the `clearAllService` to delete all notifications from Firestore.
+   * Optimistically clears the local notifications state.
+   * Manages loading state and displays alerts for success or failure.
+   */
   const handleClearAllNotifications = async () => {
     if (!currentUserId || notifications.length === 0) return;
 
@@ -72,34 +95,20 @@ export default function NotificationsScreen() {
       "Confirm Clear",
       "Are you sure you want to delete all notifications? This action cannot be undone.",
       [
+        { text: "Cancel", style: "cancel" },
         {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Clear All",
-          style: "destructive",
+          text: "Clear All", 
+          style: "destructive", 
           onPress: async () => {
             setIsLoading(true);
             try {
-              const notificationsCollectionRef = collection(db, 'users', currentUserId, 'inAppNotifications');
-              const querySnapshot = await getDocs(notificationsCollectionRef);
-              
-              if (querySnapshot.empty) {
-                setNotifications([]);
-                setIsLoading(false);
-                return;
-              }
-
-              const batch = writeBatch(db);
-              querySnapshot.forEach(doc => {
-                batch.delete(doc.ref);
-              });
-              await batch.commit();
-              setNotifications([]);
-            } catch (error) {
-              console.error("Error clearing all notifications: ", error);
-              Alert.alert("Error", "Could not clear notifications. Please try again.");
+              // Call service to clear all notifications
+              await clearAllService(currentUserId);
+              // Optimistic update or rely on onSnapshot to refresh (which should show empty list)
+              setNotifications([]); 
+            } catch (error: any) {
+              console.error("[NotificationsScreen] Error clearing all notifications via service: ", error);
+              Alert.alert("Error", error.message || "Could not clear notifications. Please try again.");
             } finally {
               setIsLoading(false);
             }
@@ -109,6 +118,15 @@ export default function NotificationsScreen() {
     );
   };
 
+  /**
+   * Renders a single notification item for the FlatList.
+   * Displays the notification message and timestamp.
+   * Unread notifications have distinct styling and an unread indicator dot.
+   * Pressing an item triggers `handleMarkAsRead` for that notification.
+   * @param {object} params - The parameters for rendering the item.
+   * @param {InAppNotification} params.item - The notification object to render.
+   * @returns {JSX.Element} The rendered notification item.
+   */
   const renderNotificationItem = ({ item }: { item: InAppNotification }) => (
     <TouchableOpacity 
       style={[styles.notificationItem, !item.read && styles.unreadItemCustom]}

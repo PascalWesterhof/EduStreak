@@ -1,12 +1,21 @@
 import { useRouter } from 'expo-router';
-import { deleteUser, EmailAuthProvider, reauthenticateWithCredential, User } from 'firebase/auth';
-import { deleteDoc, doc } from 'firebase/firestore';
+import { User } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
 import { Alert, Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { auth, db } from '../../config/firebase';
+import { auth } from '../../config/firebase';
 import { colors } from '../../constants/Colors';
+import { deleteUserAccount } from '../../services/authService';
 import { globalStyles } from '../../styles/globalStyles';
 
+/**
+ * `DeleteAccountScreen` provides the interface for users to permanently delete their account.
+ * It displays a prominent warning about the irreversibility of the action.
+ * For users signed in with email/password, it requires them to enter their current password
+ * as a confirmation step before proceeding with deletion.
+ * For users signed in via external providers, it informs them about the nature of their sign-in.
+ * The actual account deletion logic (including re-authentication if needed, Firestore data removal,
+ * and Firebase Auth user deletion) is handled by the `deleteUserAccount` function in `authService`.
+ */
 export default function DeleteAccountScreen() {
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState('');
@@ -24,15 +33,22 @@ export default function DeleteAccountScreen() {
     }
   }, []);
 
+  /**
+   * Handles the final confirmation and execution of the account deletion process.
+   * Ensures the user is logged in. If the user signed up with email/password,
+   * it validates that the current password has been entered.
+   * Calls the `deleteUserAccount` service function, passing the current user object and
+   * the current password (if applicable).
+   * Displays success or error alerts based on the outcome from the service.
+   * On successful deletion, navigates the user to the Login screen.
+   */
   const handleConfirmDelete = async () => {
     setError('');
     if (!currentUser) {
       Alert.alert('Error', 'User not found. Please re-login.');
-      router.replace('/auth/LoginScreen' as any);
+      router.replace('/auth/LoginScreen');
       return;
     }
-
-    const userIdToDelete = currentUser.uid;
 
     if (isPasswordProviderUser && !currentPassword) {
       Alert.alert('Password Required', 'Please enter your current password to confirm account deletion.');
@@ -40,31 +56,16 @@ export default function DeleteAccountScreen() {
     }
 
     setIsProcessing(true);
-
     try {
-      if (isPasswordProviderUser && currentUser.email) {
-        const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
-        await reauthenticateWithCredential(currentUser, credential);
-        console.log("User re-authenticated successfully for deletion.");
-      }
-
-      try {
-        const userDocRef = doc(db, "users", userIdToDelete);
-        await deleteDoc(userDocRef);
-        console.log(`Firestore document for user ${userIdToDelete} deleted.`);
-      } catch (firestoreError) {
-        console.error("Error deleting Firestore document: ", firestoreError);
-        Alert.alert('Data Cleanup Error', 'Could not remove all user data, but will proceed with account deletion.');
-      }
-
-      await deleteUser(auth.currentUser!);
+      const passwordForService = isPasswordProviderUser && currentPassword ? currentPassword : undefined;
+      await deleteUserAccount(currentUser, passwordForService);
 
       Alert.alert('Account Deleted', 'Your account and associated data have been permanently deleted.', [
-        { text: 'OK', onPress: () => router.replace('/auth/LoginScreen' as any) }
+        { text: 'OK', onPress: () => router.replace('/auth/LoginScreen') }
       ]);
 
     } catch (err: any) {
-      console.error("Delete Account Error:", err);
+      console.error("[DeleteAccountScreen] Delete Account Error via service:", err);
       let errorMessage = 'Failed to delete account. Please try again.';
       if (err.code === 'auth/wrong-password') {
         errorMessage = 'Incorrect current password. Please try again.';

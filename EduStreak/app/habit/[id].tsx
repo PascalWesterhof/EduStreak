@@ -1,23 +1,29 @@
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { deleteDoc, doc, getDoc, Timestamp } from 'firebase/firestore';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { auth, db } from '../../config/firebase';
+import { auth } from '../../config/firebase';
+import { deleteHabit as deleteHabitService, getHabitDetails } from '../../services/habitService';
 import { Habit } from '../../types';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/**
+ * `HabitDetailScreen` displays detailed information about a specific habit.
+ * It fetches habit data based on the `habitId` passed through route parameters.
+ * Users can view habit details, edit the habit, or delete it.
+ * It handles loading, error, and authentication states.
+ */
 export default function HabitDetailScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -43,6 +49,11 @@ export default function HabitDetailScreen() {
     return () => unsubscribe();
   }, [router]);
 
+  /**
+   * Fetches the details of the habit from the `habitService` using the `currentUserId` and `habitId`.
+   * Sets the habit state, loading state, and error state based on the outcome of the fetch operation.
+   * If `currentUserId` or `habitId` is not available, it sets an error and clears habit data.
+   */
   const fetchHabitDetails = useCallback(async () => {
     if (!currentUserId || !habitId) {
       setHabit(null);
@@ -55,25 +66,16 @@ export default function HabitDetailScreen() {
     setIsLoading(true);
     setError(null);
     try {
-      const habitDocRef = doc(db, 'users', currentUserId, 'habits', habitId);
-      const docSnap = await getDoc(habitDocRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const createdAt = data.createdAt instanceof Timestamp 
-                            ? data.createdAt.toDate().toISOString() 
-                            : data.createdAt || new Date().toISOString();
-        const completionHistory = (data.completionHistory || []).map((entry: any) => ({
-            ...entry,
-            date: entry.date instanceof Timestamp ? entry.date.toDate().toISOString().split('T')[0] : String(entry.date).split('T')[0],
-        }));            
-        setHabit({ id: docSnap.id, ...data, createdAt, completionHistory } as Habit);
+      const fetchedHabit = await getHabitDetails(currentUserId, habitId);
+      if (fetchedHabit) {
+        setHabit(fetchedHabit);
       } else {
         setError('Habit not found.');
         setHabit(null);
       }
-    } catch (e) {
-      console.error("Error fetching habit details: ", e);
-      setError('Failed to load habit details. Please try again.');
+    } catch (e: any) {
+      console.error("[HabitDetailScreen] Error fetching habit details via service: ", e);
+      setError(e.message || 'Failed to load habit details. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -82,10 +84,19 @@ export default function HabitDetailScreen() {
   useFocusEffect(
     useCallback(() => {
       navigation.setOptions({ headerShown: false });
-      fetchHabitDetails();
-    }, [navigation, fetchHabitDetails])
+      if (currentUserId) {
+        fetchHabitDetails();
+      }
+    }, [navigation, fetchHabitDetails, currentUserId])
   );
 
+  /**
+   * Handles the deletion of the current habit.
+   * Prompts the user for confirmation before proceeding with the deletion.
+   * Calls the `deleteHabitService` to remove the habit from Firestore.
+   * Navigates back to the previous screen on successful deletion.
+   * Displays alerts for success or failure.
+   */
   const handleDeleteHabit = async () => {
     if (!currentUserId || !habitId || !habit) {
       Alert.alert("Error", "Cannot delete habit: missing user, habit ID, or habit data.");
@@ -103,13 +114,12 @@ export default function HabitDetailScreen() {
           onPress: async () => {
             setIsDeleting(true);
             try {
-              const habitDocRef = doc(db, 'users', currentUserId, 'habits', habitId);
-              await deleteDoc(habitDocRef);
+              await deleteHabitService(currentUserId, habitId);
               Alert.alert("Success", `Habit "${habit.name}" deleted successfully.`);
               router.back();
-            } catch (error) {
-              console.error("Error deleting habit: ", error);
-              Alert.alert("Error", `Failed to delete habit. Please try again.`);
+            } catch (error: any) {
+              console.error("[HabitDetailScreen] Error deleting habit via service: ", error);
+              Alert.alert("Error", error.message || `Failed to delete habit. Please try again.`);
               setIsDeleting(false);
             }
           }
@@ -118,11 +128,20 @@ export default function HabitDetailScreen() {
     );
   };
   
+  /**
+   * Navigates to the EditHabitScreen for the current habit.
+   * Passes the `habitId` as a route parameter to the edit screen.
+   */
   const handleEditHabit = () => {
     if (!habitId) return;
     router.push({ pathname: '/habit/edit-habit', params: { habitId } }); 
   };
 
+  /**
+   * Handles navigation back to the previous screen.
+   * If the router can go back, it does so. Otherwise, it replaces the current screen
+   * with the main tabs screen as a fallback (e.g., if accessed via deep link).
+   */
   const handleGoBack = () => {
     if (router.canGoBack()) {
       router.back();
