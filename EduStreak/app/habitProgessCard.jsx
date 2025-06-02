@@ -1,0 +1,124 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { AnimatedCircularProgress } from 'react-native-circular-progress';
+import { format } from 'date-fns';
+import { getFirestore, collection, getDocs } from "firebase/firestore";
+import StatsScreen from './statsScreen';
+
+export default function HabitProgressCard({ userId = "test2" }) {
+  const [completed, setCompleted] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [habitList, setHabitList] = useState([]); // To show all habits
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const db = getFirestore();
+      const habitsRef = collection(db, 'users', userId, 'habits');
+      const snapshot = await getDocs(habitsRef);
+
+      let totalCount = 0;
+      let completedCount = 0;
+      const todayStr = new Date().toISOString().split('T')[0]; // e.g. '2025-06-03'
+      const habits = [];
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          totalCount++;
+
+          const completedDate = data.date?.completed?.toDate();
+          const completedStr = completedDate?.toISOString().split('T')[0];
+
+          if (completedStr === todayStr) {
+            completedCount++;
+          }
+
+          habits.push({
+            id: doc.id,
+            ...data,
+            completedStr: completedStr || "Not completed today"
+          });
+        });
+
+
+      setTotal(totalCount);
+      setCompleted(completedCount);
+      setHabitList(habits);
+    };
+
+    fetchData();
+  }, [userId]);
+
+  const fill = total > 0 ? (completed / total) * 100 : 0;
+
+  return (
+    <View style={styles.card}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <StatsScreen userId={userId} habitId="study" />
+      </SafeAreaView>
+
+      <Text style={styles.date}>{format(new Date(), 'MMM dd, yyyy')}</Text>
+      <Text style={styles.title}>{`${completed}/${total} habits completed`}</Text>
+
+      <AnimatedCircularProgress
+        size={120}
+        width={15}
+        fill={fill}
+        tintColor="#B4685F"
+        backgroundColor="#f2f2f2"
+        rotation={0}
+        lineCap="round"
+      >
+        {() => <Text style={styles.percentage}>{`${Math.round(fill)}%`}</Text>}
+      </AnimatedCircularProgress>
+
+      {/* List all habits and their status */}
+      <View style={styles.habitList}>
+        {habitList.map(habit => (
+          <Text key={habit.id} style={styles.habitItem}>
+            • {habit.name || habit.id} — {habit.completedStr}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    padding: 20,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    borderRadius: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    margin: 10,
+  },
+  title: {
+    fontSize: 16,
+    marginVertical: 12,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  date: {
+    fontSize: 14,
+    marginBottom: 6,
+    color: '#888',
+  },
+  percentage: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#B4685F',
+  },
+  habitList: {
+    marginTop: 20,
+    alignSelf: 'stretch',
+  },
+  habitItem: {
+    fontSize: 14,
+    color: '#444',
+    marginBottom: 4,
+  },
+});

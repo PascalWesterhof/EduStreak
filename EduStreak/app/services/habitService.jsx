@@ -1,4 +1,4 @@
-import { db } from '../firebase';
+import { db } from '../../firebase';
 import { doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 
 export const addHabit = async (userId, habitId, name) => {

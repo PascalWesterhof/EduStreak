@@ -1,6 +1,8 @@
 import { useNavigation } from "expo-router";
 import { DrawerActions } from "@react-navigation/native";
-import { Text, View, StyleSheet, Button } from "react-native";
+import { Text, View, StyleSheet, Button, TouchableOpacity } from "react-native";
+import { useLayoutEffect } from "react";
+
 
 export default function Leaderboard() {
     const navigation = useNavigation();
@@ -9,6 +11,21 @@ export default function Leaderboard() {
     {
         navigation.dispatch(DrawerActions.openDrawer());
     };
+
+ useLayoutEffect(() => {
+      navigation.setOptions({
+          headerTitleStyle: {
+            color: '#000',       // Your desired text color
+            fontSize: 20,        // Your desired font size
+            fontWeight: 'bold',  // Optional
+          },
+          headerStyle: {
+            backgroundColor: '#fff', // Optional: white background
+          },
+      headerTintColor: '#D1624A'
+        });
+      }, [navigation]);
+
 
   return (
     <View style = {styles.container}>
@@ -25,6 +42,6 @@ const styles = StyleSheet.create
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#25292e",
+        backgroundColor: "#fff",
         }
     });
