@@ -1,11 +1,11 @@
-import { Text, View, StyleSheet, Switch, SafeAreaView, ScrollView, Pressable } from "react-native";
+import { Text, View, StyleSheet, Switch, SafeAreaView, ScrollView, Pressable, TouchableOpacity } from "react-native";
 import React, { useState } from 'react';
 import { useLayoutEffect } from "react";
-import { useNavigation } from "expo-router";
+import { useNavigation, Link } from "expo-router";
 
 export default function Settings() {
       const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-      const [aiAssistanceEnabled, setAiAssistanceEnabled] = useState(true);
+      const [dailyRemindersEnabled, setDailyRemindersEnabled] = useState(true);
 
       const navigation = useNavigation();
 
@@ -46,10 +46,10 @@ export default function Settings() {
                  </View>
 
                  <View style={styles.box}>
-                   <Text style={styles.label}>AI Assistance</Text>
+                   <Text style={styles.label}>Daily reminders</Text>
                    <Switch
-                     value={aiAssistanceEnabled}
-                     onValueChange={setAiAssistanceEnabled}
+                     value={dailyRemindersEnabled}
+                     onValueChange={setDailyRemindersEnabled}
                      trackColor={{ false: "#D1624A", true: "#fff"}}
                      thumbColor={notificationsEnabled ? "#fff" : "#fff"}
                    />
@@ -60,11 +60,19 @@ export default function Settings() {
                  </View>
 
                  <View style={styles.box}>
-                   <Text style={styles.label}>Gamification</Text>
+                    <Link href="./gamification" asChild>
+                             <TouchableOpacity>
+                               <Text style={styles.label}>Gamification</Text>
+                             </TouchableOpacity>
+                           </Link>
                  </View>
 
                  <View style={styles.box}>
-                   <Text style={styles.label}>Privacy & Data</Text>
+                   <Link href="./privacy" asChild>
+                                                <TouchableOpacity>
+                                                  <Text style={styles.label}>Privacy & Data</Text>
+                                                </TouchableOpacity>
+                                              </Link>
                  </View>
 
                  <View style={styles.box}>
