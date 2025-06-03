@@ -6,39 +6,41 @@ import { getFirestore, collection, getDocs } from "firebase/firestore";
 import StatsScreen from './statsScreen';
 
 export default function HabitProgressCard({ userId = "test2" }) {
-  const [completed, setCompleted] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [habitList, setHabitList] = useState([]); // To show all habits
+  const [completed, setCompleted] = useState(0);       // Number of habits completed today
+  const [total, setTotal] = useState(0);               // Total number of habits
+  const [habitList, setHabitList] = useState([]);      // List of habits and their statuses
 
   useEffect(() => {
     const fetchData = async () => {
       const db = getFirestore();
-      const habitsRef = collection(db, 'users', userId, 'habits');
+      const habitsRef = collection(db, 'users', userId, 'habits'); // Reference to user's habits
       const snapshot = await getDocs(habitsRef);
 
       let totalCount = 0;
       let completedCount = 0;
-      const todayStr = new Date().toISOString().split('T')[0]; // e.g. '2025-06-03'
+      const todayStr = new Date().toISOString().split('T')[0]; // e.g., '2025-06-03'
       const habits = [];
 
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          totalCount++;
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        totalCount++; // Increment for each habit
 
-          const completedDate = data.date?.completed?.toDate();
-          const completedStr = completedDate?.toISOString().split('T')[0];
+        // Try to extract completion date and normalize it to YYYY-MM-DD format
+        const completedDate = data.date?.completed?.toDate?.();
+        const completedStr = completedDate?.toISOString().split('T')[0];
 
-          if (completedStr === todayStr) {
-            completedCount++;
-          }
+        // If today's date matches the habit's completed date, increment count
+        if (completedStr === todayStr) {
+          completedCount++;
+        }
 
-          habits.push({
-            id: doc.id,
-            ...data,
-            completedStr: completedStr || "Not completed today"
-          });
+        // Add habit data to local state list for UI
+        habits.push({
+          id: doc.id,
+          ...data,
+          completedStr: completedStr || "Not completed today",
         });
-
+      });
 
       setTotal(totalCount);
       setCompleted(completedCount);
@@ -48,17 +50,23 @@ export default function HabitProgressCard({ userId = "test2" }) {
     fetchData();
   }, [userId]);
 
+  // Calculate completion percentage for the circular progress
   const fill = total > 0 ? (completed / total) * 100 : 0;
 
   return (
     <View style={styles.card}>
+      {/* Optionally show stats for a specific habit (e.g., "study") */}
       <SafeAreaView style={{ flex: 1 }}>
         <StatsScreen userId={userId} habitId="study" />
       </SafeAreaView>
 
+      {/* Display today's date */}
       <Text style={styles.date}>{format(new Date(), 'MMM dd, yyyy')}</Text>
+
+      {/* Display total habits completed today */}
       <Text style={styles.title}>{`${completed}/${total} habits completed`}</Text>
 
+      {/* Circular progress showing percent completion */}
       <AnimatedCircularProgress
         size={120}
         width={15}
@@ -71,7 +79,7 @@ export default function HabitProgressCard({ userId = "test2" }) {
         {() => <Text style={styles.percentage}>{`${Math.round(fill)}%`}</Text>}
       </AnimatedCircularProgress>
 
-      {/* List all habits and their status */}
+      {/* Display each habit and its completion status */}
       <View style={styles.habitList}>
         {habitList.map(habit => (
           <Text key={habit.id} style={styles.habitItem}>
@@ -83,6 +91,7 @@ export default function HabitProgressCard({ userId = "test2" }) {
   );
 }
 
+// Styles for visual layout
 const styles = StyleSheet.create({
   card: {
     padding: 20,

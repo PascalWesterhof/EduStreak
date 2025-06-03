@@ -1,76 +1,153 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase'; // Adjust path if needed
-import { calculateStats } from './utils/statsUtils'; // Adjust path as needed
+import React, { useState, useLayoutEffect } from "react";
+import {
+  Text,
+  View,
+  StyleSheet,
+  SafeAreaView,
+  FlatList,
+  Modal,
+  Pressable,
+  Button,
+  ScrollView,
+} from "react-native";
+import { useNavigation } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
+import { usePushNotifications } from "./usePushNotifications";
 
-export default function StatsScreen({ userId, habitId }) {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [computedStats, setComputedStats] = useState(null);
+export default function NotificationsScreen() {
+  const navigation = useNavigation();
+  const { expoPushToken, notifications } = usePushNotifications();
 
-  useEffect(() => {
-    if (!userId || !habitId) return;
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
-    const fetchStats = async () => {
-      setLoading(true);
-      try {
-        const docRef = doc(db, 'users', userId, 'habits', habitId);
-        const docSnap = await getDoc(docRef);
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitleStyle: {
+        color: "#fff",
+        fontSize: 24,
+        fontWeight: "bold",
+      },
+      headerStyle: {
+        backgroundColor: "#D1624A",
+      },
+      headerTintColor: "#fff",
+    });
+  }, [navigation]);
 
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setStats(data);
+  const onPressNotification = (item) => {
+    setSelectedNotification(item);
+    setModalVisible(true);
+  };
 
-          const startDate = data?.date?.started?.toDate?.() || data?.started?.toDate?.();
-          const completions = data?.completions || {};
-
-          if (startDate) {
-            const computed = calculateStats(completions, startDate);
-            setComputedStats(computed);
-          }
-        } else {
-          setStats(null);
-        }
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, [userId, habitId]);
-
-  if (loading) return <Text>Loading...</Text>;
-  if (!stats) return <Text>No stats found for this habit.</Text>;
+  const renderItem = ({ item }) => (
+    <Pressable onPress={() => onPressNotification(item)} style={styles.notificationItem}>
+      <MaterialIcons
+        name="notifications-active"
+        size={20}
+        color="#fff"
+        style={styles.icon}
+      />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.title} numberOfLines={2}>
+          {item.title}
+        </Text>
+        <Text style={styles.time}>{item.time}</Text>
+      </View>
+    </Pressable>
+  );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Habit: {stats.name || habitId}</Text>
-
-      {computedStats && (
-        <View style={styles.statsBox}>
-          <Text>Total Completed: {computedStats.totalCompleted}</Text>
-          <Text>Completion Rate: {computedStats.completionRate}%</Text>
-          <Text>Current Streak: {computedStats.currentStreak} days</Text>
+    <SafeAreaView style={styles.safeArea}>
+      {notifications.length === 0 ? (
+        <View style={{ padding: 20 }}>
+          <Text style={{ color: "#fff" }}>No notifications yet.</Text>
         </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+        />
       )}
-    </View>
+
+      {/* Modal for full notification details */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <ScrollView style={{ maxHeight: 300 }}>
+              <Text style={styles.modalTitle}>{selectedNotification?.title}</Text>
+              <Text style={styles.modalBody}>
+                {selectedNotification?.body || "No additional content"}
+              </Text>
+            </ScrollView>
+            <Button title="Close" onPress={() => setModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 20,
-    alignItems: 'center',
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#D1624A",
   },
-  header: {
+  listContainer: {
+    paddingHorizontal: 16,
+  },
+  notificationItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0c0b0",
+    paddingVertical: 12,
+  },
+  icon: {
+    marginRight: 12,
+    marginTop: 4,
+  },
+  title: {
+    color: "#fff",
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  time: {
+    color: "#f8d8c8",
+    fontSize: 12,
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    backgroundColor: "#fff",
+    padding: 20,
+    marginHorizontal: 20,
+    borderRadius: 10,
+    width: "80%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+  modalBody: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  statsBox: {
-    alignItems: 'center',
+    marginBottom: 20,
   },
 });

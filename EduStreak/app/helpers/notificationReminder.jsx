@@ -2,21 +2,22 @@ import * as Notifications from 'expo-notifications';
 
 /**
  * Schedule a repeating daily habit reminder.
+ *
  * @param {string} habitName - Name of the habit.
- * @param {Date} time - Time to send the notification.
+ * @param {Date} time - Time of day to send the notification (local time).
  */
 export const scheduleDailyHabitReminder = async (habitName, time) => {
   try {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Habit reminder',
-        body: `Don't forget to complete "${habitName}" today!`,
-        sound: true,
+        title: 'Habit reminder', // Notification title
+        body: `Don't forget to complete "${habitName}" today!`, // Custom message
+        sound: true, // Enable notification sound
       },
       trigger: {
-        hour: time.getHours(),
-        minute: time.getMinutes(),
-        repeats: true,
+        hour: time.getHours(),        // Hour of the day (0–23)
+        minute: time.getMinutes(),    // Minute of the hour (0–59)
+        repeats: true,                // Repeat daily at the same time
       },
     });
   } catch (err) {
@@ -25,25 +26,26 @@ export const scheduleDailyHabitReminder = async (habitName, time) => {
 };
 
 /**
- * Schedule a one-time late reminder.
+ * Schedule a one-time reminder if the user missed a habit (e.g., next morning).
+ *
  * @param {string} habitName - Name of the habit.
- * @param {Date} time - When to send the reminder.
+ * @param {Date} time - Exact date and time to send the reminder.
  */
 export const scheduleLateHabitReminder = async (habitName, time) => {
   try {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Missed Habit',
-        body: `You missed "${habitName}" yesterday. Let's restart today!`,
+        title: 'Missed Habit', // Notification title
+        body: `You missed "${habitName}" yesterday. Let's restart today!`, // Friendly nudge
         sound: true,
       },
       trigger: {
         hour: time.getHours(),
         minute: time.getMinutes(),
         day: time.getDate(),
-        month: time.getMonth() + 1,
+        month: time.getMonth() + 1,      // getMonth is zero-based
         year: time.getFullYear(),
-        repeats: false,
+        repeats: false,                  // One-time notification
       },
     });
   } catch (err) {
@@ -52,7 +54,7 @@ export const scheduleLateHabitReminder = async (habitName, time) => {
 };
 
 /**
- * Cancel all scheduled notifications.
+ * Cancel all scheduled notifications for the app.
  */
 export const cancelAllNotifications = async () => {
   try {

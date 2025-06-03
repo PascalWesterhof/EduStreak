@@ -60,6 +60,7 @@ export const usePushNotifications = () => {
         {
           id: Date.now().toString(),
           title: notif.request.content.title || "New Notification",
+          body: notif.request.content.body || "",  // ✅ store body
           time: new Date().toLocaleTimeString(),
         },
         ...prev,
@@ -69,6 +70,21 @@ export const usePushNotifications = () => {
     responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       console.log("Notification tapped:", response);
     });
+
+    const testLocalNotification = async () => {
+      console.log("📣 Triggering test notification...");
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Test Notification",
+          body: "This is a simulated notification body with more details.",
+          data: { customData: "12345" },
+          channelId: "default",
+        },
+        trigger: { seconds: 6 },
+      });
+    };
+
+    testLocalNotification();
 
     return () => {
       Notifications.removeNotificationSubscription(notificationListener.current);
