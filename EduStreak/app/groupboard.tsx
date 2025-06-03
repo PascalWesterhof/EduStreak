@@ -57,14 +57,15 @@ const GroupBoard = () => {
         <Text style={styles.section}>Join a Group</Text>
         <View style={styles.grid}>
           {/* Create Group */}
-          <Link href="./creategroup" asChild>
-              <TouchableOpacity style={styles.card}>
-                <View style={styles.addCircle}>
-                  <Text style={styles.addPlus}>+</Text>
-                </View>
-                <Text style={[styles.cardText, { color: "#D05B52" }]}>Create Group</Text>
-              </TouchableOpacity>
-          </Link>
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => navigation.navigate("creategroup")}
+          >
+            <View style={styles.addCircle}>
+               <Text style={styles.addPlus}>+</Text>
+            </View>
+            <Text style={[styles.cardText, { color: "#D05B52" }]}>Create Group</Text>
+          </TouchableOpacity>
 
           {joinableGroups.map((group) => (
             <View key={group.id} style={styles.card}>
