@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   orTextCustom: { // Based on globalStyles.mutedText
-    color: colors.primary, // Theme color (was #d05b52)
+    color: colors.primary,
     fontWeight: 'bold',
     marginBottom: 20,
   },
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     marginBottom: 15, // Keep local override
   },
   loginButtonCustom: { // Based on globalStyles.inputBase for shape, then color override
-    backgroundColor: colors.primary, // Theme color (was #d05b52)
+    backgroundColor: colors.primary, 
     alignItems: 'center',
     width: '100%',
     borderRadius: 25, // Specific for this button
@@ -196,6 +196,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   signUpTextCustom: { // Extends linkTextCustom
-    color: colors.primary, // Theme color (was #d05b52)
+    color: colors.primary, 
   },
 }); 

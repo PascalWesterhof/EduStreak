@@ -191,7 +191,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     marginBottom: 10,
-    // Removed justifyContent: 'space-between' to allow title to center if no right element
   },
   menuButton: {
     padding: 5,
@@ -216,7 +215,6 @@ const styles = StyleSheet.create({
   headerTitleHighlight: {
     color: colors.accent,
   },
-  // headerRightPlaceholder: { width: 24 + 10 + 5 }, // If a placeholder is needed for balance
   sortOptionsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -327,7 +325,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: colors.textDefault,
-    // Removed marginLeft as spacing is handled by avatar/rank margins
   },
   separator: {
     height: '60%', // Vertical separator line

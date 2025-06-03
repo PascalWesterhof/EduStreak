@@ -10,13 +10,7 @@ import { auth, db } from '../../config/firebase'; // Import db and auth
 import { colors } from '../../constants/Colors'; // Import global colors
 import {
   addNewHabit as addNewHabitService,
-  checkAndCreateReminderNotificationsLogic as checkAndCreateReminderNotificationsService // Import service
-  ,
-
-
-
-
-
+  checkAndCreateReminderNotificationsLogic as checkAndCreateReminderNotificationsService, // Import service
   completeHabitLogic as completeHabitService,
   fetchUserHabitsAndNotifications,
   updateDailyStreakLogic as updateDailyStreakService
@@ -446,10 +440,9 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   menuButtonContainer: {
-    // position: 'relative', // Removed as badge is on notification icon
     padding: 10,
   },
-  // Removed notificationBadge style as it was duplicated by notificationBadgeOnIcon
+  
   notificationBadgeText: {
     color: colors.primaryText,
     fontSize: 10,
@@ -604,7 +597,6 @@ const styles = StyleSheet.create({
     width: 24, 
     height: 24, 
     resizeMode: 'contain',
-    // Consider adding tintColor if needed, e.g., tintColor: colors.textDefault
   },
   notificationBadgeOnIcon: {
     position: 'absolute',

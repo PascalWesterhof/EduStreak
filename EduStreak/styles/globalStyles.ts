@@ -74,20 +74,6 @@ export const globalStyles = StyleSheet.create({
     color: colors.textInput,
     marginBottom: 12, // Default margin, can be overridden
   },
-  // Add common button styles, input styles here if you see patterns
-  // For example:
-  // primaryButton: {
-  //   backgroundColor: colors.accent,
-  //   paddingVertical: 12,
-  //   paddingHorizontal: 20,
-  //   borderRadius: 25,
-  //   alignItems: 'center',
-  // },
-  // primaryButtonText: {
-  //   color: colors.primaryText,
-  //   fontSize: 16,
-  //   fontWeight: 'bold',
-  // },
 });
 
 // You can also export common values like padding, margins, font sizes if needed

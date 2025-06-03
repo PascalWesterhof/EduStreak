@@ -184,8 +184,6 @@ export default function Calendar() {
                 {date ? (
                   <View style={styles.dotContainer}>
                     <Text style={styles.date}>{date}</Text>
-                    {/* TODO: Placeholder for actual dot logic indicating habit completions */}
-                    {/* Example: <View style={styles.dotFull} /> */}
                   </View>
                 ) : (
                   <Text style={styles.date}></Text> // Empty cell filler
@@ -313,18 +311,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent, // Or a specific partial color
     marginTop: 2,
   },
-  // Removed legend styles as they are not currently used
+  
   streaksCard: {
     paddingVertical: 20,
     paddingHorizontal: 20,
     minHeight: 100,
     justifyContent: 'center',
-    // Consider adding marginBottom if quoteCard is directly below
   },
   streakItemContainer: {
     alignItems: 'flex-start', // Aligns text to the left
     marginBottom: 15,
-    // If only one item, remove marginBottom from last child or handle differently
   },
   streakValueText: {
     fontSize: 28,

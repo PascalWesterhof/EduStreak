@@ -9,9 +9,6 @@ import { globalStyles } from '../../styles/globalStyles';
  * `Settings` component provides a screen for users to access various application settings.
  * Currently, it includes navigation to Profile Settings and placeholder toggles/links for 
  * Notifications, AI Assistance, Appearance, Privacy & Data, and Extras.
- * 
- * The actual functionality for the toggles (Notifications, AI Assistance) is not yet implemented
- * beyond managing their local state.
  */
 export default function Settings() {
   const navigation = useNavigation(); // Hook for accessing navigation actions like opening the drawer.
@@ -128,7 +125,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20, // Padding at the bottom of the scrollable content
   },
   box: {
-    backgroundColor: colors.accent, // Using accent color for boxes, consider a more muted one from your theme if needed
+    backgroundColor: colors.accent, 
     borderRadius: 8, // Slightly more rounded corners
     paddingVertical: 18, // Increased vertical padding for better touchability
     paddingHorizontal: 16,
