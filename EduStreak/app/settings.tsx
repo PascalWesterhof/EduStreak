@@ -2,10 +2,16 @@ import { Text, View, StyleSheet, Switch, SafeAreaView, ScrollView, Pressable, To
 import React, { useState } from 'react';
 import { useLayoutEffect } from "react";
 import { useNavigation, Link } from "expo-router";
+import { useFonts } from "expo-font";
 
 export default function Settings() {
       const [notificationsEnabled, setNotificationsEnabled] = useState(true);
       const [dailyRemindersEnabled, setDailyRemindersEnabled] = useState(true);
+
+        const [fontsLoaded] = useFonts({
+          'DMSans-SemiBold': require('../assets/fonts/DMSans-SemiBold.ttf'),
+          'Rubik-Light': require('../assets/fonts/Rubik-Light.ttf'),
+          });
 
       const navigation = useNavigation();
 
@@ -14,6 +20,7 @@ export default function Settings() {
         navigation.dispatch(DrawerActions.openDrawer());
     };
       useLayoutEffect(() => {
+          if(fontsLoaded){
             navigation.setOptions({
                 headerTitleStyle: {
                   color: '#fff',       // Your desired text color
@@ -26,7 +33,13 @@ export default function Settings() {
                 },
              headerTintColor: '#fff'
               });
-            }, [navigation]);
+            }
+        }, [navigation]);
+
+        if(!fontsLoaded)
+        {
+            return null;
+        }
 
     return (
          <SafeAreaView style={styles.container}>
@@ -61,18 +74,18 @@ export default function Settings() {
 
                  <View style={styles.box}>
                     <Link href="./gamification" asChild>
-                             <TouchableOpacity>
-                               <Text style={styles.label}>Gamification</Text>
-                             </TouchableOpacity>
-                           </Link>
+                     <TouchableOpacity>
+                       <Text style={styles.label}>Gamification</Text>
+                     </TouchableOpacity>
+                   </Link>
                  </View>
 
                  <View style={styles.box}>
                    <Link href="./privacy" asChild>
-                                                <TouchableOpacity>
-                                                  <Text style={styles.label}>Privacy & Data</Text>
-                                                </TouchableOpacity>
-                                              </Link>
+                    <TouchableOpacity>
+                      <Text style={styles.label}>Privacy & Data</Text>
+                    </TouchableOpacity>
+                  </Link>
                  </View>
 
                  <View style={styles.box}>
@@ -93,9 +106,8 @@ const styles = StyleSheet.create({
   },
   header:
   {
-    fontSize: 24,
-    color: '#fff',
-    fontWeight: 'bold',
+    fontFamily: 'DMSans-SemiBold',
+    color: '##DE7460',
     alignSelf: 'center',
     marginVertical: 20,
   },
@@ -115,6 +127,7 @@ const styles = StyleSheet.create({
   },
   label:
   {
+    fontFamily: 'Rubik-Light',
     color: '#fff',
     fontSize: 16,
   },
