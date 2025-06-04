@@ -32,9 +32,9 @@ const DrawerLayout = () =>
                 <Drawer.Screen name='leaderboard'
                 options={{drawerLabel: 'Leaderboard', headerTitle: 'Leaderboard'}}/>
                 <Drawer.Screen name='signup'
-                options={{drawerLabel:'Signup', headerTitle:'Signup', headerShown: false}}/>
+                options={{drawerItemStyle: { display: 'none'}, headerTitle:'Signup'}}/>
                 <Drawer.Screen name='login'
-                options={{drawerLabel:'Login', headerTitle:'Login', headerShown: false}}/>
+                options={{drawerItemStyle: { display: 'none'}, headerTitle:'Login'}}/>
                 <Drawer.Screen name='gamification'
                 options={{drawerItemStyle: { display: 'none'}, headerTitle: ''}}/>
                 <Drawer.Screen name='privacy'
