@@ -2,12 +2,11 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
-/**
- * Calculate habit statistics including total completions, current streak, and completion rate.
- *
- * @param {string} userId - The user's ID.
- * @param {string} habitId - The habit's ID.
- * @returns {Promise<Object|null>} Habit stats or null if habit doesn't exist.
+/*
+  Calculate habit statistics including total completions, current streak, and completion rate.
+  @param {string} userId - The user's ID.
+  @param {string} habitId - The habit's ID.
+  @returns {Promise<Object|null>} Habit stats or null if habit doesn't exist.
  */
 const getHabitStats = async (userId, habitId) => {
   const db = getFirestore(); // Get Firestore instance

@@ -1,9 +1,9 @@
-/**
- * Calculate habit statistics based on completion records and start date.
- *
- * @param {Object} completions - Object with ISO date strings as keys (e.g., { "2025-06-01": true }).
- * @param {Date|string} startDate - The date the habit was started.
- * @returns {Object} An object containing totalCompleted, completionRate, and currentStreak.
+/*
+  Calculate habit statistics based on completion records and start date.
+
+  @param {Object} completions - Object with ISO date strings as keys (e.g., { "2025-06-01": true }).
+  @param {Date|string} startDate - The date the habit was started.
+  @returns {Object} An object containing totalCompleted, completionRate, and currentStreak.
  */
 export const calculateStats = (completions, startDate) => {
   const today = new Date(); // Current date
@@ -16,14 +16,14 @@ export const calculateStats = (completions, startDate) => {
   const completedDates = Object.keys(completions || {}).sort();
   const completedSet = new Set(completedDates); // For quick lookup
 
-  // --- Completion Rate ---
+  // Completion Rate
   const completionRate = (completedDates.length / totalDays) * 100;
 
-  // --- Streak Calculation ---
+  // Streak Calculation
   let streak = 0;
   let currentDate = new Date();
 
-  // Count how many days in a row (going backward) are in the completed set
+  // Count how many days in a row are in the completed set (Counts backwards)
   while (completedSet.has(currentDate.toISOString().split('T')[0])) {
     streak++;
     currentDate.setDate(currentDate.getDate() - 1); // Move to previous day

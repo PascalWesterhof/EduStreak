@@ -2,12 +2,12 @@
 import { db } from '../../firebase';
 import { doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 
-/**
- * Adds a new habit for a user in Firestore.
- *
- * @param {string} userId - The user's unique ID.
- * @param {string} habitId - A unique identifier for the habit.
- * @param {string} name - The name of the habit.
+/*
+  Adds a new habit for a user in Firestore.
+
+  @param {string} userId - The user's unique ID.
+  @param {string} habitId - A unique identifier for the habit.
+  @param {string} name - The name of the habit.
  */
 export const addHabit = async (userId, habitId, name) => {
   const habitRef = doc(db, 'users', userId, 'habits', habitId); // Reference to the user's habit document
@@ -18,12 +18,12 @@ export const addHabit = async (userId, habitId, name) => {
   });
 };
 
-/**
- * Marks a habit as completed for a specific date.
- *
- * @param {string} userId - The user's unique ID.
- * @param {string} habitId - The habit's unique ID.
- * @param {string} date - The date string (e.g., "2025-05-29").
+/*
+  Marks a habit as completed for a specific date.
+
+  @param {string} userId - The user's unique ID.
+  @param {string} habitId - The habit's unique ID.
+  @param {string} date - The date string (e.g., "2025-05-29").
  */
 export const markHabitComplete = async (userId, habitId, date) => {
   const docRef = doc(db, 'users', userId, 'habits', habitId); // Reference to the habit document
@@ -32,12 +32,12 @@ export const markHabitComplete = async (userId, habitId, date) => {
   });
 };
 
-/**
- * Retrieves a specific habit document for a user.
- *
- * @param {string} userId - The user's unique ID.
- * @param {string} habitId - The habit's unique ID.
- * @returns {Object|null} The habit data or null if not found.
+/*
+  Retrieves a specific habit document for a user.
+
+  @param {string} userId - The user's unique ID.
+  @param {string} habitId - The habit's unique ID.
+  @returns {Object|null} The habit data or null if not found.
  */
 export const getHabit = async (userId, habitId) => {
   const docRef = doc(db, 'users', userId, 'habits', habitId); // Reference to the habit document

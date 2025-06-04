@@ -1,10 +1,10 @@
 import * as Notifications from 'expo-notifications';
 
-/**
- * Schedule a repeating daily habit reminder.
- *
- * @param {string} habitName - Name of the habit.
- * @param {Date} time - Time of day to send the notification (local time).
+/*
+  Schedule a repeating daily habit reminder.
+
+  @param {string} habitName - Name of the habit.
+  @param {Date} time - Time of day to send the notification (local time).
  */
 export const scheduleDailyHabitReminder = async (habitName, time) => {
   try {
@@ -25,11 +25,11 @@ export const scheduleDailyHabitReminder = async (habitName, time) => {
   }
 };
 
-/**
- * Schedule a one-time reminder if the user missed a habit (e.g., next morning).
- *
- * @param {string} habitName - Name of the habit.
- * @param {Date} time - Exact date and time to send the reminder.
+/*
+  Schedule a one-time reminder if the user missed a habit (e.g., next morning).
+
+  @param {string} habitName - Name of the habit.
+  @param {Date} time - Exact date and time to send the reminder.
  */
 export const scheduleLateHabitReminder = async (habitName, time) => {
   try {
@@ -53,8 +53,8 @@ export const scheduleLateHabitReminder = async (habitName, time) => {
   }
 };
 
-/**
- * Cancel all scheduled notifications for the app.
+/*
+  Cancel all scheduled notifications for the app.
  */
 export const cancelAllNotifications = async () => {
   try {

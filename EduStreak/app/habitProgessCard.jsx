@@ -18,7 +18,7 @@ export default function HabitProgressCard({ userId = "test2" }) {
 
       let totalCount = 0;
       let completedCount = 0;
-      const todayStr = new Date().toISOString().split('T')[0]; // e.g., '2025-06-03'
+      const todayStr = new Date().toISOString().split('T')[0];
       const habits = [];
 
       snapshot.forEach(doc => {
