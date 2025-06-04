@@ -1,4 +1,4 @@
-import { Text, View, StyleSheet, Switch, SafeAreaView, ScrollView, Pressable, TouchableOpacity } from "react-native";
+import { Text, View, StyleSheet, Switch, SafeAreaView, ScrollView, Pressable, TouchableOpacity, Platform } from "react-native";
 import React, { useState } from 'react';
 import { useLayoutEffect } from "react";
 import { useNavigation, Link } from "expo-router";
@@ -10,7 +10,7 @@ export default function Settings() {
 
         const [fontsLoaded] = useFonts({
           'DMSans-SemiBold': require('../assets/fonts/DMSans-SemiBold.ttf'),
-          'Rubik-Light': require('../assets/fonts/Rubik-Light.ttf'),
+          'Rubik-Medium': require('../assets/fonts/Rubik-Medium.ttf'),
           });
 
       const navigation = useNavigation();
@@ -22,19 +22,13 @@ export default function Settings() {
       useLayoutEffect(() => {
           if(fontsLoaded){
             navigation.setOptions({
-                headerTitleStyle: {
-                  color: '#fff',       // Your desired text color
-                  fontSize: 24,        // Your desired font size
-                  fontWeight: 'bold',
-
-                },
                 headerStyle: {
-                  backgroundColor: '#D1624A', // Optional: white background
+                    backgroundColor: '#D1624A', // Optional: white background
                 },
              headerTintColor: '#fff'
               });
             }
-        }, [navigation]);
+        }, [navigation, fontsLoaded]);
 
         if(!fontsLoaded)
         {
@@ -44,6 +38,9 @@ export default function Settings() {
     return (
          <SafeAreaView style={styles.container}>
                <ScrollView contentContainerStyle={styles.content}>
+                 <View style={styles.header}>
+                    <Text style={styles.headerText}>Settings</Text>
+                 </View>
                  <View style={styles.box}>
                    <Text style={styles.label}>Profile</Text>
                  </View>
@@ -55,6 +52,7 @@ export default function Settings() {
                      onValueChange={setNotificationsEnabled}
                      trackColor={{ false: "#D1624A", true: "#fff"}}
                      thumbColor={notificationsEnabled ? "#fff" : "#fff"}
+                      style={Platform.OS === 'web' ? { accentColor: '#fff' } : {}}
                    />
                  </View>
 
@@ -65,6 +63,7 @@ export default function Settings() {
                      onValueChange={setDailyRemindersEnabled}
                      trackColor={{ false: "#D1624A", true: "#fff"}}
                      thumbColor={notificationsEnabled ? "#fff" : "#fff"}
+
                    />
                  </View>
 
@@ -103,14 +102,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#D1624A',
     paddingHorizontal: 20,
     paddingTop: 12,
+    paddingTop: Platform.OS === 'Web' 0,
   },
   header:
   {
-    fontFamily: 'DMSans-SemiBold',
-    color: '##DE7460',
+    color: '#DE7460',
     alignSelf: 'center',
     marginVertical: 20,
   },
+    headerText:
+    {
+    fontFamily: 'DMSans-SemiBold',
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
+    },
   content:
   {
     paddingBottom: 20,
@@ -127,7 +133,7 @@ const styles = StyleSheet.create({
   },
   label:
   {
-    fontFamily: 'Rubik-Light',
+    fontFamily: 'Rubik-Medium',
     color: '#fff',
     fontSize: 16,
   },

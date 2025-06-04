@@ -2,32 +2,43 @@ import { Text, View, StyleSheet, Switch, SafeAreaView, ScrollView, Pressable } f
 import React, { useState } from 'react';
 import { useLayoutEffect } from "react";
 import { useNavigation } from "expo-router";
+import { useFonts } from "expo-font";
 
 export default function Gamification()
 {
-      const navigation = useNavigation();
+        const [fontsLoaded] = useFonts({
+          'DMSans-SemiBold': require('../assets/fonts/DMSans-SemiBold.ttf'),
+          'Rubik-Medium': require('../assets/fonts/Rubik-Medium.ttf'),
+          });      const navigation = useNavigation();
 
         const onToggle = () =>
         {
             navigation.dispatch(DrawerActions.openDrawer());
         };
           useLayoutEffect(() => {
+              if(fontsLoaded) {
                 navigation.setOptions({
                     headerTitleStyle: {
-                      color: '#fff',       // Your desired text color
-                      fontSize: 24,        // Your desired font size
-                      fontWeight: 'bold',
-
+                        fontFamily: 'DMSans-SemiBold',
+                        color: '#fff',
                     },
                     headerStyle: {
                       backgroundColor: '#D1624A', // Optional: white background
                     },
                  headerTintColor: '#fff'
                   });
-                }, [navigation]);
+                }
+            }, [navigation, fontsLoaded]);
+
+        if(!fontsLoaded){
+            return null;
+            }
 
             return (
                 <SafeAreaView style={styles.container}>
+                    <View style={styles.header}>
+                    <Text style={styles.headerText}>Gamification</Text>
+                    </View>
                     <View style={styles.box}>
                    <Text style={styles.label}>At EduStreak, we make learning rewarding. Build a streak by completing your goals each day—every streak shows your commitment and helps turn learning into a daily habit.{'\n'}{'\n'}
 
@@ -51,11 +62,15 @@ const styles = StyleSheet.create({
   },
   header:
   {
-    fontSize: 24,
-    color: '#fff',
-    fontWeight: 'bold',
     alignSelf: 'center',
     marginVertical: 20,
+  },
+  headerText:
+  {
+      fontFamily: 'DMSans-SemiBold',
+      fontSize: 24,
+      color: '#fff',
+      fontWeight: 'bold',
   },
   content:
   {
@@ -73,6 +88,7 @@ const styles = StyleSheet.create({
   },
   label:
   {
+      fontFamily: 'Rubik-Medium',
     color: '#fff',
     fontSize: 16,
   },

@@ -28,7 +28,7 @@ const DrawerLayout = () =>
                 <Drawer.Screen name='notifications'
                 options={{drawerLabel: 'Notifications', headerTitle: 'Notifications'}}/>
                 <Drawer.Screen name='settings'
-                options={{drawerLabel: 'Settings', headerTitle: 'Settings',}}/>
+                options={{drawerLabel: 'Settings', headerTitle: '',}}/>
                 <Drawer.Screen name='leaderboard'
                 options={{drawerLabel: 'Leaderboard', headerTitle: 'Leaderboard'}}/>
                 <Drawer.Screen name='signup'
@@ -36,7 +36,7 @@ const DrawerLayout = () =>
                 <Drawer.Screen name='login'
                 options={{drawerLabel:'Login', headerTitle:'Login', headerShown: false}}/>
                 <Drawer.Screen name='gamification'
-                options={{drawerItemStyle: { display: 'none'}, headerTitle: 'Gamification'}}/>
+                options={{drawerItemStyle: { display: 'none'}, headerTitle: ''}}/>
                 <Drawer.Screen name='privacy'
                 options={{drawerItemStyle: { display: 'none'}, headerTitle: 'Privacy & Data'}}/>
             </Drawer>
