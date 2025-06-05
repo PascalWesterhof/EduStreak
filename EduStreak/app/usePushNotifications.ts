@@ -8,7 +8,7 @@ import { Platform } from "react-native";
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldPlaySound: true, // Enables sound for the notification
-    shouldShowAlert: true, // Displays the notification alert
+    shouldShowAlert: true, // Displays the notification alertd
     shouldSetBadge: true, // Updates the app badge count
   }),
 });

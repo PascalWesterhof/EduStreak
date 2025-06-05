@@ -6,7 +6,7 @@ import { getFirestore, doc, getDoc } from 'firebase/firestore';
   Calculate habit statistics including total completions, current streak, and completion rate.
   @param {string} userId - The user's ID.
   @param {string} habitId - The habit's ID.
-  @returns {Promise<Object|null>} Habit stats or null if habit doesn't exist.
+  @returns {Promise<Object|null>} Habit stats or null if habit doesn't exist.d
  */
 const getHabitStats = async (userId, habitId) => {
   const db = getFirestore(); // Get Firestore instance

@@ -7,7 +7,7 @@
  */
 export const calculateStats = (completions, startDate) => {
   const today = new Date(); // Current date
-  const start = new Date(startDate); // Ensure startDate is a Date object
+  const start = new Date(startDate); // Ensure startDate is a Date object d
 
   // Total number of days from start to today, inclusive
   const totalDays = Math.floor((today - start) / (1000 * 60 * 60 * 24)) + 1;

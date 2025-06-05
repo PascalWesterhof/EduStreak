@@ -28,7 +28,7 @@ export const scheduleDailyHabitReminder = async (habitName, time) => {
 /*
   Schedule a one-time reminder if the user missed a habit (e.g., next morning).
 
-  @param {string} habitName - Name of the habit.
+  @param {string} habitName - Name of the habit.f
   @param {Date} time - Exact date and time to send the reminder.
  */
 export const scheduleLateHabitReminder = async (habitName, time) => {
@@ -52,7 +52,7 @@ export const scheduleLateHabitReminder = async (habitName, time) => {
     console.error('Failed to schedule late notification:', err);
   }
 };
-
+c
 /*
   Cancel all scheduled notifications for the app.
  */

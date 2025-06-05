@@ -21,7 +21,7 @@ export const addHabit = async (userId, habitId, name) => {
 /*
   Marks a habit as completed for a specific date.
 
-  @param {string} userId - The user's unique ID.
+  @param {string} userId - The user's unique ID. d
   @param {string} habitId - The habit's unique ID.
   @param {string} date - The date string (e.g., "2025-05-29").
  */

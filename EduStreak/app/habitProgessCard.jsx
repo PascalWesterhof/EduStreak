@@ -34,7 +34,7 @@ export default function HabitProgressCard({ userId = "test2" }) {
           completedCount++;
         }
 
-        // Add habit data to local state list for UI
+        // Add habit data to local state list for UIdw
         habits.push({
           id: doc.id,
           ...data,
