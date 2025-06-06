@@ -2,21 +2,20 @@ import { DrawerActions, useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth'; // Import onAuthStateChanged and User type
 import { doc, increment, updateDoc } from 'firebase/firestore'; // Firestore functions
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-get-random-values'; // For uuid
-import { CircularProgress } from '../../components/CircularProgress'; // Added import
+import { CircularProgress } from '../../components/CircularProgress'; // Restored import
 import { auth, db } from '../../config/firebase'; // Import db and auth
 import { colors } from '../../constants/Colors'; // Import global colors
 import {
   addNewHabit as addNewHabitService,
-  checkAndCreateReminderNotificationsLogic as checkAndCreateReminderNotificationsService, // Import service
   completeHabitLogic as completeHabitService,
-  fetchUserHabitsAndNotifications,
+  fetchUserHabits,
   updateDailyStreakLogic as updateDailyStreakService
 } from '../../services/habitService'; // Import the service
 import { globalStyles } from '../../styles/globalStyles'; // Import global styles
-import { Habit, InAppNotification } from '../../types'; // Path for types
+import { Habit } from '../../types'; // Path for types
 import { getIsoDateString } from '../../utils/dateUtils'; // Added import
 import AddHabitScreen from '../habit/AddHabitScreen';
 
@@ -42,8 +41,6 @@ export default function Index() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null); // Initialize to null
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [userName, setUserName] = useState("User"); // Default user name
-  const [inAppNotifications, setInAppNotifications] = useState<InAppNotification[]>([]);
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   /**
    * `useFocusEffect` hook to manage actions when the screen comes into focus.
@@ -74,8 +71,6 @@ export default function Index() {
           console.log("[IndexScreen] Auth: User signed out.");
           setCurrentUserId(null);
           setHabits([]); 
-          setInAppNotifications([]); 
-          setUnreadNotificationCount(0);
           setUserName("User");
           setIsLoading(false); 
         }
@@ -85,8 +80,6 @@ export default function Index() {
       if (!auth.currentUser) {
           console.log("[IndexScreen] Focus: No authenticated user found initially.");
           setHabits([]);
-          setInAppNotifications([]);
-          setUnreadNotificationCount(0);
           setIsLoading(false);
           return () => {
             console.log("[IndexScreen] Cleanup: Auth listener (no initial user path).");
@@ -99,10 +92,8 @@ export default function Index() {
           console.log(`[IndexScreen] Focus: User ${currentUserId} present. Fetching data via service.`);
           const loadData = async () => {
             try {
-              const { habits: fetchedHabits, notifications: fetchedNotifications, unreadCount } = await fetchUserHabitsAndNotifications(currentUserId);
+              const { habits: fetchedHabits } = await fetchUserHabits(currentUserId);
               setHabits(fetchedHabits);
-              setInAppNotifications(fetchedNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-              setUnreadNotificationCount(unreadCount);
               console.log("[IndexScreen] Data fetched and set successfully.");
             } catch (error) {
               console.error("[IndexScreen] Error loading data via service: ", error);
@@ -167,33 +158,32 @@ export default function Index() {
     const selectedDateStr = getIsoDateString(selectedDate);
 
     try {
-      const { updatedHabit, habitBecameFullyCompleted, wasIncremented } = await completeHabitService(
+      const { updatedHabit, wasCompletedToday } = await completeHabitService(
         currentUserId,
         habitId,
         selectedDateStr,
         habits 
       );
 
-      if (wasIncremented && updatedHabit) {
+      if (wasCompletedToday && updatedHabit) {
         const newHabitsState = habits.map(h => (h.id === updatedHabit.id ? updatedHabit : h));
         setHabits(newHabitsState);
         console.log(`[IndexScreen] Habit ${habitId} state updated locally after completion.`);
 
-        if (habitBecameFullyCompleted) {
-          const userDocRef = doc(db, "users", currentUserId);
-          try {
-            await updateDoc(userDocRef, { points: increment(10) });
-            console.log(`[IndexScreen] User ${currentUserId} awarded 10 points for completing habit ${habitId} on ${selectedDateStr}`);
-          } catch (error) { console.error("[IndexScreen] Error awarding points: ", error); }
-        }
+        // Award points if it was newly completed today
+        const userDocRef = doc(db, "users", currentUserId);
+        try {
+          await updateDoc(userDocRef, { points: increment(10) });
+          console.log(`[IndexScreen] User ${currentUserId} awarded 10 points for completing habit ${habitId} on ${selectedDateStr}`);
+        } catch (error) { console.error("[IndexScreen] Error awarding points: ", error); }
         
         // Only check streak if completion was for today
         if (getIsoDateString(selectedDate) === getIsoDateString(new Date())) {
           await checkAndUpdateDailyStreak(newHabitsState); 
         }
-      } else if (updatedHabit) {
-        console.log(`[IndexScreen] Habit ${habitId} completion not incremented for ${selectedDateStr} (already fully completed or target met).`);
-      } else {
+      } else if (updatedHabit && !wasCompletedToday) {
+        console.log(`[IndexScreen] Habit ${habitId} was already completed for ${selectedDateStr}.`);
+      } else if (!updatedHabit) {
         console.warn("[IndexScreen] updatedHabit was undefined after completeHabitService call, unexpected issue.")
       }
     } catch (error) {
@@ -219,40 +209,6 @@ export default function Index() {
         console.error("[IndexScreen] Error from updateDailyStreakService (service should handle internal errors):", error);
     }
   };
-
-  /**
-   * Checks for due habit reminders and creates in-app notifications using `checkAndCreateReminderNotificationsService`.
-   * Updates local notification state if a new reminder is created.
-   * This effect runs when habits, selectedDate, currentUserId, or inAppNotifications change.
-   */
-  const checkAndCreateReminderNotifications = async () => {
-    if (!currentUserId || !habits.length) {
-      return;
-    }
-    try {
-      const newNotification = await checkAndCreateReminderNotificationsService(
-        currentUserId,
-        habits,
-        inAppNotifications,
-        selectedDate 
-      );
-
-      if (newNotification) {
-        setInAppNotifications(prev => [...prev, newNotification].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-        setUnreadNotificationCount(prev => prev + 1);
-        console.log("[IndexScreen] New reminder notification added via service.");
-      }
-    } catch (error) {
-      console.error("[IndexScreen] Error from checkAndCreateReminderNotificationsService: ", error);
-    }
-  };
-
-  useEffect(() => {
-    // Only run reminder check if the selected date is today.
-    if (getIsoDateString(selectedDate) === getIsoDateString(new Date())) {
-      checkAndCreateReminderNotifications();
-    }
-  }, [habits, selectedDate, currentUserId, inAppNotifications]); 
 
   /**
    * `useMemo` hook to generate the date range for the horizontal date selector.
@@ -295,9 +251,7 @@ export default function Index() {
 
     const completedCount = habitsScheduledForDay.filter(habit => {
       const entry = habit.completionHistory.find(e => e.date === dateString);
-      if (!entry) return false;
-      const target = habit.frequency.type === 'daily' ? (habit.frequency.times || 1) : 1; // Corrected: item -> habit
-      return entry.count >= target;
+      return !!entry;
     }).length;
     
     return {
@@ -309,28 +263,25 @@ export default function Index() {
 
   /**
    * Renders a single habit item for the FlatList.
-   * Displays habit name, progress (circular or text), and a complete button.
+   * Displays habit name, progress, and a complete button.
    * Button is disabled if the habit is already completed for the selected date or if the date is not today.
    * @param item The habit object to render.
    */
   const renderHabit = ({ item }: { item: Habit }) => {
     const dateString = getIsoDateString(selectedDate);
     const todaysEntry = item.completionHistory.find(entry => entry.date === dateString);
-    const currentCompletions = todaysEntry ? todaysEntry.count : 0;
-    const targetCompletions = item.frequency.type === 'daily' ? (item.frequency.times || 1) : 1;
-    const isFullyCompleted = currentCompletions >= targetCompletions;
-    const progress = targetCompletions > 0 ? (currentCompletions / targetCompletions) * 100 : 0;
-    const showCircularProgress = item.frequency.type === 'daily' && (item.frequency.times || 1) > 1;
-    // Disable completion if selected date is not today OR if already fully completed for the selected date.
+    
+    const isFullyCompleted = !!todaysEntry;
+        
     const isButtonDisabled = getIsoDateString(selectedDate) !== getIsoDateString(new Date()) || isFullyCompleted;
 
     return (
       <View style={styles.habitCard}>
         <TouchableOpacity style={styles.habitInfoTouchable} onPress={() => router.push(`/habit/${item.id}`)}>
-          <Text style={styles.habitName}>{item.name}</Text>
-          {showCircularProgress ? 
-            (<CircularProgress percentage={progress} radius={25} strokeWidth={5} />) : 
-            (<Text style={styles.habitPercentageText}>{`${Math.round(progress)}% completed`}</Text>)} {/* Changed to Math.round for cleaner display */}
+          <View style={styles.habitNameContainer}> 
+            <Text style={styles.habitName}>{item.name}</Text>
+            {isFullyCompleted && <Text style={styles.checkmarkText}> ✓</Text>}
+          </View>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.completeButton, isButtonDisabled ? styles.completedButton : {}]} 
@@ -350,21 +301,13 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
       {/* Header Section: Menu, Greeting, Notifications */}
+      <StatusBar barStyle="dark-content" />
       <View style={styles.headerContainer}>
         <TouchableOpacity onPress={onToggleDrawer} style={styles.menuButtonContainer}>
           <Image source={require('../../assets/icons/burger_menu_icon.png')} style={styles.menuIcon} />
         </TouchableOpacity>
         <Text style={styles.greetingText}>Hello, <Text style={styles.userNameText}>{userName}!</Text></Text>
-        <TouchableOpacity onPress={() => router.push('/notifications/notifications')} style={styles.notificationIconButton}>
-          <Image source={require('../../assets/icons/bell_icon.png')} style={styles.notificationBellIcon} /> 
-          {unreadNotificationCount > 0 && (
-            <View style={styles.notificationBadgeOnIcon}>
-              <Text style={styles.notificationBadgeText}>{unreadNotificationCount > 0 ? unreadNotificationCount : ''}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
       </View>
 
       {/* Horizontal Date Selector */}
@@ -380,7 +323,7 @@ export default function Index() {
             );
           })}
         </ScrollView>
-         <TouchableOpacity onPress={() => { /* TODO: Implement navigation to a full calendar view or jump further */ }}>
+         <TouchableOpacity onPress={() => router.push(`/calendar`)}>
              <Text style={styles.dateChevron}>{`>>`}</Text>
         </TouchableOpacity>
       </View>
@@ -429,8 +372,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    justifyContent: 'center',
     paddingVertical: 10,
     marginBottom: 10,
   },
@@ -440,20 +382,16 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   menuButtonContainer: {
+    position: 'absolute',
+    left: 10,
     padding: 10,
-  },
-  
-  notificationBadgeText: {
-    color: colors.primaryText,
-    fontSize: 10,
-    fontWeight: 'bold',
+    zIndex: 1,
   },
   greetingText: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.textDefault,
     textAlign: 'center',
-    marginHorizontal: 10, // Give some space if username is very long
     flexShrink: 1, // Allow greeting text to shrink if needed
   },
   userNameText: {
@@ -534,18 +472,24 @@ const styles = StyleSheet.create({
       alignItems: 'center', 
       width: '100%',
   },
+  habitNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
   habitName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.textDefault,
     textAlign: 'center',
-    marginBottom: 8,
   },
-  habitPercentageText: {
-    fontSize: 14,
+  checkmarkText: {
+    fontSize: 16,
+    fontWeight: 'bold',
     color: colors.accent,
+    marginLeft: 5,
   },
-  // Removed habitProgressCircleContainer as CircularProgress is used directly
   completeButton: {
     backgroundColor: colors.accent,
     paddingVertical: 8,
@@ -588,27 +532,5 @@ const styles = StyleSheet.create({
   addHabitFabText: {
     fontSize: 30,
     color: colors.primaryText,
-  },
-  notificationIconButton: {
-    position: 'relative', // Needed for the badge positioning
-    padding: 10,
-  },
-  notificationBellIcon: { 
-    width: 24, 
-    height: 24, 
-    resizeMode: 'contain',
-  },
-  notificationBadgeOnIcon: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: colors.error,
-    borderRadius: 8, // Adjusted for a slightly smaller badge
-    minWidth: 16, // Ensure badge is visible even with single digit
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1, // Ensure badge is on top
-    paddingHorizontal: 4, // Give some horizontal padding for text inside badge
   },
 });

@@ -1,4 +1,3 @@
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { deleteField } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
@@ -37,42 +36,11 @@ export default function EditHabitScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [frequencyType, setFrequencyType] = useState<'daily' | 'weekly'>('daily');
-  const [timesPerDay, setTimesPerDay] = useState('1');
   const [timesPerWeek, setTimesPerWeek] = useState('1');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  const [notes, setNotes] = useState('');
-  // Reminder Time States
-  const [reminderTime, setReminderTime] = useState<Date | undefined>(undefined);
-  const [showTimePicker, setShowTimePicker] = useState(false);
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-
-  /**
-   * Parses a time string (HH:MM) into a Date object for the current day.
-   * @param {string} timeString - The time string to parse (e.g., "14:30").
-   * @returns {Date | undefined} A Date object if parsing is successful, otherwise undefined.
-   */
-  const parseTimeStringToDate = (timeString: string): Date | undefined => {
-    if (!timeString || !timeString.includes(':')) return undefined;
-    const [hours, minutes] = timeString.split(':').map(Number);
-    if (isNaN(hours) || isNaN(minutes)) return undefined;
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-    return date;
-  };
-
-  /**
-   * Formats a Date object into a "HH:MM" string representation.
-   * @param {Date | undefined} date - The Date object to format. If undefined, returns an empty string.
-   * @returns {string} The formatted time string (e.g., "09:30") or an empty string.
-   */
-  const formatTime = (date: Date | undefined): string => {
-    if (!date) return '';
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  };
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -90,15 +58,12 @@ export default function EditHabitScreen() {
           setDescription(habitData.description || '');
           setFrequencyType(habitData.frequency.type);
           if (habitData.frequency.type === 'daily') {
-            setTimesPerDay(String(habitData.frequency.times || 1));
+            // timesPerDay state is removed, frequency.times for daily is assumed 1
           } else if (habitData.frequency.type === 'weekly') {
             setTimesPerWeek(String(habitData.frequency.times || 1));
             setSelectedDays(habitData.frequency.days || []);
           }
-          setNotes(habitData.notes || '');
-          if (habitData.reminderTime) {
-            setReminderTime(parseTimeStringToDate(habitData.reminderTime));
-          }
+          // notes and reminderTime state setting is REMOVED
         } else {
           Alert.alert("Error", "Habit not found for editing.");
           if(router.canGoBack()) router.back(); else router.replace('/(tabs)');
@@ -114,40 +79,6 @@ export default function EditHabitScreen() {
     fetchAndSetHabitDetails();
   }, [navigation, routeHabitId, currentUserId, router]);
 
-  /**
-   * Handles the change event from the DateTimePicker for reminder time selection.
-   * Updates the `reminderTime` state with the selected time.
-   * Manages the visibility of the time picker based on platform and event type.
-   * @param {DateTimePickerEvent} event - The event object from the DateTimePicker.
-   * @param {Date} [selectedTime] - The time selected by the user.
-   */
-  const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
-    setShowTimePicker(Platform.OS === 'ios');
-    if (event.type === 'dismissed') {
-      // User dismissed the picker, do nothing or reset to previous time if needed
-      if (Platform.OS !== 'ios') setShowTimePicker(false); // Close on Android if dismissed
-      return;
-    }
-    if (selectedTime) {
-      setReminderTime(selectedTime);
-    }
-    if (Platform.OS !== 'ios') setShowTimePicker(false); // Close on Android after selection
-  };
-
-  /**
-   * Clears the currently set reminder time by setting `reminderTime` state to undefined.
-   */
-  const clearReminderTime = () => {
-    setReminderTime(undefined);
-  };
-
-  /**
-   * Handles the process of updating an existing habit.
-   * Validates required fields (name, frequency details).
-   * Constructs an update object, using `deleteField()` for optional fields that are cleared.
-   * Calls `updateHabitService` to persist changes to Firestore.
-   * Manages saving state and displays alerts for success or failure.
-   */
   const handleUpdateHabit = async () => {
     if (!routeHabitId || !currentUserId) {
       Alert.alert("Error", "Cannot update habit: Missing ID or User session.");
@@ -158,17 +89,12 @@ export default function EditHabitScreen() {
       return;
     }
 
-    let frequency: Habit['frequency'];
+    let frequencyUpdate: Habit['frequency'];
     if (frequencyType === 'daily') {
-      const times = parseInt(timesPerDay, 10);
-      if (isNaN(times) || times <= 0) {
-        Alert.alert("Validation Error", 'Please enter a valid number of times per day.');
-        return;
-      }
-      frequency = { type: 'daily', times };
+      frequencyUpdate = { type: 'daily', times: 1 }; // Daily habits are once per day
     } else { 
       const times = parseInt(timesPerWeek, 10);
-      if (isNaN(times) || times < 0) {
+      if (isNaN(times) || times < 0) { // Allow 0 times for weekly if needed, or adjust to times <= 0 for error
         Alert.alert("Validation Error", 'Please enter a valid number of times per week (0 or more).');
         return;
       }
@@ -176,13 +102,14 @@ export default function EditHabitScreen() {
         Alert.alert("Validation Error", 'Please select at least one day for weekly frequency when times > 0.');
         return;
       }
-      frequency = { type: 'weekly', times, days: selectedDays.sort((a, b) => a - b) };
+      frequencyUpdate = { type: 'weekly', times, days: selectedDays.sort((a, b) => a - b) };
     }
 
-    // Prepare data for Firestore update, handling deletions correctly
     const updatedHabitData: { [key: string]: any } = {
       name: name.trim(),
-      frequency: frequency,
+      frequency: frequencyUpdate,
+      notes: deleteField(), // Ensure notes are removed from Firestore
+      reminderTime: deleteField(), // Ensure reminderTime is removed from Firestore
     };
 
     const descTrimmed = description.trim();
@@ -191,23 +118,6 @@ export default function EditHabitScreen() {
     } else {
       updatedHabitData.description = deleteField();
     }
-
-    const notesTrimmed = notes.trim();
-    if (notesTrimmed) {
-      updatedHabitData.notes = notesTrimmed;
-    } else {
-      updatedHabitData.notes = deleteField();
-    }
-
-    if (reminderTime) {
-      updatedHabitData.reminderTime = formatTime(reminderTime);
-    } else {
-      updatedHabitData.reminderTime = deleteField();
-    }
-
-    // isDefault is not editable in this screen, so it's not included in updates
-    // createdAt is set on creation and should not be updated here.
-    // streak and longestStreak are managed by other logic (e.g., completion checks)
 
     setIsSaving(true);
     try {
@@ -222,21 +132,12 @@ export default function EditHabitScreen() {
     }
   };
 
-  /**
-   * Toggles the selection of a specific day for weekly habits.
-   * If the day is already selected, it's removed; otherwise, it's added to the `selectedDays` state.
-   * @param {number} dayIndex - The index of the day to toggle (0 for Sun, 1 for Mon, etc.).
-   */
   const toggleDay = (dayIndex: number) => {
     setSelectedDays(prev =>
       prev.includes(dayIndex) ? prev.filter(d => d !== dayIndex) : [...prev, dayIndex]
     );
   };
   
-  /**
-   * Handles the cancellation of habit editing.
-   * Navigates back to the previous screen if possible, otherwise replaces with the main tabs screen.
-   */
   const handleCancel = () => {
     if (router.canGoBack()) {
         router.back();
@@ -305,21 +206,6 @@ export default function EditHabitScreen() {
           </TouchableOpacity>
         </View>
 
-        {frequencyType === 'daily' && (
-          <>
-            <Text style={styles.label}>Times per day *</Text>
-            <TextInput
-              style={styles.input}
-              value={timesPerDay}
-              onChangeText={setTimesPerDay}
-              placeholder="e.g., 2"
-              placeholderTextColor="#A9A9A9"
-              keyboardType="numeric"
-              editable={!isSaving}
-            />
-          </>
-        )}
-
         {frequencyType === 'weekly' && (
           <>
             <Text style={styles.label}>Times per week *</Text>
@@ -353,42 +239,6 @@ export default function EditHabitScreen() {
               ))}
             </View>
           </>
-        )}
-
-        <Text style={styles.label}>Notes (Optional)</Text>
-        <TextInput
-          style={[styles.input, styles.multilineInput]}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Any extra details, links, or motivation"
-          placeholderTextColor="#A9A9A9"
-          multiline
-          numberOfLines={4}
-          editable={!isSaving}
-        />
-
-        <Text style={styles.label}>Reminder Time (Optional)</Text>
-        <View style={styles.timeInputContainer}>
-            <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.timePickerButton} disabled={isSaving}>
-              <Text style={styles.timePickerButtonText}>
-                {reminderTime ? formatTime(reminderTime) : 'Select Reminder Time'}
-              </Text>
-            </TouchableOpacity>
-            {reminderTime && (
-                <TouchableOpacity onPress={clearReminderTime} style={styles.clearTimeButton} disabled={isSaving}>
-                    <Text style={styles.clearTimeButtonText}>Clear</Text>
-                </TouchableOpacity>
-            )}
-        </View>
-        {showTimePicker && (
-          <DateTimePicker
-            testID="editTimePicker"
-            value={reminderTime || new Date()} // Default to now if no time is set
-            mode="time"
-            is24Hour={true}
-            display="default"
-            onChange={onTimeChange}
-          />
         )}
 
         <TouchableOpacity 
@@ -572,34 +422,5 @@ const styles = StyleSheet.create({
   },
   disabledButtonOpacity: {
     opacity: 0.5,
-  },
-  timeInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  timePickerButton: {
-    flex: 1, // Take available space
-    backgroundColor: '#F5F5F5',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    alignItems: 'center',
-    marginRight: 5, // Space if clear button is present
-  },
-  timePickerButtonText: {
-    fontSize: 16,
-    color: '#000000',
-  },
-  clearTimeButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    backgroundColor: '#e74c3c', // A red color for clear
-    borderRadius: 10,
-  },
-  clearTimeButtonText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
   },
 }); 

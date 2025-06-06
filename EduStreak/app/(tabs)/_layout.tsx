@@ -70,6 +70,14 @@ const TabsLayout = () =>
                         drawerIcon: ({ color, size }) => <FontAwesome name="cog" size={size} color={color} />,
                     }}
                 />
+                <Drawer.Screen 
+                    name='notifications'
+                    options={{
+                        drawerLabel: 'Notifications',
+                        title: 'Notifications',
+                        drawerIcon: ({ color, size }) => <FontAwesome name="bell" size={size} color={color} />,
+                    }}
+                />
             </Drawer>
         </GestureHandlerRootView>
     );

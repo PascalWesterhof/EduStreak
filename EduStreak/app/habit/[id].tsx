@@ -220,8 +220,9 @@ export default function HabitDetailScreen() {
           <Text style={styles.detailLabel}>Frequency</Text>
           <Text style={styles.detailValue}>
             {habit.frequency.type === 'daily'
-              ? `${habit.frequency.times} time(s) a day`
-              : `${habit.frequency.times} time(s) a week on ${habit.frequency.days?.map((d: number) => DAYS_OF_WEEK[d]).join(', ') || 'N/A'}`}
+              ? `Daily`
+              : `Weekly: ${habit.frequency.days?.map((d: number) => DAYS_OF_WEEK[d]).join(', ') || 'N/A'}` +
+                (habit.frequency.times && habit.frequency.times > 1 ? ` (${habit.frequency.times} times a week)` : '')}
           </Text>
         </View>
 
@@ -235,13 +236,6 @@ export default function HabitDetailScreen() {
             <Text style={styles.detailValue}>{habit.longestStreak} day(s)</Text>
         </View>
 
-        {habit.notes && (
-          <View style={styles.detailSection}>
-            <Text style={styles.detailLabel}>Notes</Text>
-            <Text style={styles.detailValue}>{habit.notes}</Text>
-          </View>
-        )}
-
         <View style={styles.detailSection}>
           <Text style={styles.detailLabel}>Created On</Text>
           <Text style={styles.detailValue}>{new Date(habit.createdAt).toLocaleDateString()}</Text>
@@ -252,7 +246,7 @@ export default function HabitDetailScreen() {
           {habit.completionHistory && habit.completionHistory.length > 0 ? (
             habit.completionHistory.slice(0, 10).map((entry, index) => ( // Show last 10 entries for brevity
               <Text key={index} style={styles.historyEntry}>
-                {new Date(entry.date).toLocaleDateString()}: Count: {entry.count}
+                {new Date(entry.date).toLocaleDateString()}
               </Text>
             ))
           ) : (

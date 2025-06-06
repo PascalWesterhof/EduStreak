@@ -2,10 +2,9 @@ import { DrawerActions, useFocusEffect, useNavigation } from '@react-navigation/
 import { addMonths, format, getDay, getDaysInMonth, startOfMonth, subMonths } from 'date-fns';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Linking, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { auth } from '../../config/firebase';
 import { colors } from '../../constants/Colors';
-import { fetchDailyQuoteFromService } from '../../services/quoteService';
 import { fetchUserStreaksFromService } from '../../services/userService';
 import { globalStyles } from '../../styles/globalStyles';
 
@@ -24,12 +23,6 @@ export default function Calendar() {
   const [longestStreak, setLongestStreak] = useState(0);
   const [isLoadingStreaks, setIsLoadingStreaks] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
-
-  // State for daily quote, its author, loading status, and potential errors
-  const [quoteText, setQuoteText] = useState('');
-  const [quoteAuthor, setQuoteAuthor] = useState('');
-  const [isQuoteLoading, setIsQuoteLoading] = useState(true);
-  const [quoteError, setQuoteError] = useState<string | null>(null);
 
   /**
    * Fetches user's current and longest streaks from `userService`.
@@ -58,36 +51,10 @@ export default function Calendar() {
   }, []);
 
   /**
-   * Fetches a daily motivational quote using `quoteService`.
-   * Manages loading state and updates quote text, author, and error state.
-   */
-  const fetchDailyQuote = async () => {
-    setIsQuoteLoading(true);
-    setQuoteError(null);
-    try {
-      const { quoteText: newQuoteText, quoteAuthor: newQuoteAuthor, error: newQuoteError } = await fetchDailyQuoteFromService();
-      setQuoteText(newQuoteText);
-      setQuoteAuthor(newQuoteAuthor);
-      if (newQuoteError) {
-        setQuoteError(newQuoteError); // Display non-critical errors from service (e.g., fallback used)
-      }
-    } catch (err: any) {
-      console.error("[CalendarScreen] Critical error calling fetchDailyQuoteFromService:", err);
-      // For critical errors not handled by the service's fallback, set a generic message.
-      setQuoteText("Could not load quote at this time.");
-      setQuoteAuthor("System");
-      setQuoteError("An unexpected error occurred while fetching the daily quote.");
-    } finally {
-      setIsQuoteLoading(false);
-    }
-  };
-
-  /**
    * `useEffect` hook to fetch initial data (quote) and set up an authentication state listener.
    * When auth state changes, it updates `currentUser` and fetches user streaks.
    */
   useEffect(() => {
-    fetchDailyQuote(); // Fetch quote on initial mount
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       if (user) {
@@ -163,11 +130,11 @@ export default function Calendar() {
         {/* Calendar Card: Month Selector, Weekday Headers, Dates Grid */}
         <View style={[globalStyles.card, styles.calendarCard]}>
           <View style={styles.monthSelector}>
-            <TouchableOpacity onPress={goToPreviousMonth} disabled={isLoadingStreaks || isQuoteLoading}>
+            <TouchableOpacity onPress={goToPreviousMonth} disabled={isLoadingStreaks}>
               <Text style={styles.navButton}>{'<'}</Text>
             </TouchableOpacity>
             <Text style={styles.monthLabel}>{format(currentDate, 'MMMM yyyy')}</Text>
-            <TouchableOpacity onPress={goToNextMonth} disabled={isLoadingStreaks || isQuoteLoading}>
+            <TouchableOpacity onPress={goToNextMonth} disabled={isLoadingStreaks}>
               <Text style={styles.navButton}>{'>'}</Text>
             </TouchableOpacity>
           </View>
@@ -207,28 +174,6 @@ export default function Calendar() {
                 <Text style={styles.streakValueText}>{longestStreak} Days</Text>
                 <Text style={[globalStyles.bodyText, styles.streakLabelText]}>Your longest streak!</Text>
               </View>
-            </>
-          )}
-        </View>
-
-        {/* Motivational Quote Card */}
-        <View style={[globalStyles.card, styles.quoteCard]}>
-          <Text style={[globalStyles.titleText, styles.quoteCardTitle]}>Daily Motivation</Text>
-          {isQuoteLoading ? (
-            <ActivityIndicator size="small" color={colors.accent} />
-          ) : quoteError ? (
-            <Text style={[globalStyles.errorText, styles.quoteErrorTextCustom]}>{quoteError}</Text>
-          ) : (
-            <>
-              <Text style={[globalStyles.bodyText, styles.quoteText]}>"{quoteText}"</Text>
-              <Text style={[globalStyles.mutedText, styles.quoteAuthor]}>- {quoteAuthor}</Text>
-              {/* Attribution link for ZenQuotes API */}
-              <TouchableOpacity 
-                onPress={() => Linking.openURL('https://zenquotes.io/')} 
-                style={styles.attributionContainer}
-              >
-                <Text style={[globalStyles.mutedText, styles.attributionText]}>Quotes from ZenQuotes.io</Text>
-              </TouchableOpacity>
             </>
           )}
         </View>
@@ -330,38 +275,5 @@ const styles = StyleSheet.create({
   },
   streakLabelText: {
     color: colors.textSecondary, // Use a secondary text color for labels
-  },
-  quoteCard: {
-    marginTop: 20,
-    marginBottom: 20, // Ensure space at the bottom of the scroll view
-  },
-  quoteCardTitle: {
-    textAlign: 'center',
-    color: colors.textDefault, // Ensure title has good contrast
-    marginBottom: 10, // Add space below title
-  },
-  quoteText: {
-    fontStyle: 'italic',
-    color: colors.darkGray, // Or textSecondary for consistency
-    textAlign: 'center',
-    marginBottom: 8,
-    lineHeight: 20, // Improve readability
-  },
-  quoteAuthor: {
-    textAlign: 'right',
-    color: colors.textMuted, // Muted color for author
-  },
-  quoteErrorTextCustom: { // Specific style for quote error text if needed
-    textAlign: 'center',
-    color: colors.error, // Use error color
-  },
-  attributionContainer: {
-    marginTop: 10,
-    alignItems: 'center',
-  },
-  attributionText: {
-    fontSize: 10,
-    color: colors.textMuted,
-    textDecorationLine: 'underline',
   },
 });

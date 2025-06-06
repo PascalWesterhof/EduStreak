@@ -4,9 +4,9 @@ import { ActivityIndicator, FlatList, Image, StatusBar, StyleSheet, Text, Toucha
 import { auth } from '../../config/firebase';
 import { colors } from '../../constants/Colors';
 import {
-  fetchLeaderboardDataFromService,
-  LeaderboardItem,
-  SortMetricType
+    fetchLeaderboardDataFromService,
+    LeaderboardItem,
+    SortMetricType
 } from '../../services/leaderboardService';
 import { globalStyles } from '../../styles/globalStyles';
 
@@ -138,8 +138,6 @@ export default function Leaderboard() {
           <Text style={[globalStyles.headerText, styles.headerTitleCustom]}>Group </Text>
           <Text style={[globalStyles.headerText, styles.headerTitleCustom, styles.headerTitleHighlight]}>Leaderboard</Text>
         </View>
-        {/* Optional: Add a placeholder if needed for symmetrical header alignment */}
-        {/* <View style={styles.headerRightPlaceholder} /> */}
       </View>
 
       {/* Sort Metric Selection Tabs */}
@@ -193,8 +191,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   menuButton: {
+    position: 'absolute',
+    left: 10,
     padding: 5,
-    marginRight: 10, // Space between menu button and title container
+    zIndex: 1,
   },
   menuIcon: {
     width: 24,

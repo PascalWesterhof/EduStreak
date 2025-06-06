@@ -41,7 +41,6 @@ export const colors = {
   white: '#FFFFFF',          // Explicit white for text on colored backgrounds
   lightGray: '#F5F5F5',      // Used for inputs in edit-habit
   mediumGray: '#A9A9A9',     // Placeholder text in edit-habit
-  darkGray: '#666666',       // Quote author in calendar
   black: '#000000',
   borderColor: '#E0E0E0',
   unreadItemBackground: '#E8F0FE', // For unread notification items

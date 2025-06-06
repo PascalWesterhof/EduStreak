@@ -1,21 +1,20 @@
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    Alert,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { Habit } from '../../types';
 
 interface Props {
-  onAddHabit: (newHabit: Omit<Habit, 'id' | 'streak' | 'longestStreak' | 'completionHistory' | 'createdAt'>) => void;
+  onAddHabit: (newHabit: Omit<Habit, 'id' | 'streak' | 'longestStreak' | 'completionHistory' | 'createdAt' | 'notes' | 'reminderTime'>) => void;
   onCancel?: () => void; 
 }
 
@@ -37,44 +36,13 @@ export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [frequencyType, setFrequencyType] = useState<'daily' | 'weekly'>('daily');
-  const [timesPerDay, setTimesPerDay] = useState('1');
   const [timesPerWeek, setTimesPerWeek] = useState('1');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  const [notes, setNotes] = useState('');
-  // Reminder Time States
-  const [reminderTime, setReminderTime] = useState<Date | undefined>(undefined);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-
-  /**
-   * Handles the change event from the DateTimePicker for reminder time selection.
-   * Updates the `reminderTime` state with the selected time.
-   * Manages the visibility of the time picker, especially for iOS where it might remain open.
-   * @param {DateTimePickerEvent} event - The event object from the DateTimePicker.
-   * @param {Date} [selectedTime] - The time selected by the user.
-   */
-  const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
-    setShowTimePicker(Platform.OS === 'ios'); // Keep picker open on iOS until done
-    if (selectedTime) {
-      setReminderTime(selectedTime);
-    }
-  };
-
-  /**
-   * Formats a Date object into a "HH:MM" string representation.
-   * @param {Date | undefined} date - The Date object to format. If undefined, returns an empty string.
-   * @returns {string} The formatted time string (e.g., "09:30") or an empty string.
-   */
-  const formatTime = (date: Date | undefined) => {
-    if (!date) return '';
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  };
 
   /**
    * Validates the habit input fields and constructs the new habit data object.
    * Calls the `onAddHabit` prop with the new habit data.
-   * Handles validation for habit name, times per day/week, and day selection for weekly habits.
+   * Handles validation for habit name, times per week, and day selection for weekly habits.
    * Displays alerts for any validation errors.
    */
   const handleSaveHabit = () => {
@@ -83,27 +51,19 @@ export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
       return;
     }
 
-    // Base details that are always present
     const baseDetails = {
       name: name.trim(),
-      description: description.trim() || undefined, // Ensure empty string becomes undefined if desired by type, or handle appropriately
-      notes: notes.trim() || undefined,
+      description: description.trim() || undefined,
       isDefault: false,
-      reminderTime: reminderTime ? formatTime(reminderTime) : undefined,
     };
 
-    let newHabitData: Omit<Habit, 'id' | 'streak' | 'longestStreak' | 'completionHistory' | 'createdAt'>;
+    let newHabitData: Omit<Habit, 'id' | 'streak' | 'longestStreak' | 'completionHistory' | 'createdAt' | 'notes' | 'reminderTime'>;
 
     if (frequencyType === 'daily') {
-      const times = parseInt(timesPerDay, 10);
-      if (isNaN(times) || times <= 0) {
-        Alert.alert('Invalid Input', 'Please enter a valid number of times per day.');
-        return;
-      }
       newHabitData = {
         ...baseDetails,
-        name: baseDetails.name, // Explicitly ensuring name is string
-        frequency: { type: 'daily', times },
+        name: baseDetails.name, 
+        frequency: { type: 'daily', times: 1 },
       };
     } else { // weekly
       const times = parseInt(timesPerWeek, 10);
@@ -117,7 +77,7 @@ export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
       }
       newHabitData = {
         ...baseDetails,
-        name: baseDetails.name, // Explicitly ensuring name is string
+        name: baseDetails.name, 
         frequency: { type: 'weekly', times, days: selectedDays.sort((a, b) => a - b) },
       };
     }
@@ -195,20 +155,6 @@ export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
           </TouchableOpacity>
         </View>
 
-        {frequencyType === 'daily' && (
-          <>
-            <Text style={styles.label}>Times per day *</Text>
-            <TextInput
-              style={styles.input}
-              value={timesPerDay}
-              onChangeText={setTimesPerDay}
-              placeholder="e.g., 2"
-              placeholderTextColor="#A9A9A9"
-              keyboardType="numeric"
-            />
-          </>
-        )}
-
         {frequencyType === 'weekly' && (
           <>
             <Text style={styles.label}>Times per week *</Text>
@@ -239,34 +185,6 @@ export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
               ))}
             </View>
           </>
-        )}
-
-        <Text style={styles.label}>Notes (Optional)</Text>
-        <TextInput
-          style={[styles.input, styles.multilineInput]}
-          value={notes}
-          onChangeText={setNotes}
-          placeholder="Any extra details, links, or motivation"
-          placeholderTextColor="#A9A9A9"
-          multiline
-          numberOfLines={4}
-        />
-
-        <Text style={styles.label}>Reminder Time (Optional)</Text>
-        <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.timePickerButton}>
-          <Text style={styles.timePickerButtonText}>
-            {reminderTime ? formatTime(reminderTime) : 'Select Reminder Time'}
-          </Text>
-        </TouchableOpacity>
-        {showTimePicker && (
-          <DateTimePicker
-            testID="timePicker"
-            value={reminderTime || new Date()} // Default to now if no time is set
-            mode="time"
-            is24Hour={true}
-            display="default" 
-            onChange={onTimeChange}
-          />
         )}
 
         <TouchableOpacity style={styles.primaryButton} onPress={handleSaveHabit}>
@@ -442,17 +360,5 @@ const styles = StyleSheet.create({
     color: '#d05b52',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  timePickerButton: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    marginBottom: 10,
-    alignItems: 'center',
-  },
-  timePickerButtonText: {
-    fontSize: 16,
-    color: '#000000',
   },
 }); 

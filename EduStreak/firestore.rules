@@ -24,20 +24,6 @@ service cloud.firestore {
         }
       }
       
-      // Rules for in-app notifications subcollection
-      match /inAppNotifications/{notificationId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow create: if request.auth != null && request.auth.uid == userId &&
-                        request.resource.data.message is string &&
-                        request.resource.data.timestamp is string && // Or a Firebase server timestamp
-                        request.resource.data.read == false &&
-                        (request.resource.data.type is string || !request.resource.data.keys().hasAny(['type'])) && // type is optional
-                        (request.resource.data.relatedHabitId is string || !request.resource.data.keys().hasAny(['relatedHabitId'])); // relatedHabitId is optional
-        allow update: if request.auth != null && request.auth.uid == userId &&
-                        request.resource.data.read == true && // Only allow marking as read
-                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
-        allow delete: if request.auth != null && request.auth.uid == userId; // Optional: allow users to delete their notifications
-      }
     }
   }
 }

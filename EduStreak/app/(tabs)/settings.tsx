@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20, // Padding at the bottom of the scrollable content
   },
   box: {
-    backgroundColor: colors.accent, 
+    backgroundColor: colors.cardBackground, 
     borderRadius: 8, // Slightly more rounded corners
     paddingVertical: 18, // Increased vertical padding for better touchability
     paddingHorizontal: 16,
@@ -140,12 +140,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   labelCustom: {
-    color: colors.primaryText, 
+    color: colors.primary, 
     fontSize: 16, // Standardize label font size
     fontWeight: '500', // Medium weight for labels
   },
   arrowIcon: {
-    color: colors.primaryText, 
+    color: colors.primary, 
     fontSize: 20,
     fontWeight: 'bold',
   }
