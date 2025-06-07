@@ -14,7 +14,7 @@ import { useNavigation } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { usePushNotifications } from "./usePushNotifications";
 
-export default function NotificationsScreen() {
+export default function NotificationsScreen() {//show
   const navigation = useNavigation();
   const { expoPushToken, notifications } = usePushNotifications();
 
@@ -72,6 +72,7 @@ export default function NotificationsScreen() {
         />
       )}
 
+      {/* Modal for full notification details */}
       <Modal
         visible={modalVisible}
         animationType="slide"

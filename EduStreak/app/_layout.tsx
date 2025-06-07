@@ -28,25 +28,12 @@ const DrawerLayout = () =>
                 <Drawer.Screen name='notifications'
                 options={{drawerLabel: 'Notifications', headerTitle: 'Notifications'}}/>
                 <Drawer.Screen name='settings'
-                options={{drawerLabel: 'Settings', headerTitle: '',}}/>
+                options={{drawerLabel: 'Settings', headerTitle: 'Settings',}}/>
                 <Drawer.Screen name='leaderboard'
                 options={{drawerLabel: 'Leaderboard', headerTitle: 'Leaderboard'}}/>
-                <Drawer.Screen name='signup'
-                options={{drawerItemStyle: { display: 'none'}, headerTitle:'Signup'}}/>
-                <Drawer.Screen name='login'
-                options={{drawerItemStyle: { display: 'none'}, headerTitle:'Login'}}/>
-                <Drawer.Screen name='gamification'
-                options={{drawerItemStyle: { display: 'none'}, headerTitle: ''}}/>
-                <Drawer.Screen name='privacy'
-                options={{drawerItemStyle: { display: 'none'}, headerTitle: 'Privacy & Data'}}/>
-                <Drawer.Screen name='groupboard'
-                options={{drawerLabel: 'Group Board', headerTitle:'Group Board'}}/>
-                <Drawer.Screen name='creategroup'
-                options={{drawerItemStyle: { display: 'none'}, headerTitle: 'Create Group'}}/>
             </Drawer>
         </GestureHandlerRootView>
     );
 };
 
 export default DrawerLayout;
-

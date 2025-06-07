@@ -10,14 +10,7 @@ import {
   View,
 } from "react-native";
 
-interface DateItem {
-  id: string;
-  day: string;
-  date: number;
-  fullDate: string;
-}
-
-const getDayLabel = (offset = 0): DateItem => {
+const getDayLabel = (offset = 0) => {
   const date = new Date();
   date.setDate(date.getDate() + offset);
   const day = date.toLocaleDateString("en-US", { weekday: "short" }); // "Mon"
@@ -51,9 +44,9 @@ export default function Index({ range = 5 }) {
     });
   }, [navigation]);
 
-  const [selectedId, setSelectedId] = useState<string>("0"); // today = offset 0
+  const [selectedId, setSelectedId] = useState("0"); // today = offset 0
 
-  const [dates, setDates] = useState<DateItem[]>([]);
+  const [dates, setDates] = useState([]);
 
   useEffect(() => {
     // Generate date range: e.g., -3 to +3
@@ -64,7 +57,7 @@ export default function Index({ range = 5 }) {
     setDates(dateList);
   }, [range]);
 
-  const renderItem = ({ item }: { item: DateItem }) => {
+  const renderItem = ({ item }) => {
     const isSelected = item.id === selectedId;
     return (
       <TouchableOpacity
