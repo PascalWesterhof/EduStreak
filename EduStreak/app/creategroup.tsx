@@ -7,14 +7,13 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
 
 import { getAuth } from "firebase/auth";
-import { createGroup } from "../functions/groupService"; // 🔗 make sure this file exists
+import { createGroup } from "../functions/groupService";
+import { showAlert } from "../utils/showAlert";
 
 const CreateGroup = () => {
   const navigation = useNavigation();
@@ -24,12 +23,12 @@ const CreateGroup = () => {
   const handleCreateGroup = async () => {
     const user = getAuth().currentUser;
     if (!user) {
-      Alert.alert("Error", "No user is logged in.");
+      showAlert("Error", "No user is logged in.");
       return;
     }
 
     if (!name.trim()) {
-      Alert.alert("Error", "Group name is required.");
+      showAlert("Error", "Group name is required.");
       return;
     }
 
@@ -39,7 +38,7 @@ const CreateGroup = () => {
       navigation.navigate("groupboard");
     } catch (error) {
       console.error("Error creating group:", error);
-      Alert.alert("Error", "Something went wrong while creating the group.");
+      showAlert("Error", "Something went wrong while creating the group.");
     }
   };
 

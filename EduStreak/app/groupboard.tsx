@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getAuth } from "firebase/auth";
 
 import { getAllGroups, getUserGroups, joinGroup } from "../functions/groupService";
+import { showAlert } from "../utils/showAlert";
 
 const GroupBoard = () => {
   const navigation = useNavigation();
@@ -36,6 +37,7 @@ const GroupBoard = () => {
       setUserGroupIds(joinedGroupIds);
     } catch (err) {
       console.error("Failed to load groups:", err);
+      showAlert("Error", "Failed to load groups. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -50,6 +52,7 @@ const GroupBoard = () => {
       await loadGroups(); // Refresh
     } catch (err) {
       console.error("Failed to join group:", err);
+      showAlert("Error", "Failed to join the group. Please try again.");
     } finally {
       setJoining(null);
     }
@@ -216,3 +219,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
