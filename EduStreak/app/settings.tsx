@@ -68,7 +68,11 @@ export default function Settings() {
                  </View>
 
                  <View style={styles.box}>
-                   <Text style={styles.label}>Appearance</Text>
+                   <Link href="./appearance" asChild>
+                    <TouchableOpacity>
+                      <Text style={styles.label}>Appearance</Text>
+                    </TouchableOpacity>
+                  </Link>
                  </View>
 
                  <View style={styles.box}>
@@ -102,7 +106,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#D1624A',
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingTop: Platform.OS === 'Web' 0,
   },
   header:
   {

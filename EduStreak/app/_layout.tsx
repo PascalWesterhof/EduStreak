@@ -43,6 +43,8 @@ const DrawerLayout = () =>
                 options={{drawerLabel: 'Group Board', headerTitle:'Group Board'}}/>
                 <Drawer.Screen name='creategroup'
                 options={{drawerItemStyle: { display: 'none'}, headerTitle: 'Create Group'}}/>
+                <Drawer.Screen name='appearance'
+                options={{drawerItemStyle: { display: 'none'}, headerTitle: ''}}/>
             </Drawer>
         </GestureHandlerRootView>
     );
