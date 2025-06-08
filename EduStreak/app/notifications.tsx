@@ -1,152 +1,109 @@
-import React, { useState, useLayoutEffect } from "react";
-import {
-  Text,
-  View,
-  StyleSheet,
-  SafeAreaView,
-  FlatList,
-  Modal,
-  Pressable,
-  Button,
-  ScrollView,
-} from "react-native";
 import { useNavigation } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
-import { usePushNotifications } from "./usePushNotifications";
+import { DrawerActions } from "@react-navigation/native";
+import { Text, View, StyleSheet, SafeAreaView, FlatList } from "react-native";
+import { useLayoutEffect } from "react";
 
-export default function NotificationsScreen() {
-  const navigation = useNavigation();
-  const { expoPushToken, notifications } = usePushNotifications();
+const notifications = [
+  {
+    id: '1',
+    title: "You completed your 'Math Homework' habit...",
+    time: 'About 9 minutes ago',
+  },
+  {
+    id: '2',
+    title: "Don't forget to study for your upcoming test!",
+    time: 'About 2 hours ago',
+  },
+  {
+    id: '3',
+    title: "Achievement unlocked: 7-day streak on 'Daily...",
+    time: 'About 5 hours ago',
+  },
+  {
+    id: '4',
+    title: 'Goal deadline approaching: Submit project in...',
+    time: '1h result',
+  },
+  {
+    id: '5',
+    title: "You missed your 'Read 20 mins' habit yesterday",
+    time: '4 February',
+  },
+  {
+    id: '6',
+    title: 'You were invited to join Study Group "Focus..."',
+    time: '4 February',
+  },
+];
 
-  const [selectedNotification, setSelectedNotification] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
+export default function Notifications() {
+    const navigation = useNavigation();
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitleStyle: {
-        color: "#fff",
-        fontSize: 24,
-        fontWeight: "bold",
-      },
-      headerStyle: {
-        backgroundColor: "#D1624A",
-      },
-      headerTintColor: "#fff",
-    });
-  }, [navigation]);
+        const onToggle = () =>
+        {
+            navigation.dispatch(DrawerActions.openDrawer());
+        };
+          useLayoutEffect(() => {
+                navigation.setOptions({
+                    headerTitleStyle: {
+                      color: '#fff',       // Your desired text color
+                      fontSize: 24,        // Your desired font size
+                      fontWeight: 'bold',
 
-  const onPressNotification = (item) => {
-    setSelectedNotification(item);
-    setModalVisible(true);
-  };
+                    },
+                    headerStyle: {
+                      backgroundColor: '#D1624A', // Optional: white background
+                    },
+                 headerTintColor: '#fff'
+                  });
+                }, [navigation]);
 
-  const renderItem = ({ item }) => (
-    <Pressable onPress={() => onPressNotification(item)} style={styles.notificationItem}>
-      <MaterialIcons
-        name="notifications-active"
-        size={20}
-        color="#fff"
-        style={styles.icon}
-      />
-      <View style={{ flex: 1 }}>
-        <Text style={styles.title} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={styles.time}>{item.time}</Text>
-      </View>
-    </Pressable>
-  );
+              const renderItem = ({ item }) => (
+                <View style={styles.notificationItem}>
+                  <Text style={styles.title}>{item.title}</Text>
+                  <Text style={styles.time}>{item.time}</Text>
+                </View>);
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      {notifications.length === 0 ? (
-        <View style={{ padding: 20 }}>
-          <Text style={{ color: "#fff" }}>No notifications yet.</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={notifications}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-        />
-      )}
+ return (
+     <SafeAreaView style={styles.safeArea}>
+       <FlatList
+         data={notifications}
+         renderItem={renderItem}
+         keyExtractor={item => item.id}
+         contentContainerStyle={styles.listContainer}
+       />
+     </SafeAreaView>
+   );
+ }
 
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <ScrollView style={{ maxHeight: 300 }}>
-              <Text style={styles.modalTitle}>{selectedNotification?.title}</Text>
-              <Text style={styles.modalBody}>
-                {selectedNotification?.body || "No additional content"}
-              </Text>
-            </ScrollView>
-            <Button title="Close" onPress={() => setModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
-  );
-}
+ const styles = StyleSheet.create({
+   safeArea: {
+     flex: 1,
+     backgroundColor: '#D1624A', // background color from your screenshot
+   },
+   header: {
+     fontSize: 24,
+     fontWeight: 'bold',
+     paddingHorizontal: 16,
+     paddingVertical: 16,
+     color: '#fff',
+   },
+   listContainer: {
+     paddingHorizontal: 16,
+   },
+   notificationItem: {
+     borderBottomWidth: 1,
+     borderBottomColor: '#f0c0b0',
+     paddingVertical: 12,
+   },
+   title: {
+     color: '#fff',
+     fontSize: 14,
+     marginBottom: 4,
+   },
+   time: {
+     color: '#f8d8c8',
+     fontSize: 12,
+   },
+ });
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#D1624A",
-  },
-  listContainer: {
-    paddingHorizontal: 16,
-  },
-  notificationItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0c0b0",
-    paddingVertical: 12,
-  },
-  icon: {
-    marginRight: 12,
-    marginTop: 4,
-  },
-  title: {
-    color: "#fff",
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  time: {
-    color: "#f8d8c8",
-    fontSize: 12,
-  },
-  modalBackground: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    backgroundColor: "#fff",
-    padding: 20,
-    marginHorizontal: 20,
-    borderRadius: 10,
-    width: "80%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 12,
-  },
-  modalBody: {
-    fontSize: 16,
-    marginBottom: 20,
-  },
-});

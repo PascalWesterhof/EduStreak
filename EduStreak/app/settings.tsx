@@ -1,131 +1,140 @@
-import { Text, View, StyleSheet, Switch, SafeAreaView, ScrollView, Pressable, Alert, Button } from "react-native";
-import React, { useState } from "react";
+import { Text, View, StyleSheet, Switch, SafeAreaView, ScrollView, Pressable, TouchableOpacity, Platform } from "react-native";
+import React, { useState } from 'react';
 import { useLayoutEffect } from "react";
-import { useNavigation } from "expo-router";
-import { usePushNotifications } from "./usePushNotifications";
-import { scheduleDailyHabitReminder, cancelAllNotifications } from "./helpers/notificationReminder";
+import { useNavigation, Link } from "expo-router";
+import { useFonts } from "expo-font";
 
 export default function Settings() {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [aiAssistanceEnabled, setAiAssistanceEnabled] = useState(true);
-  const [remindersEnabled, setRemindersEnabled] = useState(false);
-  const { expoPushToken } = usePushNotifications();
+      const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+      const [dailyRemindersEnabled, setDailyRemindersEnabled] = useState(true);
 
-  const navigation = useNavigation();
+        const [fontsLoaded] = useFonts({
+          'DMSans-SemiBold': require('../assets/fonts/DMSans-SemiBold.ttf'),
+          'Rubik-Medium': require('../assets/fonts/Rubik-Medium.ttf'),
+          });
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitleStyle: {
-        color: "#fff",
-        fontSize: 24,
-        fontWeight: "bold",
-      },
-      headerStyle: {
-        backgroundColor: "#D1624A",
-      },
-      headerTintColor: "#fff",
-    });
-  }, [navigation]);
+      const navigation = useNavigation();
 
-  const toggleReminders = async () => {
-    const newValue = !remindersEnabled;
-    setRemindersEnabled(newValue);
+    const onToggle = () =>
+    {
+        navigation.dispatch(DrawerActions.openDrawer());
+    };
+      useLayoutEffect(() => {
+          if(fontsLoaded){
+            navigation.setOptions({
+                headerStyle: {
+                    backgroundColor: '#D1624A', // Optional: white background
+                },
+             headerTintColor: '#fff'
+              });
+            }
+        }, [navigation, fontsLoaded]);
 
-    if (newValue) {
-      const reminderTime = new Date();
-      reminderTime.setHours(20);
-      reminderTime.setMinutes(0);
-      await scheduleDailyHabitReminder("Study", reminderTime);
-      Alert.alert("Reminders Enabled", "Daily reminder set for 8:00 PM");
-    } else {
-      await cancelAllNotifications();
-      Alert.alert("Reminders Disabled", "All notifications cancelled.");
-    }
-  };
+        if(!fontsLoaded)
+        {
+            return null;
+        }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.box}>
-          <Text style={styles.label}>Profile</Text>
-        </View>
+    return (
+         <SafeAreaView style={styles.container}>
+               <ScrollView contentContainerStyle={styles.content}>
+                 <View style={styles.header}>
+                    <Text style={styles.headerText}>Settings</Text>
+                 </View>
+                 <View style={styles.box}>
+                   <Text style={styles.label}>Profile</Text>
+                 </View>
 
-        <View style={styles.box}>
-          <Text style={styles.label}>Notifications</Text>
-          <Switch
-            value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
-            trackColor={{ false: "#D1624A", true: "#fff" }}
-            thumbColor={notificationsEnabled ? "#fff" : "#fff"}
-          />
-        </View>
+                 <View style={styles.box}>
+                   <Text style={styles.label}>Notifications</Text>
+                   <Switch
+                     value={notificationsEnabled}
+                     onValueChange={setNotificationsEnabled}
+                     trackColor={{ false: "#D1624A", true: "#fff"}}
+                     thumbColor={notificationsEnabled ? "#fff" : "#fff"}
+                      style={Platform.OS === 'web' ? { accentColor: '#fff' } : {}}
+                   />
+                 </View>
 
-        <View style={styles.box}>
-          <Text style={styles.label}>AI Assistance</Text>
-          <Switch
-            value={aiAssistanceEnabled}
-            onValueChange={setAiAssistanceEnabled}
-            trackColor={{ false: "#D1624A", true: "#fff" }}
-            thumbColor={aiAssistanceEnabled ? "#fff" : "#fff"}
-          />
-        </View>
+                 <View style={styles.box}>
+                   <Text style={styles.label}>Daily reminders</Text>
+                   <Switch
+                     value={dailyRemindersEnabled}
+                     onValueChange={setDailyRemindersEnabled}
+                     trackColor={{ false: "#D1624A", true: "#fff"}}
+                     thumbColor={notificationsEnabled ? "#fff" : "#fff"}
 
-        <View style={styles.box}>
-          <Text style={styles.label}>Daily Habit Reminders</Text>
-          <Switch
-            value={remindersEnabled}
-            onValueChange={toggleReminders}
-            trackColor={{ false: "#aaa", true: "#D1624A" }}
-            thumbColor={remindersEnabled ? "#fff" : "#ccc"}
-          />
-        </View>
+                   />
+                 </View>
 
-        <View style={styles.box}>
-          <Text style={styles.label}>Push Token:</Text>
-          <Text selectable style={styles.tokenText}>
-            {expoPushToken?.data || "Not available"}
-          </Text>
-        </View>
+                 <View style={styles.box}>
+                   <Text style={styles.label}>Appearance</Text>
+                 </View>
 
-        <Button
-          title="Cancel All Notifications"
-          color="#a33"
-          onPress={async () => {
-            await cancelAllNotifications();
-            Alert.alert("Cancelled", "All scheduled notifications cleared.");
-          }}
-        />
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
+                 <View style={styles.box}>
+                    <Link href="./gamification" asChild>
+                     <TouchableOpacity>
+                       <Text style={styles.label}>Gamification</Text>
+                     </TouchableOpacity>
+                   </Link>
+                 </View>
+
+                 <View style={styles.box}>
+                   <Link href="./privacy" asChild>
+                    <TouchableOpacity>
+                      <Text style={styles.label}>Privacy & Data</Text>
+                    </TouchableOpacity>
+                  </Link>
+                 </View>
+
+                 <View style={styles.box}>
+                   <Text style={styles.label}>Extras</Text>
+                 </View>
+               </ScrollView>
+             </SafeAreaView>
+        );
+    };
 
 const styles = StyleSheet.create({
-  container: {
+  container:
+  {
     flex: 1,
-    backgroundColor: "#D1624A",
+    backgroundColor: '#D1624A',
     paddingHorizontal: 20,
     paddingTop: 12,
+    paddingTop: Platform.OS === 'Web' 0,
   },
-  content: {
+  header:
+  {
+    color: '#DE7460',
+    alignSelf: 'center',
+    marginVertical: 20,
+  },
+    headerText:
+    {
+    fontFamily: 'DMSans-SemiBold',
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
+    },
+  content:
+  {
     paddingBottom: 20,
   },
-  box: {
-    backgroundColor: "#DE7460",
+  box:
+  {
+    backgroundColor: '#DE7460',
     borderRadius: 3,
     padding: 16,
     marginBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  label: {
-    color: "#fff",
+  label:
+  {
+    fontFamily: 'Rubik-Medium',
+    color: '#fff',
     fontSize: 16,
   },
-  tokenText: {
-    fontSize: 12,
-    color: "#555",
-  },
 });
-
