@@ -1,8 +1,7 @@
-import { Text, View, StyleSheet, Switch, SafeAreaView, ScrollView, Pressable, TouchableOpacity, Platform } from "react-native";
-import React, { useState } from 'react';
-import { useLayoutEffect } from "react";
-import { useNavigation, Link } from "expo-router";
 import { useFonts } from "expo-font";
+import { Link, useNavigation } from "expo-router";
+import React, { useLayoutEffect, useState } from 'react';
+import { Platform, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 
 export default function Settings() {
       const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -42,7 +41,11 @@ export default function Settings() {
                     <Text style={styles.headerText}>Settings</Text>
                  </View>
                  <View style={styles.box}>
-                   <Text style={styles.label}>Profile</Text>
+                   <Link href="/settingsScreens/profileSettings" asChild>
+                    <TouchableOpacity>
+                      <Text style={styles.label}>Profile</Text>
+                    </TouchableOpacity>
+                  </Link>
                  </View>
 
                  <View style={styles.box}>

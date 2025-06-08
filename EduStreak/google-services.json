@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "538149596527",
+    "project_id": "edustreak-772c2",
+    "storage_bucket": "edustreak-772c2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:538149596527:android:c51f8eb082f5ac89fc8c9a",
+        "android_client_info": {
+          "package_name": "com.edustreak"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "538149596527-1jsi8fa2jhp8rmp2618m2gs11f6srp8h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.edustreak",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "538149596527-1dgue7rp6omuknv7kannrttjc04u35vg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWcw0HtuNUkR0k3ejb3dcRyx6UEeA4U70"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "538149596527-1dgue7rp6omuknv7kannrttjc04u35vg.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "538149596527-r2kafqd4fbcjklbmi95o8fke87tvu3j4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.edustreak"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

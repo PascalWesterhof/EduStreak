@@ -1,288 +1,342 @@
-import { Ionicons } from "@expo/vector-icons";
-import { DrawerActions } from "@react-navigation/native";
-import { useNavigation } from "expo-router";
-import { useLayoutEffect } from "react";
+import { DrawerActions, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Image, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { auth } from '../config/firebase';
+import { colors } from '../constants/Colors';
 import {
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+  fetchLeaderboardDataFromService,
+  LeaderboardItem,
+  SortMetricType
+} from '../functions/leaderboardService';
+import { globalStyles } from '../styles/globalStyles';
 
-// Dummy data for the leaderboard
-const leaderboardData = [
-  {
-    id: "1",
-    rank: 1,
-    name: "John Doe",
-    score: 5075,
-    avatar: "https://via.placeholder.com/40",
-  },
-  {
-    id: "2",
-    rank: 2,
-    name: "Alex Smith",
-    score: 4985,
-    avatar: "https://via.placeholder.com/40",
-  },
-  {
-    id: "3",
-    rank: 3,
-    name: "Jane Doe",
-    score: 4642,
-    avatar: "https://via.placeholder.com/40",
-  },
-  {
-    id: "4",
-    rank: 4,
-    name: "Michael Reed",
-    score: 3874,
-    avatar: "https://via.placeholder.com/40",
-  },
-  {
-    id: "5",
-    rank: 5,
-    name: "Emily Carter",
-    score: 3567,
-    avatar: "https://via.placeholder.com/40",
-  },
-  {
-    id: "6",
-    rank: 6,
-    name: "Sarah Lane",
-    score: 3478,
-    avatar: "https://via.placeholder.com/40",
-  },
-  {
-    id: "7",
-    rank: 7,
-    name: "Chris Taylor",
-    score: 3387,
-    avatar: "https://via.placeholder.com/40",
-  },
-  {
-    id: "8",
-    rank: 8,
-    name: "Daniel Brooks",
-    score: 3257,
-    avatar: "https://via.placeholder.com/40",
-  },
-
+/**
+ * `SORT_METRICS` defines the available options for sorting the leaderboard.
+ * Each option has a human-readable label and a corresponding value used by the service.
+ */
+const SORT_METRICS: { label: string; value: SortMetricType }[] = [
+  { label: 'Total Points', value: 'points' },
+  { label: 'Current Streak', value: 'currentStreak' },
+  { label: 'Longest Streak', value: 'longestStreak' },
 ];
 
-// Functional component for the Leaderboard screen
-export default function LeaderboardScreen() {
+/**
+ * `Leaderboard` component displays a ranked list of users based on selectable metrics
+ * (points, current streak, longest streak). It fetches data from `leaderboardService`
+ * and handles loading and error states.
+ */
+export default function Leaderboard() {
   const navigation = useNavigation();
 
-  // useLayoutEffect to set navigation options before the screen is rendered.
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <TouchableOpacity
-          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-          style={{ marginLeft: 15 }}
-        >
-          <Ionicons name="menu" size={24} color="black" />
-        </TouchableOpacity>
-      ),
-      headerTitle: "",
-      headerRight: () => (
-        <TouchableOpacity style={styles.premiumButton}>
-          <Ionicons name="diamond-outline" size={16} color="#fff" />
-          <Text style={styles.premiumButtonText}>Premium</Text>
-        </TouchableOpacity>
-      ),
+  // State for leaderboard data, loading status, selected sort metric, errors, and current user ID
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [sortMetric, setSortMetric] = useState<SortMetricType>('points'); // Default sort metric
+  const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null); // For potential future use (e.g., highlighting current user)
+
+  /**
+   * `useEffect` hook to set up an authentication listener.
+   * Updates `currentUserId` when auth state changes.
+   * Currently, `currentUserId` is not directly used to alter the leaderboard query but is available for future enhancements.
+   */
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(user => {
+      if (user) {
+        setCurrentUserId(user.uid);
+      } else {
+        setCurrentUserId(null);
+        setLeaderboardData([]); // Clear data if user logs out
+      }
     });
-  }, [navigation]);
+    return unsubscribe; // Cleanup listener on unmount
+  }, []);
 
-  // Function to render each item in the leaderboard list.
-  const renderLeaderboardItem = ({
-    item,
-    index,
-  }: {
-    item: (typeof leaderboardData)[0];
-    index: number;
-  }) => (
-    <View style={[styles.listItem, index < 3 ? styles.topThreeItem : {}]}>
-      <View
-        style={[
-          styles.rankContainer,
-          index < 3
-            ? styles.topThreeRankContainer
-            : styles.regularRankContainer,
-        ]}
-      >
-        <Text
-          style={[
-            styles.rankText,
-            index < 3 ? styles.topThreeRankText : styles.regularRankText,
-          ]}
-        >
-          {item.rank}
-        </Text>
-      </View>
-      <Image source={{ uri: item.avatar }} style={styles.avatar} />
-      <Text style={styles.nameText}>{item.name}</Text>
-      <View style={styles.scoreContainer}>
-        <Text style={styles.scoreText}>{item.score}</Text>
-      </View>
-    </View>
-  );
+  /**
+   * `fetchLeaderboardData` is a memoized function to fetch and update the leaderboard.
+   * It calls `fetchLeaderboardDataFromService` with the current `sortMetric`.
+   * Manages loading and error states.
+   */
+  const fetchLeaderboardData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    console.log("[LeaderboardScreen] Calling service to fetch leaderboard, sorting by:", sortMetric);
+    try {
+      const rankedUsers = await fetchLeaderboardDataFromService(sortMetric);
+      setLeaderboardData(rankedUsers);
+      console.log("[LeaderboardScreen] Leaderboard data received from service and set in state.");
 
-  // Main render method for the component.
+    } catch (err: any) {
+      console.error("[LeaderboardScreen] Error after calling leaderboard service:", err);
+      setError(err.message || 'Failed to load leaderboard. Please try again.');
+      setLeaderboardData([]); // Clear data on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, [sortMetric]); // Dependency: re-fetches if sortMetric changes
+
+  /**
+   * `useEffect` hook to trigger `fetchLeaderboardData` when the component mounts
+   * or when `fetchLeaderboardData` (due to `sortMetric` change) is updated.
+   */
+  useEffect(() => {
+    fetchLeaderboardData();
+  }, [fetchLeaderboardData]);
+
+  /**
+   * Renders a single item in the leaderboard FlatList.
+   * Displays user's rank, avatar (or placeholder), display name, and score based on the current `sortMetric`.
+   * Special styling is applied for top-ranked users.
+   * @param item The `LeaderboardItem` object to render.
+   */
+  const renderItem = ({ item }: { item: LeaderboardItem }) => {
+    const isTopUser = item.rank === 1;
+    const isTopThree = item.rank !== undefined && item.rank <= 3;
+    const rankCircleStyle = isTopThree ? styles.rankCircleTop : styles.rankCircleDefault;
+    const rankTextStyle = isTopThree ? styles.rankTextTop : styles.rankText;
+    
+    // Determine the score to display based on the active sortMetric
+    let scoreValue: number;
+    switch (sortMetric) {
+        case 'points': scoreValue = item.points; break;
+        case 'currentStreak': scoreValue = item.currentStreak; break;
+        case 'longestStreak': scoreValue = item.longestStreak; break;
+        default: scoreValue = 0; // Should not happen with defined SortMetricType
+    }
+
+    return (
+      <View style={[styles.itemContainer, isTopUser && styles.topUserItemContainer]}>
+        <View style={[styles.rankCircle, rankCircleStyle]}>
+          <Text style={rankTextStyle}>{item.rank}</Text>
+        </View>
+        {item.photoURL ? (
+          <Image source={{ uri: item.photoURL }} style={styles.avatar} />
+        ) : (
+          // Placeholder avatar with the first letter of the display name
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarPlaceholderText}>
+              {item.displayName ? item.displayName.charAt(0).toUpperCase() : 'U'} {/* Default to 'U' for User */}
+            </Text>
+          </View>
+        )}
+        <Text style={styles.nameText} numberOfLines={1} ellipsizeMode="tail">{item.displayName}</Text>
+        <View style={styles.separator} />
+        <Text style={styles.scoreText}>{scoreValue}</Text>
+      </View>
+    );
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={[globalStyles.screenContainer, styles.outerContainerCustom]}>
+      <StatusBar barStyle="dark-content" />
+      {/* Custom Header: Menu button and Title */}
       <View style={styles.headerContainer}>
-        <Text style={styles.title}>
-          Group <Text style={styles.titleHighlight}>Leaderboard</Text>
-        </Text>
-        <View style={styles.filterContainer}>
-          <TouchableOpacity>
-            <Text style={styles.filterTextActive}>Total Points</Text>
-          </TouchableOpacity>
-          <Text style={styles.filterSeparator}>|</Text>
-          <TouchableOpacity>
-            <Text style={styles.filterText}>Longest Streak</Text>
-          </TouchableOpacity>
-          <Text style={styles.filterSeparator}>|</Text>
-          <TouchableOpacity>
-            <Text style={styles.filterText}>Achievements</Text>
-          </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())} style={styles.menuButton}>
+          <Image source={require('../assets/icons/burger_menu_icon.png')} style={styles.menuIcon} />
+        </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+          <Text style={[globalStyles.headerText, styles.headerTitleCustom]}>Group </Text>
+          <Text style={[globalStyles.headerText, styles.headerTitleCustom, styles.headerTitleHighlight]}>Leaderboard</Text>
         </View>
       </View>
-      <FlatList
-        data={leaderboardData}
-        renderItem={renderLeaderboardItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContentContainer}
-      />
+
+      {/* Sort Metric Selection Tabs */}
+      <View style={styles.sortOptionsContainer}>
+        {SORT_METRICS.map((option, index) => (
+          <React.Fragment key={option.value}>
+            <TouchableOpacity onPress={() => setSortMetric(option.value)}>
+              <Text style={[
+                globalStyles.mutedText, 
+                styles.sortOptionTextCustom, 
+                sortMetric === option.value && styles.sortOptionTextActive
+              ]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+            {index < SORT_METRICS.length - 1 && <Text style={styles.sortSeparator}> | </Text>}
+          </React.Fragment>
+        ))}
+      </View>
+
+      {/* Main Content: Loading Indicator, Error Message, or Leaderboard List */}
+      {isLoading ? (
+        <ActivityIndicator size="large" color={colors.accent} style={globalStyles.centeredContainer} />
+      ) : error ? (
+        <Text style={[globalStyles.errorText, styles.errorTextCustom]}>{error}</Text>
+      ) : leaderboardData.length === 0 ? (
+        <Text style={[globalStyles.bodyText, styles.emptyTextCustom]}>
+          {"The leaderboard is currently empty or no users match the criteria. Keep up the good work!"}
+        </Text>
+      ) : (
+        <FlatList
+          data={leaderboardData}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContentContainer}
+        />
+      )}
     </View>
   );
 }
 
-// StyleSheet for the component.
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f0f0f0",
+  outerContainerCustom: {
+    backgroundColor: colors.lightGray, // Consistent background
   },
   headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  menuButton: {
+    position: 'absolute',
+    left: 10,
+    padding: 5,
+    zIndex: 1,
+  },
+  menuIcon: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: colors.textDefault,
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    flex: 1, // Allow title container to take available space for centering
+    justifyContent: 'center', // Center the title text
+  },
+  headerTitleCustom: {
+    color: colors.textDefault,
+    fontSize: 20, // Ensure headerText from globalStyles is applied or define size here
+    fontWeight: 'bold', // Make title bold
+  },
+  headerTitleHighlight: {
+    color: colors.accent,
+  },
+  sortOptionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 10,
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
-    backgroundColor: "#fff",
+    marginBottom: 10,
+    backgroundColor: colors.cardBackground, // Give sort options a subtle background
+    borderBottomWidth: 1, // Add a separator line
+    borderBottomColor: colors.borderColor,
   },
-  premiumButton: {
-    flexDirection: "row",
-    backgroundColor: "#ff4757",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    alignItems: "center",
-    marginRight: 15,
-  },
-  premiumButtonText: {
-    color: "#fff",
-    marginLeft: 5,
-    fontWeight: "bold",
-    fontSize: 12,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  titleHighlight: {
-    color: "#ff4757",
-  },
-  filterContainer: {
-    flexDirection: "row",
-    marginTop: 15,
-    alignItems: "center",
-  },
-  filterText: {
-    fontSize: 14,
-    color: "#888",
+  sortOptionTextCustom: {
     marginHorizontal: 5,
-    padding: 10,
+    paddingVertical: 5, // Add some padding for better touch area
+    fontSize: 14, // Standardize font size
   },
-  filterTextActive: {
-    fontSize: 14,
-    color: "#333",
-    fontWeight: "bold",
-    marginHorizontal: 5,
+  sortOptionTextActive: {
+    color: colors.accent,
+    fontWeight: 'bold',
+    borderBottomWidth: 2, // Highlight active sort option
+    borderBottomColor: colors.accent,
   },
-  filterSeparator: {
+  sortSeparator: {
     fontSize: 14,
-    color: "#ccc",
+    color: colors.mediumGray,
+    marginHorizontal: 3, // Reduce space around separator
+  },
+  errorTextCustom: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+    textAlign: 'center', // Center error text
+  },
+  emptyTextCustom: {
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 50,
+    paddingHorizontal: 20,
   },
   listContentContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 15,
+    paddingBottom: 15, // Add padding at the bottom of the list
   },
-  listItem: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    padding: 15,
+  itemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    paddingVertical: 12, // Increased padding for better spacing
+    paddingHorizontal: 10,
+    marginVertical: 6,
     borderRadius: 10,
-    marginBottom: 10,
-    alignItems: "center",
-    elevation: 2,
-    shadowColor: "#000",
+    borderWidth: 1,
+    borderColor: colors.borderColor,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  topThreeItem: {
-    borderColor: "#ff4757",
-    borderWidth: 1.5,
+  topUserItemContainer: {
+    backgroundColor: colors.cardBackground, // Reverted from accentMuted
+    borderColor: colors.accent, // Keep accent border for highlighting
   },
-  rankContainer: {
+  rankCircle: {
     width: 30,
     height: 30,
-    borderRadius: 15,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
+    borderRadius: 15, // Perfect circle
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  topThreeRankContainer: {
-    backgroundColor: "#ff4757",
+  rankCircleDefault: {
+    backgroundColor: colors.lightGray, // Softer background for default rank
   },
-  regularRankContainer: {
-    backgroundColor: "#e0e0e0",
+  rankCircleTop: {
+    backgroundColor: colors.accent,
   },
   rankText: {
-    fontWeight: "bold",
     fontSize: 14,
+    color: colors.textDefault,
+    fontWeight: 'bold',
   },
-  topThreeRankText: {
-    color: "#fff",
-  },
-  regularRankText: {
-    color: "#555",
+  rankTextTop: {
+    color: colors.primaryText, // White text on accent background
   },
   avatar: {
+    width: 40, // Slightly larger avatar
+    height: 40,
+    borderRadius: 20, // Perfect circle
+    marginRight: 10,
+    backgroundColor: colors.lightGray, // Placeholder background for image loading
+  },
+  avatarPlaceholder: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    marginRight: 12,
+    backgroundColor: colors.mediumGray,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10, // Consistent margin
+  },
+  avatarPlaceholderText: {
+    color: colors.primaryText,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   nameText: {
-    flex: 1,
+    flex: 1, // Allow name to take available space
     fontSize: 16,
-    color: "#333",
-    fontWeight: "500",
+    fontWeight: '500',
+    color: colors.textDefault,
   },
-  scoreContainer: {
-    paddingLeft: 15,
-    borderLeftWidth: 1,
-    borderLeftColor: "#eee",
+  separator: {
+    height: '60%', // Vertical separator line
+    width: 1,
+    backgroundColor: colors.borderColor, // Use border color for separator
+    marginHorizontal: 10,
   },
   scoreText: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
+    fontWeight: 'bold',
+    color: colors.accent,
+    minWidth: 40, // Ensure score has some minimum width for alignment
+    textAlign: 'right', // Align score to the right
   },
 });
