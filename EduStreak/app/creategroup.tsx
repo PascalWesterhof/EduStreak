@@ -7,19 +7,40 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, DrawerActions } from "@react-navigation/native";
+
+import { getAuth } from "firebase/auth";
+import { createGroup } from "../functions/groupService"; // 🔗 make sure this file exists
 
 const CreateGroup = () => {
   const navigation = useNavigation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
-  const handleCreateGroup = () => {
-    // TODO: Add group creation logic here
-    console.log("Group created:", { name, description });
+  const handleCreateGroup = async () => {
+    const user = getAuth().currentUser;
+    if (!user) {
+      Alert.alert("Error", "No user is logged in.");
+      return;
+    }
+
+    if (!name.trim()) {
+      Alert.alert("Error", "Group name is required.");
+      return;
+    }
+
+    try {
+      const groupId = await createGroup(user.uid, name.trim(), description.trim());
+      console.log("Group created with ID:", groupId);
+      navigation.navigate("groupboard");
+    } catch (error) {
+      console.error("Error creating group:", error);
+      Alert.alert("Error", "Something went wrong while creating the group.");
+    }
   };
 
   return (
@@ -28,7 +49,6 @@ const CreateGroup = () => {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-
         {/* Title & Subtitle */}
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Create Group</Text>
