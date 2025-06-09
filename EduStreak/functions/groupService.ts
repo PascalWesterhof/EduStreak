@@ -1,11 +1,25 @@
 import { db } from "../config/firebase";
-import { collection, addDoc, doc, updateDoc, getDoc, getDocs, query, where, arrayUnion } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  doc,
+  updateDoc,
+  getDoc,
+  getDocs,
+  arrayUnion,
+} from "firebase/firestore";
 
 // Create a group
-export const createGroup = async (userId: string, name: string, description: string) => {
+export const createGroup = async (
+  userId: string,
+  name: string,
+  description: string,
+  imageUrl?: string
+) => {
   const groupRef = await addDoc(collection(db, "groups"), {
     name,
     description,
+    imageUrl: imageUrl || "",
     createdBy: userId,
     members: [userId],
     createdAt: new Date(),
@@ -22,7 +36,10 @@ export const createGroup = async (userId: string, name: string, description: str
 // Get all groups
 export const getAllGroups = async () => {
   const snapshot = await getDocs(collection(db, "groups"));
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
 };
 
 // Get user's joined group IDs
@@ -46,3 +63,4 @@ export const joinGroup = async (userId: string, groupId: string) => {
     userGroups: arrayUnion(groupId),
   });
 };
+

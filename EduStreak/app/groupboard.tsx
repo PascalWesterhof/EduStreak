@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, DrawerActions } from "@react-navigation/native";
@@ -14,6 +15,13 @@ import { getAuth } from "firebase/auth";
 
 import { getAllGroups, getUserGroups, joinGroup } from "../functions/groupService";
 import { showAlert } from "../utils/showAlert";
+
+// Image mapping
+const IMAGE_MAP: Record<string, any> = {
+  group1: require("../assets/groupImages/image1.png"),
+  group2: require("../assets/groupImages/image2.png"),
+  group3: require("../assets/groupImages/image3.png"),
+};
 
 const GroupBoard = () => {
   const navigation = useNavigation();
@@ -100,7 +108,11 @@ const GroupBoard = () => {
           ) : (
             joinableGroups.map((group) => (
               <View key={group.id} style={styles.card}>
-                <View style={styles.circle} />
+                {IMAGE_MAP[group.imageUrl] ? (
+                  <Image source={IMAGE_MAP[group.imageUrl]} style={styles.image} />
+                ) : (
+                  <View style={styles.circle} />
+                )}
                 <Text style={styles.cardText}>{group.name}</Text>
                 <TouchableOpacity
                   style={styles.joinButton}
@@ -124,7 +136,11 @@ const GroupBoard = () => {
           ) : (
             userGroups.map((group) => (
               <View key={group.id} style={styles.card}>
-                <View style={[styles.circle, { borderColor: "#D05B52" }]} />
+                {IMAGE_MAP[group.imageUrl] ? (
+                  <Image source={IMAGE_MAP[group.imageUrl]} style={styles.image} />
+                ) : (
+                  <View style={[styles.circle, { borderColor: "#D05B52" }]} />
+                )}
                 <Text style={[styles.cardText, { color: "#D05B52" }]}>{group.name}</Text>
               </View>
             ))
@@ -203,6 +219,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: "#DC817A",
     borderWidth: 1,
     borderColor: "#000",
     marginBottom: 8,
@@ -218,5 +235,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
+  image: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginBottom: 8,
+    resizeMode: "cover",
+  },
 });
-
