@@ -1,6 +1,6 @@
 // Import Firestore database reference and necessary functions
-import { db } from '../../firebase';
-import { doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../config/firebase';
 
 /*
   Adds a new habit for a user in Firestore.

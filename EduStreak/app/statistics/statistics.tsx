@@ -1,7 +1,4 @@
-import React from 'react';
-import { View, Text } from 'react-native';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 /*
   Calculate habit statistics including total completions, current streak, and completion rate.
   @param {string} userId - The user's ID.

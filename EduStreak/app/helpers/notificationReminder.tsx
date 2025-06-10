@@ -52,7 +52,7 @@ export const scheduleLateHabitReminder = async (habitName, time) => {
     console.error('Failed to schedule late notification:', err);
   }
 };
-c
+
 /*
   Cancel all scheduled notifications for the app.
  */

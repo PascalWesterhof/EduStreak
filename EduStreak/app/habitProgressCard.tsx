@@ -1,12 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
-import { AnimatedCircularProgress } from 'react-native-circular-progress';
 import { format } from 'date-fns';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { AnimatedCircularProgress } from 'react-native-circular-progress';
+import { db } from '../config/firebase';
 import StatsScreen from './statsScreen';
-import { db } from '../firebase';
-import { DrawerActions } from "@react-navigation/native";
-import { useNavigation } from "expo-router";
 
 
 export default function HabitProgressCard({ userId = "k8zgnVStSZTLCjGgwdwXcbjYRps2" }) {

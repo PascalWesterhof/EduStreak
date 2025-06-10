@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { db } from '../config/firebase';
 import { calculateStats } from './utils/statsUtils';
 
 export default function StatsScreen({ userId, habitId }) {
