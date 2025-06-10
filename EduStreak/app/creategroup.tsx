@@ -118,7 +118,14 @@ const CreateGroup = () => {
         </View>
 
         <TouchableOpacity style={styles.button} onPress={handleCreateGroup}>
-          <Text style={styles.buttonText}>CREATE GROUP</Text>
+          <Text style={styles.buttonText}>Create Group</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.navigate("groupboard")}
+        >
+          <Text style={styles.backButtonText}>Return to Group Board</Text>
         </TouchableOpacity>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -150,6 +157,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
+  backButton: {
+    backgroundColor: "#fff",
+    borderColor: "#D05B52",
+    borderWidth: 2,
+    marginTop: 16,
+    marginHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 40,
+    alignItems: "center",
+  },
+  backButtonText: {
+    color: "#D05B52",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
   imagePicker: { flexDirection: "row", justifyContent: "space-between" },
   imageWrapper: {
     borderRadius: 12,
@@ -159,4 +181,3 @@ const styles = StyleSheet.create({
   },
   image: { width: 60, height: 60, resizeMode: "cover" },
 });
-

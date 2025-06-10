@@ -79,9 +79,6 @@ const GroupBoard = () => {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-            <Ionicons name="menu" size={28} color="#D05B52" />
-          </TouchableOpacity>
           <Text style={styles.title}>
             <Text style={{ fontWeight: "bold" }}>Group</Text>{" "}
             <Text style={{ color: "#D05B52", fontWeight: "bold" }}>Board</Text>
@@ -135,14 +132,18 @@ const GroupBoard = () => {
             <ActivityIndicator size="small" color="#D05B52" />
           ) : (
             userGroups.map((group) => (
-              <View key={group.id} style={styles.card}>
+              <TouchableOpacity
+                key={group.id}
+                style={styles.card}
+                onPress={() => navigation.navigate("groupdetails", { groupId: group.id })}
+              >
                 {IMAGE_MAP[group.imageUrl] ? (
                   <Image source={IMAGE_MAP[group.imageUrl]} style={styles.image} />
                 ) : (
                   <View style={[styles.circle, { borderColor: "#D05B52" }]} />
                 )}
                 <Text style={[styles.cardText, { color: "#D05B52" }]}>{group.name}</Text>
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </View>

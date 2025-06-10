@@ -36,9 +36,11 @@ const DrawerLayout = () =>
                 <Drawer.Screen name='privacy'
                 options={{drawerItemStyle: { display: 'none'}, headerTitle: 'Privacy & Data'}}/>
                 <Drawer.Screen name='groupboard'
-                options={{drawerLabel: 'Group Board', headerTitle:'Group Board', headerShown: true}}/>
+                options={{drawerLabel: 'Group Board', headerTitle:'', headerShown: true}}/>
                 <Drawer.Screen name='creategroup'
-                options={{drawerItemStyle: { display: 'none'}, headerTitle: 'Create Group'}}/>
+                options={{drawerItemStyle: { display: 'none'}, headerTitle: '', headerShown: true}}/>
+                <Drawer.Screen name='groupdetails'
+                options={{drawerItemStyle: { display: 'none'}, headerTitle: '', headerShown: true}}/>
                 <Drawer.Screen name='appearance'
                 options={{drawerItemStyle: { display: 'none'}, headerTitle: ''}}/>
                 <Drawer.Screen name="auth" 
