@@ -4,3 +4,6 @@
 
 # Ignore node_modules
 node_modules/
+
+# Android emulator/device-related file
+.idea/caches/deviceStreaming.xml

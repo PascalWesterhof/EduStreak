@@ -1,42 +1,78 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Image,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, DrawerActions, Link } from "@react-navigation/native";
+import { useNavigation, DrawerActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { getAuth } from "firebase/auth";
+
+import { getAllGroups, getUserGroups, joinGroup } from "../functions/groupService";
+import { showAlert } from "../utils/showAlert";
+
+// Image mapping
+const IMAGE_MAP: Record<string, any> = {
+  group1: require("../assets/groupImages/image1.png"),
+  group2: require("../assets/groupImages/image2.png"),
+  group3: require("../assets/groupImages/image3.png"),
+};
 
 const GroupBoard = () => {
   const navigation = useNavigation();
+  const [groups, setGroups] = useState<any[]>([]);
+  const [userGroupIds, setUserGroupIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState<string | null>(null);
 
-  const groups = [
-    {
-      id: "g1",
-      name: "Read&Repeat",
-      joined: false,
-    },
-    {
-      id: "g2",
-      name: "StudySync",
-      joined: false,
-    },
-    {
-      id: "g3",
-      name: "PageTurners",
-      joined: false,
-    },
-    {
-      id: "g4",
-      name: "Study Group",
-      joined: true,
-    },
-    {
-      id: "g5",
-      name: "Study Group",
-      joined: true,
-    },
-  ];
+  const loadGroups = async () => {
+    try {
+      setLoading(true);
+      const user = getAuth().currentUser;
+      if (!user) return;
 
-  const joinableGroups = groups.filter((g) => !g.joined);
-  const userGroups = groups.filter((g) => g.joined);
+      const [allGroups, joinedGroupIds] = await Promise.all([
+        getAllGroups(),
+        getUserGroups(user.uid),
+      ]);
+
+      setGroups(allGroups);
+      setUserGroupIds(joinedGroupIds);
+    } catch (err) {
+      console.error("Failed to load groups:", err);
+      showAlert("Error", "Failed to load groups. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJoin = async (groupId: string) => {
+    try {
+      const user = getAuth().currentUser;
+      if (!user) return;
+      setJoining(groupId);
+      await joinGroup(user.uid, groupId);
+      await loadGroups(); // Refresh
+    } catch (err) {
+      console.error("Failed to join group:", err);
+      showAlert("Error", "Failed to join the group. Please try again.");
+    } finally {
+      setJoining(null);
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", loadGroups);
+    return unsubscribe;
+  }, [navigation]);
+
+  const joinableGroups = groups.filter((g) => !userGroupIds.includes(g.id));
+  const userGroups = groups.filter((g) => userGroupIds.includes(g.id));
 
   return (
     <SafeAreaView style={styles.container}>
@@ -50,40 +86,65 @@ const GroupBoard = () => {
             <Text style={{ fontWeight: "bold" }}>Group</Text>{" "}
             <Text style={{ color: "#D05B52", fontWeight: "bold" }}>Board</Text>
           </Text>
-          <View style={{ width: 28 }} /> {/* Placeholder for spacing */}
+          <View style={{ width: 28 }} />
         </View>
 
-        {/* Join Section */}
+        {/* Join a Group */}
         <Text style={styles.section}>Join a Group</Text>
         <View style={styles.grid}>
-          {/* Create Group */}
+          {/* Create Group Card */}
           <TouchableOpacity
             style={styles.card}
             onPress={() => navigation.navigate("creategroup")}
           >
             <View style={styles.addCircle}>
-               <Text style={styles.addPlus}>+</Text>
+              <Text style={styles.addPlus}>+</Text>
             </View>
             <Text style={[styles.cardText, { color: "#D05B52" }]}>Create Group</Text>
           </TouchableOpacity>
 
-          {joinableGroups.map((group) => (
-            <View key={group.id} style={styles.card}>
-              <View style={styles.circle} />
-              <Text style={styles.cardText}>{group.name}</Text>
-            </View>
-          ))}
+          {loading ? (
+            <ActivityIndicator size="small" color="#D05B52" />
+          ) : (
+            joinableGroups.map((group) => (
+              <View key={group.id} style={styles.card}>
+                {IMAGE_MAP[group.imageUrl] ? (
+                  <Image source={IMAGE_MAP[group.imageUrl]} style={styles.image} />
+                ) : (
+                  <View style={styles.circle} />
+                )}
+                <Text style={styles.cardText}>{group.name}</Text>
+                <TouchableOpacity
+                  style={styles.joinButton}
+                  onPress={() => handleJoin(group.id)}
+                  disabled={joining === group.id}
+                >
+                  <Text style={styles.joinText}>
+                    {joining === group.id ? "Joining..." : "Join"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
         </View>
 
-        {/* User Groups */}
+        {/* Your Groups */}
         <Text style={styles.section}>Your Groups</Text>
         <View style={styles.grid}>
-          {userGroups.map((group) => (
-            <View key={group.id} style={styles.card}>
-              <View style={[styles.circle, { borderColor: "#D05B52" }]} />
-              <Text style={[styles.cardText, { color: "#D05B52" }]}>{group.name}</Text>
-            </View>
-          ))}
+          {loading ? (
+            <ActivityIndicator size="small" color="#D05B52" />
+          ) : (
+            userGroups.map((group) => (
+              <View key={group.id} style={styles.card}>
+                {IMAGE_MAP[group.imageUrl] ? (
+                  <Image source={IMAGE_MAP[group.imageUrl]} style={styles.image} />
+                ) : (
+                  <View style={[styles.circle, { borderColor: "#D05B52" }]} />
+                )}
+                <Text style={[styles.cardText, { color: "#D05B52" }]}>{group.name}</Text>
+              </View>
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -126,11 +187,12 @@ const styles = StyleSheet.create({
   },
   card: {
     width: 150,
-    height: 150,
     backgroundColor: "#F8F8F8",
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 16,
+    marginBottom: 16,
   },
   addCircle: {
     width: 40,
@@ -151,13 +213,33 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#000",
     textAlign: "center",
+    marginBottom: 8,
   },
   circle: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: "#DC817A",
     borderWidth: 1,
     borderColor: "#000",
     marginBottom: 8,
+  },
+  joinButton: {
+    backgroundColor: "#D05B52",
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  joinText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  image: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginBottom: 8,
+    resizeMode: "cover",
   },
 });

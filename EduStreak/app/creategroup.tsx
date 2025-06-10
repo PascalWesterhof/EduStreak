@@ -5,21 +5,61 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
+  Image,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, DrawerActions } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
+
+import { getAuth } from "firebase/auth";
+import { createGroup } from "../functions/groupService";
+import { showAlert } from "../utils/showAlert";
+
+// Predefined local images
+const GROUP_IMAGES = [
+  require("../assets/groupImages/image1.png"),
+  require("../assets/groupImages/image2.png"),
+  require("../assets/groupImages/image3.png"),
+];
+
+const getImageKey = (image: any): string | null => {
+  if (!image) return null;
+  const index = GROUP_IMAGES.indexOf(image);
+  return index !== -1 ? `group${index + 1}` : null;
+};
 
 const CreateGroup = () => {
   const navigation = useNavigation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [groupImage, setGroupImage] = useState<any | null>(null);
 
-  const handleCreateGroup = () => {
-    // TODO: Add group creation logic here
-    console.log("Group created:", { name, description });
+  const handleCreateGroup = async () => {
+    const user = getAuth().currentUser;
+    if (!user) {
+      showAlert("Error", "No user is logged in.");
+      return;
+    }
+
+    if (!name.trim()) {
+      showAlert("Error", "Group name is required.");
+      return;
+    }
+
+    try {
+      const groupId = await createGroup(
+        user.uid,
+        name.trim(),
+        description.trim(),
+        getImageKey(groupImage) // This sends "group1", "group2", etc.
+      );
+      console.log("Group created with ID:", groupId);
+      navigation.navigate("groupboard");
+    } catch (error) {
+      console.error("Error creating group:", error);
+      showAlert("Error", "Something went wrong while creating the group.");
+    }
   };
 
   return (
@@ -28,8 +68,6 @@ const CreateGroup = () => {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-
-        {/* Title & Subtitle */}
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Create Group</Text>
           <Text style={styles.subtitle}>
@@ -55,9 +93,30 @@ const CreateGroup = () => {
             numberOfLines={4}
             placeholderTextColor="#aaa"
           />
+
+          {/* Image picker */}
+          <Text style={{ fontWeight: "bold", marginBottom: 8 }}>
+            Pick a group image:
+          </Text>
+          <View style={styles.imagePicker}>
+            {GROUP_IMAGES.map((imgSource, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => setGroupImage(imgSource)}
+                style={[
+                  styles.imageWrapper,
+                  groupImage === imgSource && {
+                    borderColor: "#D05B52",
+                    borderWidth: 3,
+                  },
+                ]}
+              >
+                <Image source={imgSource} style={styles.image} />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* Create Button */}
         <TouchableOpacity style={styles.button} onPress={handleCreateGroup}>
           <Text style={styles.buttonText}>CREATE GROUP</Text>
         </TouchableOpacity>
@@ -69,33 +128,11 @@ const CreateGroup = () => {
 export default CreateGroup;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  titleContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#7C7C7C",
-    marginTop: 4,
-  },
-  form: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  titleContainer: { paddingHorizontal: 24, paddingTop: 16 },
+  title: { fontSize: 24, fontWeight: "bold" },
+  subtitle: { fontSize: 14, color: "#7C7C7C", marginTop: 4 },
+  form: { marginTop: 32, paddingHorizontal: 24 },
   input: {
     backgroundColor: "#F2F2F5",
     borderRadius: 16,
@@ -103,10 +140,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
-  textarea: {
-    height: 120,
-    textAlignVertical: "top",
-  },
+  textarea: { height: 120, textAlignVertical: "top" },
   button: {
     backgroundColor: "#D05B52",
     marginTop: 24,
@@ -115,9 +149,14 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     alignItems: "center",
   },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 14,
+  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
+  imagePicker: { flexDirection: "row", justifyContent: "space-between" },
+  imageWrapper: {
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "transparent",
   },
+  image: { width: 60, height: 60, resizeMode: "cover" },
 });
+
