@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D1624A',
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingTop: Platform.OS === 'Web' 0,
+    paddingTop: Platform.OS === 'web' ? 0 : 12,
   },
   header:
   {

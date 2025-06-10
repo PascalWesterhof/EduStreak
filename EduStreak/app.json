@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "EduStreak",
-    "slug": "EduStreak",
+    "slug": "edustreak",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/splash_icon_edustreak.png",
@@ -10,6 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "46a66e1c-4d63-4297-81d5-b466fe4e440a"
+      },
+      "router": {}
     },
     "android": {
       "adaptiveIcon": {
@@ -37,6 +43,7 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "owner": "dumbtechbroindustries"
   }
 }
