@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth } from '../../config/firebase';
 import { colors } from '../../constants/Colors';
 import { updateUserAuthProfile } from '../../functions/authService';
 import { globalStyles } from '../../styles/globalStyles';
+import { showAlert, showConfirmationDialog } from '../../utils/showAlert';
 
 /**
  * `ProfileSettingsScreen` allows users to manage their profile information.
@@ -54,27 +55,27 @@ export default function ProfileSettingsScreen() {
    */
   const handleSaveChanges = async () => {
     if (!currentUser) {
-        Alert.alert("Error", "No user session found. Please re-login.");
+        showAlert("Error", "No user session found. Please re-login.");
         setIsSaving(false);
         return;
     }
     if (displayName === originalDisplayName) {
-      Alert.alert("No Changes", "Your display name is the same.");
+      showAlert("No Changes", "Your display name is the same.");
       return;
     }
     const trimmedDisplayName = displayName.trim();
     if (!trimmedDisplayName) {
-      Alert.alert("Invalid Name", "Display name cannot be empty.");
+      showAlert("Invalid Name", "Display name cannot be empty.");
       return;
     }
     setIsSaving(true);
     try {
       await updateUserAuthProfile(currentUser, { displayName: trimmedDisplayName });
       setOriginalDisplayName(trimmedDisplayName);
-      Alert.alert('Success', 'Display name updated successfully!');
+      showAlert('Success', 'Display name updated successfully!');
     } catch (error: any) {
       console.error("[ProfileSettings] Error updating display name via service:", error);
-      Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
+      showAlert('Error', error.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -87,7 +88,7 @@ export default function ProfileSettingsScreen() {
    */
   const handleChangePassword = () => {
     if (!isPasswordProvider) {
-      Alert.alert(
+      showAlert(
         "External Account",
         "You are signed in with an external account (e.g., Google). Please manage your password through your provider."
       );
@@ -103,23 +104,14 @@ export default function ProfileSettingsScreen() {
    * `DeleteAccountScreen` for the final steps of account deletion.
    */
   const handleDeleteAccount = () => {
-    Alert.alert(
+    showConfirmationDialog(
       "Delete Account",
       "Are you absolutely sure you want to delete your account? This action is permanent and cannot be undone.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Delete My Account",
-          style: "destructive",
-          onPress: () => {
-            console.log("User confirmed account deletion. Navigating to delete screen...");
-            router.push('/settingsScreens/deleteAccountScreen');
-          }
-        }
-      ]
+      () => {
+        console.log("User confirmed account deletion. Navigating to delete screen...");
+        router.push('/settingsScreens/deleteAccountScreen');
+      },
+      "Delete My Account"
     );
   };
 

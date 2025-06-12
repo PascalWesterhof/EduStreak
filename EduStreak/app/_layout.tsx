@@ -22,13 +22,13 @@ const DrawerLayout = () =>
                     headerShown: false,
                    }}>
                 <Drawer.Screen name='index'
-                options={{drawerLabel: 'Home', headerTitle: 'Home'}}/>
+                options={{drawerLabel: 'Home', headerShown: true}}/>
                 <Drawer.Screen name='calendar'
                 options={{drawerLabel: 'Calendar', headerTitle: 'Calendar', headerShown: true}}/>
                 <Drawer.Screen name='notifications'
                 options={{drawerLabel: 'Notifications', headerTitle: 'Notifications', headerShown: true}}/>
                 <Drawer.Screen name='leaderboard'
-                options={{drawerLabel: 'Leaderboard', headerTitle: 'Leaderboard', headerShown: false}}/>
+                options={{drawerLabel: 'Leaderboard', headerShown: true}}/>
                 <Drawer.Screen name='settings'
                 options={{drawerLabel: 'Settings', headerTitle: 'Settings', headerShown: true}}/>
                 <Drawer.Screen name='gamification'

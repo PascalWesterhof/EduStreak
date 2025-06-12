@@ -2,8 +2,8 @@ import { DrawerActions, useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth'; // Import onAuthStateChanged and User type
 import { doc, increment, updateDoc } from 'firebase/firestore'; // Firestore functions
-import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-get-random-values'; // For uuid
 import { CircularProgress } from '../components/CircularProgress'; // Restored import
 import { auth, db } from '../config/firebase'; // Import db and auth
@@ -18,6 +18,8 @@ import { globalStyles } from '../styles/globalStyles'; // Import global styles
 import { Habit } from '../types'; // Path for types
 import { getIsoDateString } from '../utils/dateUtils'; // Added import
 import AddHabitScreen from './habit/AddHabitScreen';
+
+const isWeb = Platform.OS === 'web';
 
 /**
  * Array of day abbreviations for the date selector.
@@ -41,6 +43,19 @@ export default function Index() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null); // Initialize to null
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [userName, setUserName] = useState("User"); // Default user name
+
+  useLayoutEffect(() => {
+    appNavigation.setOptions({
+      headerTitle: () => (
+        <Text style={styles.greetingText}>Hello, <Text style={styles.userNameText}>{userName}!</Text></Text>
+      ),
+      headerStyle: { 
+          backgroundColor: '#F4F6F8',
+          elevation: 0,
+          shadowOpacity: 0,
+      }
+    });
+  }, [appNavigation, userName]);
 
   /**
    * `useFocusEffect` hook to manage actions when the screen comes into focus.
@@ -252,7 +267,7 @@ export default function Index() {
     const isButtonDisabled = getIsoDateString(selectedDate) !== getIsoDateString(new Date()) || isFullyCompleted;
 
     return (
-      <View style={styles.habitCard}>
+      <View style={[styles.habitCard, isWeb && styles.webHabitCard]}>
         <TouchableOpacity style={styles.habitInfoTouchable} onPress={() => router.push(`/habit/${item.id}`)}>
           <View style={styles.habitNameContainer}> 
             <Text style={styles.habitName}>{item.name}</Text>
@@ -279,12 +294,6 @@ export default function Index() {
     <View style={styles.container}>
       {/* Header Section: Menu, Greeting, Notifications */}
       <StatusBar barStyle="dark-content" />
-      <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={onToggleDrawer} style={styles.menuButtonContainer}>
-          <Image source={require('../assets/icons/burger_menu_icon.png')} style={styles.menuIcon} />
-        </TouchableOpacity>
-        <Text style={styles.greetingText}>Hello, <Text style={styles.userNameText}>{userName}!</Text></Text>
-      </View>
 
       {/* Horizontal Date Selector */}
       <View style={styles.dateSelectorContainer}>
@@ -320,10 +329,9 @@ export default function Index() {
         })}
         renderItem={renderHabit}
         keyExtractor={(item) => item.id}
-        numColumns={2} // Displays habits in a 2-column grid
-        columnWrapperStyle={styles.row} // Styles for each row in the grid
+        {...(!isWeb && { numColumns: 2, columnWrapperStyle: styles.row })} // Display habits in a 2-column grid on mobile
         ListEmptyComponent={<Text style={styles.emptyText}>No habits scheduled for {selectedDate.toDateString()}. Add one!</Text>} // Message when no habits
-        contentContainerStyle={styles.listContentContainer}
+        contentContainerStyle={isWeb ? [styles.listContentContainer, styles.webListContentContainer] : styles.listContentContainer}
       />
 
       {/* Floating Action Button to Add Habit */}
@@ -343,7 +351,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4F6F8', 
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -426,6 +434,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15, // Horizontal padding for the FlatList content
     paddingBottom: 80, // Add padding to the bottom to avoid FAB overlap
   },
+  webListContentContainer: {
+    width: '80%',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
    row: {
     justifyContent: 'space-between',
     marginBottom: 15,
@@ -443,6 +458,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  webHabitCard: {
+    width: 250,
+    margin: 10,
   },
   habitInfoTouchable: {
       alignItems: 'center', 

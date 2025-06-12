@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { colors } from '../../constants/Colors';
 import { registerWithEmail } from '../../functions/authService'; // Import the service function
 import { globalStyles } from '../../styles/globalStyles';
+import { showAlert } from "../../utils/showAlert";
 
 /**
  * `RegisterScreen` allows new users to create an account.
@@ -28,21 +29,21 @@ export default function RegisterScreen() {
    */
   const handleRegister = async () => {
     if (!displayName || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields.');
+      showAlert('Error', 'Please fill in all fields.');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match.');
+      showAlert('Error', 'Passwords do not match.');
       return;
     }
     try {
       // Call the service function for registration
       await registerWithEmail(displayName, email, password);
-      Alert.alert('Registration Successful', 'Your account has been created.');
+      showAlert('Registration Successful', 'Your account has been created.');
       router.replace('/auth/LoginScreen'); // Navigate to Login on success
     } catch (error: any) {
       console.error("[RegisterScreen] Registration failed:", error.message);
-      Alert.alert('Registration Failed', error.message);
+      showAlert('Registration Failed', error.message);
     }
   };
 

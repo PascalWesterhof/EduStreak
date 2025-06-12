@@ -3,7 +3,6 @@ import { deleteField } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Platform,
   ScrollView,
@@ -16,6 +15,7 @@ import {
 import { auth } from '../../config/firebase';
 import { getHabitDetails, updateHabitDetails as updateHabitService } from '../../functions/habitService';
 import { Habit } from '../../types';
+import { showAlert } from '../../utils/showAlert';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -45,7 +45,7 @@ export default function EditHabitScreen() {
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
     if (!routeHabitId || !currentUserId) {
-      Alert.alert("Error", "Habit ID or User ID is missing for fetching.");
+      showAlert("Error", "Habit ID or User ID is missing for fetching.");
       if(router.canGoBack()) router.back(); else router.replace('/');
       return;
     }
@@ -65,12 +65,12 @@ export default function EditHabitScreen() {
           }
           // notes and reminderTime state setting is REMOVED
         } else {
-          Alert.alert("Error", "Habit not found for editing.");
+          showAlert("Error", "Habit not found for editing.");
           if(router.canGoBack()) router.back(); else router.replace('/');
         }
       } catch (e: any) {
         console.error("[EditHabitScreen] Error fetching habit for editing via service: ", e);
-        Alert.alert("Error", e.message || "Could not load habit details for editing.");
+        showAlert("Error", e.message || "Could not load habit details for editing.");
         if(router.canGoBack()) router.back(); else router.replace('/');
       } finally {
         setIsLoading(false);
@@ -81,11 +81,11 @@ export default function EditHabitScreen() {
 
   const handleUpdateHabit = async () => {
     if (!routeHabitId || !currentUserId) {
-      Alert.alert("Error", "Cannot update habit: Missing ID or User session.");
+      showAlert("Error", "Cannot update habit: Missing ID or User session.");
       return;
     }
     if (!name.trim()) {
-      Alert.alert("Validation Error", 'Please enter a habit name.');
+      showAlert("Validation Error", 'Please enter a habit name.');
       return;
     }
 
@@ -95,11 +95,11 @@ export default function EditHabitScreen() {
     } else { 
       const times = parseInt(timesPerWeek, 10);
       if (isNaN(times) || times < 0) { // Allow 0 times for weekly if needed, or adjust to times <= 0 for error
-        Alert.alert("Validation Error", 'Please enter a valid number of times per week (0 or more).');
+        showAlert("Validation Error", 'Please enter a valid number of times per week (0 or more).');
         return;
       }
       if (selectedDays.length === 0 && times > 0) { 
-        Alert.alert("Validation Error", 'Please select at least one day for weekly frequency when times > 0.');
+        showAlert("Validation Error", 'Please select at least one day for weekly frequency when times > 0.');
         return;
       }
       frequencyUpdate = { type: 'weekly', times, days: selectedDays.sort((a, b) => a - b) };
@@ -122,11 +122,11 @@ export default function EditHabitScreen() {
     setIsSaving(true);
     try {
       await updateHabitService(currentUserId, routeHabitId, updatedHabitData);
-      Alert.alert("Success", "Habit updated successfully!");
+      showAlert("Success", "Habit updated successfully!");
       router.back(); 
     } catch (e: any) {
       console.error("[EditHabitScreen] Error updating habit via service: ", e);
-      Alert.alert("Error", e.message || "Failed to update habit. Please try again.");
+      showAlert("Error", e.message || "Failed to update habit. Please try again.");
     } finally {
       setIsSaving(false);
     }

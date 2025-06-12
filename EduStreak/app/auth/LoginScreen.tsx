@@ -1,10 +1,11 @@
 import { statusCodes } from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { colors } from '../../constants/Colors';
 import { signInWithEmail, signInWithGoogle as signInWithGoogleService } from '../../functions/authService';
 import { globalStyles } from '../../styles/globalStyles';
+import { showAlert } from "../../utils/showAlert";
 
 /**
  * `LoginScreen` provides options for user authentication.
@@ -26,14 +27,14 @@ export default function LoginScreen() {
    */
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password.');
+      showAlert('Error', 'Please enter both email and password.');
       return;
     }
     try {
       await signInWithEmail(email, password);
       router.replace('/');
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message);
+      showAlert('Login Failed', error.message);
     }
   };
 
@@ -55,14 +56,14 @@ export default function LoginScreen() {
     } catch (error: any) {
       // Handle specific Google Sign-In errors returned by the service
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        Alert.alert('Cancelled', 'Google Sign In was cancelled.');
+        showAlert('Cancelled', 'Google Sign In was cancelled.');
       } else if (error.code === statusCodes.IN_PROGRESS && Platform.OS !== 'web') { // IN_PROGRESS is native only
-        Alert.alert('In Progress', 'Google Sign In is already in progress.');
+        showAlert('In Progress', 'Google Sign In is already in progress.');
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE && Platform.OS !== 'web') { // PLAY_SERVICES_NOT_AVAILABLE is native only
-        Alert.alert('Play Services Error', 'Google Play Services not available or outdated.');
+        showAlert('Play Services Error', 'Google Play Services not available or outdated.');
       } else {
         // Generic error from service (could be network, no ID token, or re-thrown Firebase error)
-        Alert.alert('Google Sign In Error', error.message || "An unexpected error occurred during Google Sign-In.");
+        showAlert('Google Sign In Error', error.message || "An unexpected error occurred during Google Sign-In.");
         console.error('[LoginScreen] Google Sign In Error: ', error);
       }
     }

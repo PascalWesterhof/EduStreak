@@ -1,17 +1,17 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Image,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { Habit } from '../../types';
+import { showAlert } from "../../utils/showAlert";
 
 interface Props {
   onAddHabit: (newHabit: Omit<Habit, 'id' | 'streak' | 'longestStreak' | 'completionHistory' | 'createdAt' | 'notes' | 'reminderTime'>) => void;
@@ -47,7 +47,7 @@ export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
    */
   const handleSaveHabit = () => {
     if (!name.trim()) {
-      Alert.alert('Missing Name', 'Please enter a habit name.');
+      showAlert('Missing Name', 'Please enter a habit name.');
       return;
     }
 
@@ -68,11 +68,11 @@ export default function AddHabitScreen({ onAddHabit, onCancel }: Props) {
     } else { // weekly
       const times = parseInt(timesPerWeek, 10);
       if (isNaN(times) || times <= 0) {
-        Alert.alert('Invalid Input', 'Please enter a valid number of times per week.');
+        showAlert('Invalid Input', 'Please enter a valid number of times per week.');
         return;
       }
       if (selectedDays.length === 0) {
-        Alert.alert('No Days Selected', 'Please select at least one day for a weekly habit.');
+        showAlert('No Days Selected', 'Please select at least one day for a weekly habit.');
         return;
       }
       newHabitData = {

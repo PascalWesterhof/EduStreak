@@ -3,7 +3,6 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Platform,
   ScrollView,
@@ -15,6 +14,7 @@ import {
 import { auth } from '../../config/firebase';
 import { deleteHabit as deleteHabitService, getHabitDetails } from '../../functions/habitService';
 import { Habit } from '../../types';
+import { showAlert, showConfirmationDialog } from "../../utils/showAlert";
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -99,32 +99,28 @@ export default function HabitDetailScreen() {
    */
   const handleDeleteHabit = async () => {
     if (!currentUserId || !habitId || !habit) {
-      Alert.alert("Error", "Cannot delete habit: missing user, habit ID, or habit data.");
+      showAlert("Error", "Cannot delete habit: missing user, habit ID, or habit data.");
       return;
     }
-    
-    Alert.alert(
+
+    const deleteAction = async () => {
+      setIsDeleting(true);
+      try {
+        await deleteHabitService(currentUserId, habitId);
+        showAlert("Success", `Habit "${habit.name}" deleted successfully.`);
+        router.back();
+      } catch (error: any) {
+        console.error("[HabitDetailScreen] Error deleting habit via service: ", error);
+        showAlert("Error", error.message || `Failed to delete habit. Please try again.`);
+        setIsDeleting(false);
+      }
+    };
+
+    showConfirmationDialog(
       "Confirm Delete",
       `Are you sure you want to delete the habit "${habit.name}"? This action cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete", 
-          style: "destructive", 
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              await deleteHabitService(currentUserId, habitId);
-              Alert.alert("Success", `Habit "${habit.name}" deleted successfully.`);
-              router.back();
-            } catch (error: any) {
-              console.error("[HabitDetailScreen] Error deleting habit via service: ", error);
-              Alert.alert("Error", error.message || `Failed to delete habit. Please try again.`);
-              setIsDeleting(false);
-            }
-          }
-        }
-      ]
+      deleteAction,
+      "Delete"
     );
   };
   

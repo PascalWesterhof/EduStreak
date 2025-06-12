@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { colors } from '../../constants/Colors';
 import { resetPassword } from '../../functions/authService'; // Import the service function
 import { globalStyles } from '../../styles/globalStyles';
+import { showAlert } from "../../utils/showAlert";
 
 /**
  * `ForgotPasswordScreen` allows users to request a password reset link.
@@ -26,18 +27,18 @@ export default function ForgotPasswordScreen() {
    */
   const handleResetPassword = async () => {
     if (!email) {
-      Alert.alert('Error', 'Please enter your email address.');
+      showAlert('Error', 'Please enter your email address.');
       return;
     }
     try {
       // Call the service function for password reset
       await resetPassword(email);
       // Show generic success/info message regardless of actual outcome, as per original logic
-      Alert.alert('Password Reset', 'If an account exists for this email, a password reset link has been sent.', [{ text: 'OK', onPress: () => router.back() }]);
+      showAlert('Password Reset', 'If an account exists for this email, a password reset link has been sent.', [{ text: 'OK', onPress: () => router.back() }]);
     } catch (error: any) {
       // Show a generic message even if there's an error from the service
       console.error('[ForgotPasswordScreen] Password Reset Error:', error.message);
-      Alert.alert('Password Reset', 'If an account exists for this email, a password reset link has been sent.', [{ text: 'OK', onPress: () => router.back() }]);
+      showAlert('Password Reset', 'If an account exists for this email, a password reset link has been sent.', [{ text: 'OK', onPress: () => router.back() }]);
     }
   };
 

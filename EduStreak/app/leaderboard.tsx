@@ -1,5 +1,5 @@
-import { DrawerActions, useNavigation } from '@react-navigation/native';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { auth } from '../config/firebase';
 import { colors } from '../constants/Colors';
@@ -34,6 +34,22 @@ export default function Leaderboard() {
   const [sortMetric, setSortMetric] = useState<SortMetricType>('points'); // Default sort metric
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null); // For potential future use (e.g., highlighting current user)
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <View style={{ flexDirection: 'row',}}>
+            <Text style={styles.headerTitleCustom}>Group </Text>
+            <Text style={[styles.headerTitleCustom, styles.headerTitleHighlight]}>Leaderboard</Text>
+        </View>
+      ),
+      headerStyle: { 
+        backgroundColor: '#F4F6F8',
+        elevation: 0,
+        shadowOpacity: 0,
+    }
+    });
+  }, [navigation]);
 
   /**
    * `useEffect` hook to set up an authentication listener.
@@ -129,17 +145,6 @@ export default function Leaderboard() {
   return (
     <View style={[globalStyles.screenContainer, styles.outerContainerCustom]}>
       <StatusBar barStyle="dark-content" />
-      {/* Custom Header: Menu button and Title */}
-      <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())} style={styles.menuButton}>
-          <Image source={require('../assets/icons/burger_menu_icon.png')} style={styles.menuIcon} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={[globalStyles.headerText, styles.headerTitleCustom]}>Group </Text>
-          <Text style={[globalStyles.headerText, styles.headerTitleCustom, styles.headerTitleHighlight]}>Leaderboard</Text>
-        </View>
-      </View>
-
       {/* Sort Metric Selection Tabs */}
       <View style={styles.sortOptionsContainer}>
         {SORT_METRICS.map((option, index) => (
@@ -182,30 +187,6 @@ export default function Leaderboard() {
 const styles = StyleSheet.create({
   outerContainerCustom: {
     backgroundColor: colors.lightGray, // Consistent background
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginBottom: 10,
-  },
-  menuButton: {
-    position: 'absolute',
-    left: 10,
-    padding: 5,
-    zIndex: 1,
-  },
-  menuIcon: {
-    width: 24,
-    height: 24,
-    resizeMode: 'contain',
-    tintColor: colors.textDefault,
-  },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    flex: 1, // Allow title container to take available space for centering
-    justifyContent: 'center', // Center the title text
   },
   headerTitleCustom: {
     color: colors.textDefault,

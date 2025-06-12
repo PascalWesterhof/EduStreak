@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import { User } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
-import { Alert, Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth } from '../../config/firebase';
 import { colors } from '../../constants/Colors';
 import { deleteUserAccount } from '../../functions/authService';
 import { globalStyles } from '../../styles/globalStyles';
+import { showAlert } from '../../utils/showAlert';
 
 /**
  * `DeleteAccountScreen` provides the interface for users to permanently delete their account.
@@ -45,13 +46,13 @@ export default function DeleteAccountScreen() {
   const handleConfirmDelete = async () => {
     setError('');
     if (!currentUser) {
-      Alert.alert('Error', 'User not found. Please re-login.');
+      showAlert('Error', 'User not found. Please re-login.');
       router.replace('/auth/LoginScreen');
       return;
     }
 
     if (isPasswordProviderUser && !currentPassword) {
-      Alert.alert('Password Required', 'Please enter your current password to confirm account deletion.');
+      showAlert('Password Required', 'Please enter your current password to confirm account deletion.');
       return;
     }
 
@@ -60,9 +61,8 @@ export default function DeleteAccountScreen() {
       const passwordForService = isPasswordProviderUser && currentPassword ? currentPassword : undefined;
       await deleteUserAccount(currentUser, passwordForService);
 
-      Alert.alert('Account Deleted', 'Your account and associated data have been permanently deleted.', [
-        { text: 'OK', onPress: () => router.replace('/auth/LoginScreen') }
-      ]);
+      showAlert('Account Deleted', 'Your account and associated data have been permanently deleted.');
+      router.replace('/auth/LoginScreen');
 
     } catch (err: any) {
       console.error("[DeleteAccountScreen] Delete Account Error via service:", err);
@@ -73,7 +73,7 @@ export default function DeleteAccountScreen() {
         errorMessage = 'This operation is sensitive and requires recent authentication. Please sign out and log back in, then try deleting your account again.';
       }
       setError(errorMessage);
-      Alert.alert('Error', errorMessage);
+      showAlert('Error', errorMessage);
     } finally {
       setIsProcessing(false);
     }

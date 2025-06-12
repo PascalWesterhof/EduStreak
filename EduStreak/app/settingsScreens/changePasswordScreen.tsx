@@ -7,6 +7,7 @@ import { auth } from '../../config/firebase';
 import { colors } from '../../constants/Colors';
 import { changeUserPassword, reauthenticateCurrentUser } from '../../functions/authService'; // Import service functions
 import { globalStyles } from '../../styles/globalStyles';
+import { showAlert } from '../../utils/showAlert';
 
 /**
  * `ChangePasswordScreen` allows users who signed up with email and password to change their password.
@@ -51,19 +52,19 @@ export default function ChangePasswordScreen() {
       }
     }
     if (!currentPassword || !newPassword || !confirmNewPassword) {
-      Alert.alert('Missing Fields', 'Please fill in all password fields.');
+      showAlert('Missing Fields', 'Please fill in all password fields.');
       return;
     }
     if (newPassword !== confirmNewPassword) {
-      Alert.alert('Password Mismatch', 'New passwords do not match.');
+      showAlert('Password Mismatch', 'New passwords do not match.');
       return;
     }
     if (newPassword.length < 6) {
-      Alert.alert('Weak Password', 'New password should be at least 6 characters long.');
+      showAlert('Weak Password', 'New password should be at least 6 characters long.');
       return;
     }
     if (!user) { // Should ideally not happen if passwordProvider check passed
-      Alert.alert('Error', 'User not found. Please re-login.');
+      showAlert('Error', 'User not found. Please re-login.');
       return;
     }
 
@@ -77,9 +78,7 @@ export default function ChangePasswordScreen() {
       await changeUserPassword(user, newPassword);
       console.log("[ChangePasswordScreen] User password updated successfully via service.");
 
-      Alert.alert('Success', 'Password updated successfully!', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      showAlert('Success', 'Password updated successfully!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
@@ -99,7 +98,7 @@ export default function ChangePasswordScreen() {
         errorMessage = "Could not verify your current session. Please re-login.";
       }
       setError(errorMessage);
-      Alert.alert('Error', errorMessage);
+      showAlert('Error', errorMessage);
     } finally {
       setIsSaving(false);
     }
