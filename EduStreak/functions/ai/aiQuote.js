@@ -1,19 +1,20 @@
 // aiQuote.js
 import axios from 'axios';
+import Config from 'react-native-config';
 
-const GEMINI_API_KEY = 'AIzaSyBD9xheq6MqgFQljgmVu-WOUEu6ISS8j8c'; // Jouw API sleutel
+const key = Config.API_KEY;
 
 export const fetchDailyQuoteFromGemini = async () => {
   console.log("Fetching daily quote...");
   try {
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${Config.API_KEY}`
       {
         contents: [
           {
             parts: [
               {
-                text: `Give only one motivational quote that is shown when a user opens the app.`
+                text: `Generate exactly one short, creative and motivational quote. It should be unique and different each time. Do not include any bullet points, numbering, or lists. Just output the quote only, without any explanation or introduction.`
               }
             ]
           }

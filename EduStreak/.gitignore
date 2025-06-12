@@ -40,3 +40,6 @@ app-example
 
 # IntelliJ / Android Studio
 .idea/
+
+# API key
+.env
