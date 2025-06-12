@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import 'react-native-get-random-values';
 import { Habit } from '../../types';
 import { showAlert } from "../../utils/showAlert";
 
