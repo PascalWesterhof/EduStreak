@@ -29,7 +29,7 @@ export const colors = {
   primary: '#D05B52',        // Main color 
   primaryText: '#FFFFFF',   // Text color on primary background
   accent: '#D9534F',         // Accent color 
-  cardBackground: '#FFFFFF', // Background for cards
+  cardBackground: '#F8F8F8', // Background for cards
   textDefault: '#333333',     // Default dark text
   textSecondary: '#555555',   // Secondary dark text
   textMuted: '#888888',       // Muted text 

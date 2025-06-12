@@ -231,29 +231,6 @@ export const updateDailyStreakLogic = async (userId: string, habitsForStreakChec
       console.error("[HabitService] Error in updateDailyStreakLogic (Firestore update): ", error);
       // Not re-throwing, as this is a background-like update; component doesn't need to crash.
     }
-  } else {
-    // If not all habits scheduled for today are completed, reset the current streak to 0.
-    const userDocRef = doc(db, "users", userId);
-    try {
-      const userDocSnap = await getDoc(userDocRef);
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-        // Only update if current streak is not already 0 to avoid unnecessary writes.
-        if (userData.currentStreak !== 0) {
-          await updateDoc(userDocRef, {
-            currentStreak: 0
-          });
-          console.log(`[HabitService] User ${userId} daily streak reset to 0 due to incomplete habits for ${todayStr}. Previous streak was ${userData.currentStreak}.`);
-        } else {
-          console.log(`[HabitService] User ${userId} daily streak already 0. No Firestore update needed for incomplete habits for ${todayStr}.`);
-        }
-      } else {
-        console.warn(`[HabitService] User document for ${userId} not found when attempting to reset streak to 0 for ${todayStr}. Streak cannot be reset.`);
-      }
-    } catch (error) {
-      console.error(`[HabitService] Error in updateDailyStreakLogic (Firestore update for streak reset to 0 for user ${userId} on ${todayStr}): `, error);
-      // Not re-throwing, as this is a background-like update.
-    }
   }
 };
 

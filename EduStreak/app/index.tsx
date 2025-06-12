@@ -2,7 +2,7 @@ import { DrawerActions, useFocusEffect } from "@react-navigation/native";
 import { useNavigation, useRouter } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth'; // Import onAuthStateChanged and User type
 import { doc, increment, updateDoc } from 'firebase/firestore'; // Firestore functions
-import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import 'react-native-get-random-values'; // For uuid
 import { CircularProgress } from '../components/CircularProgress'; // Restored import
@@ -14,6 +14,7 @@ import {
   fetchUserHabits,
   updateDailyStreakLogic as updateDailyStreakService
 } from '../functions/habitService'; // Import the service
+import { checkAndResetDailyStreak } from '../functions/userService';
 import { globalStyles } from '../styles/globalStyles'; // Import global styles
 import { Habit } from '../types'; // Path for types
 import { getIsoDateString } from '../utils/dateUtils'; // Added import
@@ -44,19 +45,6 @@ export default function Index() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [userName, setUserName] = useState("User"); // Default user name
 
-  useLayoutEffect(() => {
-    appNavigation.setOptions({
-      headerTitle: () => (
-        <Text style={styles.greetingText}>Hello, <Text style={styles.userNameText}>{userName}!</Text></Text>
-      ),
-      headerStyle: { 
-          backgroundColor: '#F4F6F8',
-          elevation: 0,
-          shadowOpacity: 0,
-      }
-    });
-  }, [appNavigation, userName]);
-
   /**
    * `useFocusEffect` hook to manage actions when the screen comes into focus.
    * - Resets `selectedDate` to the current day if it's in the past.
@@ -82,6 +70,8 @@ export default function Index() {
           console.log("[IndexScreen] Auth: User signed in - ID:", user.uid);
           setCurrentUserId(user.uid);
           setUserName(user.displayName || "User");
+          
+          checkAndResetDailyStreak(user.uid);
           
           try {
             const { habits: fetchedHabits } = await fetchUserHabits(user.uid);
@@ -294,7 +284,11 @@ export default function Index() {
     <View style={styles.container}>
       {/* Header Section: Menu, Greeting, Notifications */}
       <StatusBar barStyle="dark-content" />
+      <View style={styles.headerContainer}>
+        <Text style={styles.greetingText}>Hello, <Text style={styles.userNameText}>{userName}!</Text></Text>
+      </View>
 
+    
       {/* Horizontal Date Selector */}
       <View style={styles.dateSelectorContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateScrollContent}>
@@ -350,14 +344,12 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F6F8', 
+    backgroundColor: '#FFF', 
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   headerContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
+    marginLeft: 20,
     marginBottom: 10,
   },
   menuIcon: {
@@ -372,7 +364,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   greetingText: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.textDefault,
     textAlign: 'center',

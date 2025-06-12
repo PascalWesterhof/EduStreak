@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { auth } from '../config/firebase';
 import { colors } from '../constants/Colors';
@@ -34,22 +34,6 @@ export default function Leaderboard() {
   const [sortMetric, setSortMetric] = useState<SortMetricType>('points'); // Default sort metric
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null); // For potential future use (e.g., highlighting current user)
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerTitle: () => (
-        <View style={{ flexDirection: 'row',}}>
-            <Text style={styles.headerTitleCustom}>Group </Text>
-            <Text style={[styles.headerTitleCustom, styles.headerTitleHighlight]}>Leaderboard</Text>
-        </View>
-      ),
-      headerStyle: { 
-        backgroundColor: '#F4F6F8',
-        elevation: 0,
-        shadowOpacity: 0,
-    }
-    });
-  }, [navigation]);
 
   /**
    * `useEffect` hook to set up an authentication listener.
@@ -145,6 +129,14 @@ export default function Leaderboard() {
   return (
     <View style={[globalStyles.screenContainer, styles.outerContainerCustom]}>
       <StatusBar barStyle="dark-content" />
+      {/* Custom Header: Menu button and Title */}
+      <View style={styles.headerContainer}>
+        <View style={styles.headerTitleContainer}>
+          <Text style={[globalStyles.headerText, styles.headerTitleCustom]}>Group </Text>
+          <Text style={[globalStyles.headerText, styles.headerTitleCustom, styles.headerTitleHighlight]}>Leaderboard</Text>
+        </View>
+      </View>
+
       {/* Sort Metric Selection Tabs */}
       <View style={styles.sortOptionsContainer}>
         {SORT_METRICS.map((option, index) => (
@@ -186,11 +178,19 @@ export default function Leaderboard() {
 
 const styles = StyleSheet.create({
   outerContainerCustom: {
-    backgroundColor: colors.lightGray, // Consistent background
+    backgroundColor: "#FFF", // Consistent background
+  },
+  headerContainer: {
+    backgroundColor: '#FFF',
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    marginLeft: 20,
+    marginTop: -10
   },
   headerTitleCustom: {
     color: colors.textDefault,
-    fontSize: 20, // Ensure headerText from globalStyles is applied or define size here
+    fontSize: 28, // Ensure headerText from globalStyles is applied or define size here
     fontWeight: 'bold', // Make title bold
   },
   headerTitleHighlight: {
@@ -203,9 +203,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     marginBottom: 10,
-    backgroundColor: colors.cardBackground, // Give sort options a subtle background
-    borderBottomWidth: 1, // Add a separator line
-    borderBottomColor: colors.borderColor,
+    backgroundColor: '#FFF', // Give sort options a subtle background
   },
   sortOptionTextCustom: {
     marginHorizontal: 5,
