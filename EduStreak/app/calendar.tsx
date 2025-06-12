@@ -1,14 +1,29 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addMonths, format, getDay, getDaysInMonth, startOfMonth, subMonths } from 'date-fns';
-import { onAuthStateChanged } from 'firebase/auth';
-import React, { useEffect, useState } from 'react';
+import { useNavigation } from 'expo-router';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { auth } from '../config/firebase'; // Adjust path as needed
+import { fetchDailyQuoteFromGemini } from '../functions/ai/aiQuote';
 import { fetchUserStreaksFromService } from '../functions/userService'; // Adjust path as needed
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [streakData, setStreakData] = useState({ currentStreak: 0, longestStreak: 0 });
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [quote, setQuote] = useState('');
+  const navigation = useNavigation();
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerStyle: {
+        backgroundColor: '#D1624A',
+      },
+      headerTintColor: '#fff',
+      headerShadowVisible: false,
+    });
+  }, [navigation]);
 
   const daysInMonth = getDaysInMonth(currentDate);
   const startDay = getDay(startOfMonth(currentDate)); // 0 = Sunday
@@ -37,7 +52,34 @@ export default function Calendar() {
     return () => unsubscribe(); // Cleanup subscription on unmount
   }, []);
 
-  const loadStreakData = async (userId) => {
+  useEffect(() => {
+    const getQuote = async () => {
+      const today = new Date().toISOString().split('T')[0]; // Get date in YYYY-MM-DD format
+      try {
+        const storedQuoteData = await AsyncStorage.getItem('dailyQuote');
+        if (storedQuoteData) {
+          const { quote: storedQuote, date } = JSON.parse(storedQuoteData);
+          if (date === today) {
+            setQuote(storedQuote);
+            return; // Exit if a valid quote for today is found
+          }
+        }
+
+        // If no valid quote, fetch a new one
+        const dailyQuote = await fetchDailyQuoteFromGemini();
+        setQuote(dailyQuote);
+        // Store the new quote with today's date
+        await AsyncStorage.setItem('dailyQuote', JSON.stringify({ quote: dailyQuote, date: today }));
+      } catch (error) {
+        console.error('Failed to fetch or store daily quote:', error);
+        setQuote('Could not fetch a quote for today. Stay motivated!');
+      }
+    };
+
+    getQuote();
+  }, []);
+
+  const loadStreakData = async (userId: string) => {
     try {
       const data = await fetchUserStreaksFromService(userId);
       setStreakData(data);
@@ -117,6 +159,13 @@ export default function Calendar() {
           <Text style={styles.streakLabel}>Your longest streak!</Text>
         </View>
       </View>
+
+      {/* Quote Card */}
+      {quote ? (
+        <View style={styles.quoteCard}>
+          <Text style={styles.quoteText}>"{quote}"</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -147,6 +196,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+    marginBottom: 16,
   },
   streakItem: {
     marginBottom: 16,
@@ -212,5 +262,21 @@ const styles = StyleSheet.create({
     color: '#c44',
     marginLeft: 4,
     fontSize: 12,
+  },
+  quoteCard: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  quoteText: {
+    fontSize: 16,
+    fontStyle: 'italic',
+    color: '#666',
+    textAlign: 'center',
   },
 });

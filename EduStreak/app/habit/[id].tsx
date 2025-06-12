@@ -108,7 +108,7 @@ export default function HabitDetailScreen() {
       try {
         await deleteHabitService(currentUserId, habitId);
         showAlert("Success", `Habit "${habit.name}" deleted successfully.`);
-        router.back();
+        router.push('/');
       } catch (error: any) {
         console.error("[HabitDetailScreen] Error deleting habit via service: ", error);
         showAlert("Error", error.message || `Failed to delete habit. Please try again.`);
@@ -140,10 +140,7 @@ export default function HabitDetailScreen() {
    */
   const handleGoBack = () => {
     if (router.canGoBack()) {
-      router.back();
-    } else {
-      // Fallback if no screen to go back to (e.g., deep link)
-      router.replace('/'); 
+      router.push('/');
     }
   };
 

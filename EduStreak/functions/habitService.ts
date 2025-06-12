@@ -5,6 +5,82 @@ import { Habit } from '../types';
 import { getIsoDateString } from '../utils/dateUtils';
 
 /**
+ * Recalculates the current and longest streaks for a single habit based on its completion history.
+ * This is a pure function that does not interact with Firestore.
+ * @param habit The habit object, which must include its completion history.
+ * @returns An object containing the recalculated `streak` and `longestStreak`.
+ */
+export const recalculateHabitStreaks = (habit: Habit): { streak: number, longestStreak: number } => {
+    if (!habit.completionHistory || habit.completionHistory.length === 0) {
+        return { streak: 0, longestStreak: 0 };
+    }
+
+    const sortedDates = habit.completionHistory
+        .map(entry => entry.date)
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    let currentStreak = 0;
+    let longestStreak = 0;
+    
+    if (sortedDates.length > 0) {
+        const today = new Date();
+        const todayStr = getIsoDateString(today);
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
+        const yesterdayStr = getIsoDateString(yesterday);
+
+        // Check if the most recent completion is today or yesterday to start the current streak
+        if (sortedDates[0] === todayStr || sortedDates[0] === yesterdayStr) {
+            currentStreak = 1;
+            longestStreak = 1;
+            
+            for (let i = 0; i < sortedDates.length - 1; i++) {
+                const currentDate = new Date(sortedDates[i]);
+                const nextDate = new Date(sortedDates[i+1]);
+                const diff = (currentDate.getTime() - nextDate.getTime()) / (1000 * 3600 * 24);
+
+                if (diff === 1) {
+                    currentStreak++;
+                } else {
+                    // Break the current streak count, but continue checking for longest
+                    if (currentStreak > longestStreak) {
+                        longestStreak = currentStreak;
+                    }
+                    currentStreak = 1; // Reset for the next potential streak
+                }
+            }
+             if (currentStreak > longestStreak) {
+                longestStreak = currentStreak;
+            }
+        }
+    }
+    
+    // A separate loop to be absolutely sure we found the longest streak
+    // This is because the current streak might be the longest one and it may not be over
+    let tempCurrentStreak = 0;
+    let tempLongestStreak = 0;
+    if (sortedDates.length > 0) {
+        tempCurrentStreak = 1;
+        tempLongestStreak = 1;
+        for (let i = 0; i < sortedDates.length - 1; i++) {
+            const currentDate = new Date(sortedDates[i]);
+            const nextDate = new Date(sortedDates[i+1]);
+            const diff = (currentDate.getTime() - nextDate.getTime()) / (1000 * 3600 * 24);
+            if (diff === 1) {
+                tempCurrentStreak++;
+            } else {
+                tempCurrentStreak = 1; // Reset
+            }
+            if (tempCurrentStreak > tempLongestStreak) {
+                tempLongestStreak = tempCurrentStreak;
+            }
+        }
+    }
+
+    return { streak: currentStreak, longestStreak: tempLongestStreak };
+};
+
+/**
  * Fetches all habits for a given user.
  * @param userId The ID of the user whose data is to be fetched.
  * @returns A Promise resolving to an object containing habits.
@@ -248,34 +324,45 @@ export const getHabitDetails = async (userId: string, habitId: string): Promise<
   }
   try {
     const habitDocRef = doc(db, 'users', userId, 'habits', habitId);
-    const docSnap = await getDoc(habitDocRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      const createdAt = data.createdAt instanceof Timestamp 
-                          ? data.createdAt.toDate().toISOString() 
-                          : data.createdAt || new Date().toISOString();
-      const completionHistory = (data.completionHistory || []).map((entry: any) => ({
+    const habitDocSnap = await getDoc(habitDocRef);
+
+    if (habitDocSnap.exists()) {
+      const data = habitDocSnap.data();
+      const habit: Habit = {
+        id: habitDocSnap.id,
+        name: data.name,
+        description: data.description,
+        frequency: data.frequency,
+        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+        completionHistory: (data.completionHistory || []).map((entry: any) => ({
           date: entry.date instanceof Timestamp ? entry.date.toDate().toISOString().split('T')[0] : String(entry.date).split('T')[0],
-      }));            
-      return {
-         id: docSnap.id, 
-         name: data.name,
-         description: data.description,
-         frequency: data.frequency,
-         streak: data.streak || 0,
-         longestStreak: data.longestStreak || 0,
-         createdAt,
-         completionHistory,
-         isDefault: data.isDefault || false,
-         // reminderTime and notes are removed
-        } as Habit;
+        })),
+        isDefault: data.isDefault || false,
+        streak: 0, // Placeholder, will be recalculated
+        longestStreak: 0, // Placeholder, will be recalculated
+      };
+      
+      const { streak, longestStreak } = recalculateHabitStreaks(habit);
+      habit.streak = streak;
+      habit.longestStreak = longestStreak;
+
+      // Optionally, update Firestore with the recalculated streaks for consistency.
+      // This is useful if other parts of the app rely on the stored streak values.
+      if (streak !== data.streak || longestStreak !== data.longestStreak) {
+        await updateDoc(habitDocRef, {
+          streak: streak,
+          longestStreak: longestStreak
+        });
+      }
+
+      return habit;
     } else {
-      console.warn("[HabitService] Habit not found with ID:", habitId, "for user:", userId);
+      console.log(`[HabitService] No habit found with ID: ${habitId} for user: ${userId}`);
       return null;
     }
-  } catch (e) {
-    console.error("[HabitService] Error in getHabitDetails:", e);
-    throw e; 
+  } catch (error) {
+    console.error("[HabitService] Error in getHabitDetails: ", error);
+    throw error;
   }
 };
 
