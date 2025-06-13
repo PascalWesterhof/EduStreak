@@ -1,65 +1,42 @@
-import * as Notifications from 'expo-notifications';
+import { scheduleDailyHabitReminder, scheduleLateHabitReminder } from '../../utils/notificationUtil';
 
-/*
-  Schedule a repeating daily habit reminder.
-
-  @param {string} habitName - Name of the habit.
-  @param {Date} time - Time of day to send the notification (local time).
+/**
+ * Called when a new habit is created.
  */
-export const scheduleDailyHabitReminder = async (habitName, time) => {
+export const onHabitCreated = async (habit) => {
   try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Habit reminder', // Notification title
-        body: `Don't forget to complete "${habitName}" today!`, // Custom message
-        sound: true, // Enable notification sound
-      },
-      trigger: {
-        hour: time.getHours(),        // Hour of the day (0–23)
-        minute: time.getMinutes(),    // Minute of the hour (0–59)
-        repeats: true,                // Repeat daily at the same time
-      },
-    });
+    const reminderTime = new Date();
+    reminderTime.setHours(9, 0, 0, 0); // Default to 9:00 AM
+
+    await scheduleDailyHabitReminder(habit.name, reminderTime);
+    console.log(`Scheduled daily reminder for "${habit.name}"`);
   } catch (err) {
-    console.error('Failed to schedule daily notification:', err);
+    console.error(`Failed to schedule daily reminder for "${habit.name}":`, err);
   }
 };
 
-/*
-  Schedule a one-time reminder if the user missed a habit (e.g., next morning).
-
-  @param {string} habitName - Name of the habit.f
-  @param {Date} time - Exact date and time to send the reminder.
+/**
+ * Checks for missed habits and schedules a next-morning reminder.
  */
-export const scheduleLateHabitReminder = async (habitName, time) => {
+export const remindMissedHabits = async (habits) => {
   try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Missed Habit', // Notification title
-        body: `You missed "${habitName}" yesterday. Let's restart today!`, // Friendly nudge
-        sound: true,
-      },
-      trigger: {
-        hour: time.getHours(),
-        minute: time.getMinutes(),
-        day: time.getDate(),
-        month: time.getMonth() + 1,      // getMonth is zero-based
-        year: time.getFullYear(),
-        repeats: false,                  // One-time notification
-      },
-    });
-  } catch (err) {
-    console.error('Failed to schedule late notification:', err);
-  }
-};
+    const today = new Date().toISOString().split('T')[0];
 
-/*
-  Cancel all scheduled notifications for the app.
- */
-export const cancelAllNotifications = async () => {
-  try {
-    await Notifications.cancelAllScheduledNotificationsAsync();
+    for (const habit of habits) {
+      const completedToday = habit.completionHistory?.some(
+        (entry) => entry.date === today
+      );
+
+      if (!completedToday) {
+        const nextMorning = new Date();
+        nextMorning.setDate(nextMorning.getDate() + 1);
+        nextMorning.setHours(9, 0, 0, 0);
+
+        await scheduleLateHabitReminder(habit.name, nextMorning);
+        console.log(`Scheduled late reminder for missed habit "${habit.name}"`);
+      }
+    }
   } catch (err) {
-    console.error('Failed to cancel notifications:', err);
+    console.error('Failed to schedule late reminders:', err);
   }
 };

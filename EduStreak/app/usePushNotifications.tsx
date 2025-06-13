@@ -5,7 +5,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 // Set the notification handler to define the behavior when a notification is received
-Notifications.setNotificationHandler({
+Notifications.setNotificationHandler(   {
   handleNotification: async () => ({
     shouldPlaySound: true,  // Enables sound for the notification
     shouldShowAlert: true,  // Displays the notification alerts
