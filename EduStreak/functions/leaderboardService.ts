@@ -1,5 +1,6 @@
 import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { getGroupMembersWithDetails } from './groupService';
 
 /**
  * Represents an item in the leaderboard, typically a user.
@@ -54,5 +55,52 @@ export const fetchLeaderboardDataFromService = async (sortMetric: SortMetricType
 
   } catch (err: any) {
     throw new Error('Failed to load leaderboard data from service. Please try again later.'); 
+  }
+};
+
+/**
+ * Fetches leaderboard data for a specific group from Firestore.
+ * It retrieves all members of the group, then sorts them on the client-side.
+ * Rank is assigned after sorting.
+ *
+ * @param groupId The ID of the group to fetch the leaderboard for.
+ * @param sortMetric The metric to sort the leaderboard by.
+ * @returns A Promise that resolves with an array of LeaderboardItem objects for the group.
+ * @throws Throws an error if fetching or processing data fails.
+ */
+export const fetchGroupLeaderboardDataFromService = async (
+  groupId: string,
+  sortMetric: SortMetricType
+): Promise<LeaderboardItem[]> => {
+  try {
+    const members = await getGroupMembersWithDetails(groupId);
+
+    if (!members) {
+      return [];
+    }
+
+    // Sort the members based on the selected metric.
+    const sortedMembers = [...members].sort(
+      (a, b) => (b[sortMetric] || 0) - (a[sortMetric] || 0)
+    );
+
+    // Assign ranks and ensure the objects match the LeaderboardItem interface.
+    const rankedUsers: LeaderboardItem[] = sortedMembers.map((user, index) => {
+      return {
+        id: user.id,
+        displayName: user.displayName || 'Anonymous',
+        points: user.points || 0,
+        currentStreak: user.currentStreak || 0,
+        longestStreak: user.longestStreak || 0,
+        photoURL: user.photoURL,
+        rank: index + 1,
+      };
+    });
+
+    return rankedUsers;
+
+  } catch (err: any) {
+    console.error(`[LeaderboardService] Error fetching group leaderboard for ${groupId}:`, err);
+    throw new Error('Failed to load group leaderboard data.');
   }
 }; 

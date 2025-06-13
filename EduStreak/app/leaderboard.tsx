@@ -1,9 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { auth } from '../config/firebase';
 import { colors } from '../constants/Colors';
+import { getAllGroups, getUserGroups } from '../functions/groupService';
 import {
+  fetchGroupLeaderboardDataFromService,
   fetchLeaderboardDataFromService,
   LeaderboardItem,
   SortMetricType
@@ -34,6 +36,8 @@ export default function Leaderboard() {
   const [sortMetric, setSortMetric] = useState<SortMetricType>('points'); // Default sort metric
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null); // For potential future use (e.g., highlighting current user)
+  const [userGroups, setUserGroups] = useState<{ id: string; name: string }[]>([]);
+  const [activeTab, setActiveTab] = useState<string>('global'); // 'global' or a groupId
 
   /**
    * `useEffect` hook to set up an authentication listener.
@@ -52,6 +56,36 @@ export default function Leaderboard() {
     return unsubscribe; // Cleanup listener on unmount
   }, []);
 
+  const fetchUserGroups = useCallback(async () => {
+    if (currentUserId) {
+      try {
+        const groupIds = await getUserGroups(currentUserId);
+        if (groupIds.length > 0) {
+          const allGroups = await getAllGroups();
+          const myGroups = allGroups.filter((g) => groupIds.includes(g.id));
+          setUserGroups(myGroups.map((g: any) => ({ id: g.id, name: g.name })));
+        } else {
+          setUserGroups([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user groups for leaderboard tabs:", error);
+        setUserGroups([]);
+      }
+    } else {
+      setUserGroups([]);
+    }
+  }, [currentUserId]);
+
+  /**
+   * `useEffect` hook to fetch the user's groups to display as tabs.
+   * Runs when the current user's ID is set or when the screen is focused.
+   */
+  useEffect(() => {
+    fetchUserGroups(); // Initial fetch
+    const unsubscribe = navigation.addListener('focus', fetchUserGroups);
+    return unsubscribe; // Cleanup listener
+  }, [navigation, fetchUserGroups]);
+
   /**
    * `fetchLeaderboardData` is a memoized function to fetch and update the leaderboard.
    * It calls `fetchLeaderboardDataFromService` with the current `sortMetric`.
@@ -60,9 +94,13 @@ export default function Leaderboard() {
   const fetchLeaderboardData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    console.log("[LeaderboardScreen] Calling service to fetch leaderboard, sorting by:", sortMetric);
+    console.log(`[LeaderboardScreen] Fetching for tab: ${activeTab}, sorting by:`, sortMetric);
     try {
-      const rankedUsers = await fetchLeaderboardDataFromService(sortMetric);
+      const rankedUsers =
+        activeTab === 'global'
+          ? await fetchLeaderboardDataFromService(sortMetric)
+          : await fetchGroupLeaderboardDataFromService(activeTab, sortMetric);
+
       setLeaderboardData(rankedUsers);
       console.log("[LeaderboardScreen] Leaderboard data received from service and set in state.");
 
@@ -73,7 +111,7 @@ export default function Leaderboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [sortMetric]); // Dependency: re-fetches if sortMetric changes
+  }, [sortMetric, activeTab]); // Dependency: re-fetches if sortMetric or activeTab changes
 
   /**
    * `useEffect` hook to trigger `fetchLeaderboardData` when the component mounts
@@ -135,6 +173,24 @@ export default function Leaderboard() {
           <Text style={[globalStyles.headerText, styles.headerTitleCustom]}>Group </Text>
           <Text style={[globalStyles.headerText, styles.headerTitleCustom, styles.headerTitleHighlight]}>Leaderboard</Text>
         </View>
+      </View>
+
+      {/* Leaderboard Tabs */}
+      <View style={styles.tabsContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity onPress={() => setActiveTab('global')} style={styles.tabButton}>
+            <Text style={[styles.tabText, activeTab === 'global' && styles.tabTextActive]}>
+              Global
+            </Text>
+          </TouchableOpacity>
+          {userGroups.map((group) => (
+            <TouchableOpacity key={group.id} onPress={() => setActiveTab(group.id)} style={styles.tabButton}>
+              <Text style={[styles.tabText, activeTab === group.id && styles.tabTextActive]}>
+                {group.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Sort Metric Selection Tabs */}
@@ -317,5 +373,26 @@ const styles = StyleSheet.create({
     color: colors.accent,
     minWidth: 40, // Ensure score has some minimum width for alignment
     textAlign: 'right', // Align score to the right
+  },
+  tabsContainer: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderColor,
+  },
+  tabButton: {
+    paddingBottom: 5,
+  },
+  tabText: {
+    paddingHorizontal: 5,
+    fontSize: 16,
+    color: colors.textMuted,
+  },
+  tabTextActive: {
+    color: colors.accent,
+    fontWeight: 'bold',
+    borderBottomWidth: 2,
+    borderBottomColor: colors.accent,
   },
 });
