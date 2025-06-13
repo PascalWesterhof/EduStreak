@@ -26,8 +26,6 @@ import {
 } from "../functions/habitService";
 import { checkAndResetDailyStreak } from "../functions/userService";
 
-await cancelAllNotifications(); // Reset before re-scheduling
-
 
 const isWeb = Platform.OS === "web";
 
@@ -57,6 +55,12 @@ export default function Notifications() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState("User");
+
+useEffect(() => {
+  (async () => {
+    await cancelAllNotifications();
+  })();
+}, []);
 
 useFocusEffect(
   React.useCallback(() => {
