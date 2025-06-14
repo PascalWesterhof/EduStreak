@@ -25,7 +25,6 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="edustreak"/>
-        <data android:scheme="exp+edustreak"/>
       </intent-filter>
     </activity>
   </application>
