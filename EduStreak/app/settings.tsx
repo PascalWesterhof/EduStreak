@@ -1,12 +1,13 @@
 import { useFonts } from "expo-font";
 import { Link, useNavigation } from "expo-router";
-import React, { useLayoutEffect, useState } from 'react';
-import { Platform, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import React, { useLayoutEffect, useState, useEffect,} from 'react';
+import { Platform, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,} from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { cancelAllScheduledNotifications, scheduleDailyReminder } from './helpers/notificationReminder';
 
 export default function Settings() {
-      const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-      const [dailyRemindersEnabled, setDailyRemindersEnabled] = useState(true);
-
+        const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+        const [dailyRemindersEnabled, setDailyRemindersEnabled] = useState(true);
         const [fontsLoaded] = useFonts({
           'DMSans-SemiBold': require('../assets/fonts/DMSans-SemiBold.ttf'),
           'Rubik-Medium': require('../assets/fonts/Rubik-Medium.ttf'),
@@ -28,6 +29,45 @@ export default function Settings() {
               });
             }
         }, [navigation, fontsLoaded]);
+
+      useEffect(() => {
+        (async () => {
+          const notifValue = await AsyncStorage.getItem("notificationsEnabled");
+          const dailyValue = await AsyncStorage.getItem("dailyRemindersEnabled");
+          console.log("Loaded from AsyncStorage: ", {
+            notificationsEnabled: notifValue,
+            dailyRemindersEnabled: dailyValue,
+          });
+          if (notifValue !== null) setNotificationsEnabled(JSON.parse(notifValue));
+          if (dailyValue !== null) setDailyRemindersEnabled(JSON.parse(dailyValue));
+        })();
+      }, []);
+
+    const toggleNotifications = async (value: boolean) => {
+        console.log("toggleNotifications called with:", value);
+      setNotificationsEnabled(value);
+      await AsyncStorage.setItem("notificationsEnabled", JSON.stringify(value));
+      if (value) {
+          console.log("Scheduling daily reminder");
+        await scheduleDailyReminder();
+      } else {
+          console.log("Canceling all scheduled notifications");
+        await cancelAllScheduledNotifications();
+      }
+    };
+
+    const toggleDailyReminders = async (value: boolean) => {
+        console.log("toggleNotifications called with:", value);
+      setDailyRemindersEnabled(value);
+      await AsyncStorage.setItem("dailyRemindersEnabled", JSON.stringify(value));
+      if (value) {
+          console.log("Scheduling daily reminder");
+        await scheduleDailyReminder();
+      } else {
+          console.log("Canceling all scheduled notifications");
+        await cancelAllScheduledNotifications();
+      }
+    };
 
         if(!fontsLoaded)
         {
@@ -52,7 +92,7 @@ export default function Settings() {
                    <Text style={styles.label}>Notifications</Text>
                    <Switch
                      value={notificationsEnabled}
-                     onValueChange={setNotificationsEnabled}
+                     onValueChange={toggleNotifications}
                      trackColor={{ false: "#D1624A", true: "#fff"}}
                      thumbColor={notificationsEnabled ? "#fff" : "#fff"}
                       style={Platform.OS === 'web' ? { accentColor: '#fff' } : {}}
@@ -63,7 +103,7 @@ export default function Settings() {
                    <Text style={styles.label}>Daily reminders</Text>
                    <Switch
                      value={dailyRemindersEnabled}
-                     onValueChange={setDailyRemindersEnabled}
+                     onValueChange={toggleDailyReminders}
                      trackColor={{ false: "#D1624A", true: "#fff"}}
                      thumbColor={notificationsEnabled ? "#fff" : "#fff"}
 
