@@ -3,9 +3,30 @@ import 'react-native-gesture-handler';
 import { Drawer } from "expo-router/drawer";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CustomDrawerContent from '../components/CustomDrawerContent';
+import { scheduleDailyReminder, cancelAllScheduledNotifications } from './helpers/notificationReminder';
+import { useEffect } from 'react';
 
 const DrawerLayout = () =>
 {
+      useEffect(() => {
+        const setupNotifications = async () => {
+          const { granted } = await Notifications.requestPermissionsAsync();
+          if (!granted) return;
+
+          const notifValue = await AsyncStorage.getItem("notificationsEnabled");
+          const dailyValue = await AsyncStorage.getItem("dailyRemindersEnabled");
+
+          const notificationsEnabled = JSON.parse(notifValue ?? "false");
+          const dailyRemindersEnabled = JSON.parse(dailyValue ?? "false");
+
+          if (notificationsEnabled && dailyRemindersEnabled) {
+            await scheduleDailyReminder();
+          } else {
+            await cancelAllScheduledNotifications();
+          }
+        };
+        setupNotifications();
+  }, []);
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer drawerContent={CustomDrawerContent}
