@@ -4,10 +4,87 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth } from '../../config/firebase';
-import { colors } from '../../constants/Colors';
+import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // << NIEUW
+import { getGlobalStyles } from '../../styles/globalStyles';           // << NIEUW
 import { changeUserPassword, reauthenticateCurrentUser } from '../../functions/authService'; // Import service functions
-import { globalStyles } from '../../styles/globalStyles';
 import { showAlert } from '../../utils/showAlert';
+
+const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleSheet.create({
+  // De bestaande stijlen van 'styles' hieronder, maar met 'colors' argument
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    backgroundColor: colors.headerBackground, // << THEMA (of colors.background als header dezelfde kleur heeft)
+  },
+  backButton: {
+    padding: 10,
+  },
+  backArrowIcon: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: colors.primaryText, // << THEMA (of colors.textDefault afhankelijk van je header achtergrond)
+  },
+  headerTitleCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.headerText
+    color: colors.primaryText, // << THEMA (of colors.textDefault)
+    fontSize: 20,
+  },
+  headerRightPlaceholder: {
+    width: 24 + 20,
+  },
+  containerCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.contentContainer
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    flexGrow: 1,
+    // backgroundColor: colors.background, // Komt van appGlobalStyles.screenContainer
+  },
+  labelCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.bodyText
+    color: colors.textDefault, // << THEMA (was colors.primaryText, aanpassen aan je vaste witte thema)
+    marginBottom: 8,
+    marginTop: 15,
+    fontSize: 16,
+  },
+  input: { // Dit lijkt een unieke stijl, dus we maken het thematisch
+    backgroundColor: colors.inputBackground, // << THEMA (was #DE7460)
+    borderRadius: 6,
+    padding: 12,
+    fontSize: 16,
+    color: colors.textInput, // << THEMA (was #fff)
+    marginBottom: 10,
+    // Overweeg borderColor: colors.inputBorder als je dat wilt toevoegen
+  },
+  button: { // Basis knopstijl
+    backgroundColor: colors.primary, // << THEMA (was #DE7460)
+    borderRadius: 6,
+    padding: 15,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  buttonText: {
+    color: colors.primaryText, // << THEMA (was #fff)
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  saveButton: { // Specifieke override voor de save knop
+    backgroundColor: colors.accent, // << THEMA (was #C0573F, gebruik je accentkleur of een variant van primary)
+    // Als je wilt dat deze donkerder is dan de primaire knop, definieer dan een specifieke kleur
+    // in authScreenFixedColors, bijv. colors.primaryDark
+  },
+  buttonDisabled: {
+    backgroundColor: colors.textMuted, // << THEMA (was #A0A0A0, gebruik een gedempte kleur)
+    opacity: 0.7, // Opaciteit kan blijven
+  },
+  errorTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.errorText
+    color: colors.error, // << THEMA (was #FFBABA, gebruik je standaard error kleur)
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: 5,
+    fontSize: 14,
+  }
+});
 
 /**
  * `ChangePasswordScreen` allows users who signed up with email and password to change their password.
@@ -18,6 +95,11 @@ import { showAlert } from '../../utils/showAlert';
  */
 export default function ChangePasswordScreen() {
   const router = useRouter();
+  const fixedAuthColors = authScreenFixedColors;
+  // Genereer globale stijlen met deze vaste kleuren
+  const appGlobalStyles = useMemo(() => getGlobalStyles(fixedAuthColors), []);
+  // Genereer schermstijlen met de vaste kleuren en de daarop gebaseerde globale stijlen
+  const screenStyles = useMemo(() => getScreenStyles(fixedAuthColors, appGlobalStyles), [appGlobalStyles]);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -105,127 +187,65 @@ export default function ChangePasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={globalStyles.screenContainer}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Image source={require('../../assets/icons/back_arrow.png')} style={styles.backArrowIcon} />
-        </TouchableOpacity>
-        <Text style={[globalStyles.headerText, styles.headerTitleCustom]}>Change Password</Text>
-        <View style={styles.headerRightPlaceholder} />
-      </View>
+      // Gebruik appGlobalStyles.screenContainer voor de basis achtergrondkleur
+      <SafeAreaView style={appGlobalStyles.screenContainer}>
+        {/* Voor een vast licht thema, is dark-content meestal correct */}
+        <StatusBar barStyle="dark-content" />
 
-      <ScrollView contentContainerStyle={[globalStyles.contentContainer, styles.containerCustom]}>
-        <Text style={[globalStyles.bodyText, styles.labelCustom]}>Current Password</Text>
-        <TextInput
-          style={styles.input}
-          value={currentPassword}
-          onChangeText={setCurrentPassword}
-          placeholder="Enter your current password"
-          placeholderTextColor="#F8C5BA"
-          secureTextEntry
-          editable={!isSaving}
-        />
+        {/* Gebruik screenStyles voor de header en andere elementen */}
+        <View style={screenStyles.headerContainer}>
+          <TouchableOpacity onPress={() => router.back()} style={screenStyles.backButton}>
+            <Image source={require('../../assets/icons/back_arrow.png')} style={screenStyles.backArrowIcon} />
+          </TouchableOpacity>
+          <Text style={[appGlobalStyles.headerText, screenStyles.headerTitleCustom]}>Change Password</Text>
+          <View style={screenStyles.headerRightPlaceholder} />
+        </View>
 
-        <Text style={[globalStyles.bodyText, styles.labelCustom]}>New Password</Text>
-        <TextInput
-          style={styles.input}
-          value={newPassword}
-          onChangeText={setNewPassword}
-          placeholder="Enter your new password (min. 6 characters)"
-          placeholderTextColor="#F8C5BA"
-          secureTextEntry
-          editable={!isSaving}
-        />
+        {/* appGlobalStyles.contentContainer kan hier ook worden gebruikt als basis voor de ScrollView content */}
+        <ScrollView contentContainerStyle={[appGlobalStyles.contentContainer, screenStyles.containerCustom]}>
+          <Text style={[appGlobalStyles.bodyText, screenStyles.labelCustom]}>Current Password</Text>
+          <TextInput
+            style={screenStyles.input} // << Gebruik screenStyles
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            placeholder="Enter your current password"
+            placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+            secureTextEntry
+            editable={!isSaving}
+          />
 
-        <Text style={[globalStyles.bodyText, styles.labelCustom]}>Confirm New Password</Text>
-        <TextInput
-          style={styles.input}
-          value={confirmNewPassword}
-          onChangeText={setConfirmNewPassword}
-          placeholder="Confirm your new password"
-          placeholderTextColor="#F8C5BA"
-          secureTextEntry
-          editable={!isSaving}
-        />
-        
-        {error ? <Text style={[globalStyles.errorText, styles.errorTextCustom]}>{error}</Text> : null}
+          <Text style={[appGlobalStyles.bodyText, screenStyles.labelCustom]}>New Password</Text>
+          <TextInput
+            style={screenStyles.input} // << Gebruik screenStyles
+            value={newPassword}
+            onChangeText={setNewPassword}
+            placeholder="Enter your new password (min. 6 characters)"
+            placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+            secureTextEntry
+            editable={!isSaving}
+          />
 
-        <TouchableOpacity style={[styles.button, styles.saveButton, isSaving && styles.buttonDisabled]} onPress={handleUpdatePassword} disabled={isSaving}>
-          <Text style={styles.buttonText}>{isSaving ? 'Updating...' : 'Update Password'}</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
+          <Text style={[appGlobalStyles.bodyText, screenStyles.labelCustom]}>Confirm New Password</Text>
+          <TextInput
+            style={screenStyles.input} // << Gebruik screenStyles
+            value={confirmNewPassword}
+            onChangeText={setConfirmNewPassword}
+            placeholder="Confirm your new password"
+            placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+            secureTextEntry
+            editable={!isSaving}
+          />
 
-const styles = StyleSheet.create({
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-  },
-  backButton: {
-    padding: 10,
-  },
-  backArrowIcon: {
-    width: 24,
-    height: 24,
-    resizeMode: 'contain',
-    tintColor: colors.primaryText,
-  },
-  headerTitleCustom: {
-    color: colors.primaryText,
-    fontSize: 20,
-  },
-  headerRightPlaceholder: {
-    width: 24 + 20, 
-  },
-  containerCustom: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    flexGrow: 1,
-  },
-  labelCustom: {
-    color: colors.primaryText,
-    marginBottom: 8,
-    marginTop: 15,
-    fontSize: 16,
-  },
-  input: {
-    backgroundColor: '#DE7460',
-    borderRadius: 6,
-    padding: 12,
-    fontSize: 16,
-    color: '#fff',
-    marginBottom: 10,
-  },
-  button: {
-    backgroundColor: '#DE7460',
-    borderRadius: 6,
-    padding: 15,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  saveButton: {
-    backgroundColor: '#C0573F',
-  },
-  buttonDisabled: {
-    backgroundColor: '#A0A0A0',
-    opacity: 0.7,
-  },
-  errorTextCustom: {
-    color: '#FFBABA',
-    textAlign: 'center',
-    marginTop: 10,
-    marginBottom: 5,
-    fontSize: 14,
+          {error ? <Text style={[appGlobalStyles.errorText, screenStyles.errorTextCustom]}>{error}</Text> : null}
+
+          <TouchableOpacity
+            style={[screenStyles.button, screenStyles.saveButton, isSaving && screenStyles.buttonDisabled]}
+            onPress={handleUpdatePassword}
+            disabled={isSaving}
+          >
+            <Text style={screenStyles.buttonText}>{isSaving ? 'Updating...' : 'Update Password'}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
   }
-}); 
