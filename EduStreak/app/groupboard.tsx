@@ -41,7 +41,12 @@ const GroupBoard = () => {
         getUserGroups(user.uid),
       ]);
 
-      setGroups(allGroups);
+      // Sort alphabetically by group name
+      const sortedGroups = allGroups.sort((a, b) =>
+        a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+      );
+
+      setGroups(sortedGroups);
       setUserGroupIds(joinedGroupIds);
     } catch (err) {
       console.error("Failed to load groups:", err);

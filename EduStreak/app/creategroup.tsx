@@ -23,6 +23,7 @@ const GROUP_IMAGES = [
   require("../assets/groupImages/image3.png"),
 ];
 
+// Get the image key used in Firestore ("group1", "group2", etc.)
 const getImageKey = (image: any): string | null => {
   if (!image) return null;
   const index = GROUP_IMAGES.indexOf(image);
@@ -56,9 +57,13 @@ const CreateGroup = () => {
       );
       console.log("Group created with ID:", groupId);
       navigation.navigate("groupboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating group:", error);
-      showAlert("Error", "Something went wrong while creating the group.");
+      if (error.message.includes("already exists")) {
+        showAlert("Duplicate Name", "A group with this name already exists.");
+      } else {
+        showAlert("Error", "Something went wrong while creating the group.");
+      }
     }
   };
 
@@ -92,6 +97,7 @@ const CreateGroup = () => {
             multiline
             numberOfLines={4}
             placeholderTextColor="#aaa"
+            maxLength={300}
           />
 
           {/* Image picker */}
