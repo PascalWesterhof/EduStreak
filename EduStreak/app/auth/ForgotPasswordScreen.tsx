@@ -34,11 +34,13 @@ export default function ForgotPasswordScreen() {
       // Call the service function for password reset
       await resetPassword(email);
       // Show generic success/info message regardless of actual outcome, as per original logic
-      showAlert('Password Reset', 'If an account exists for this email, a password reset link has been sent.', [{ text: 'OK', onPress: () => router.back() }]);
+      showAlert('Password Reset', 'If an account exists for this email, a password reset link has been sent.');
+      router.back();
     } catch (error: any) {
       // Show a generic message even if there's an error from the service
       console.error('[ForgotPasswordScreen] Password Reset Error:', error.message);
-      showAlert('Password Reset', 'If an account exists for this email, a password reset link has been sent.', [{ text: 'OK', onPress: () => router.back() }]);
+      showAlert('Password Reset', 'If an account exists for this email, a password reset link has been sent.');
+      router.back();
     }
   };
 
