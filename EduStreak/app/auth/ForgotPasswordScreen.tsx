@@ -1,10 +1,82 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react'; // Add useMemo
 import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { colors } from '../../constants/Colors';
+import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // Importeer authScreenFixedColors and ColorScheme
 import { resetPassword } from '../../functions/authService'; // Import the service function
-import { globalStyles } from '../../styles/globalStyles';
+import { getGlobalStyles } from '../../styles/globalStyles';
 import { showAlert } from "../../utils/showAlert";
+
+const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background, // << use 'colors'
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'android' ? 40 : 60,
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? 45 : 65,
+    left: 20,
+    zIndex: 1,
+    padding: 10,
+  },
+  backArrow: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: colors.textDefault, // << use 'colors'
+  },
+  logo: {
+    width: 180,
+    height: 90,
+    resizeMode: 'contain',
+    marginBottom: 20,
+    marginTop: 20,
+  },
+  headerTextCustom: {
+    textAlign: 'center',
+    // Color comes from appGlobalStyles.titleText, which uses 'colors.textDefault'
+  },
+  subHeaderTextCustom: {
+    textAlign: 'center',
+    marginBottom: 30,
+    paddingHorizontal: 20,
+    // Color comes from appGlobalStyles.bodyText, which uses 'colors.textSecondary'
+  },
+  inputCustom: {
+    ...appGlobalStyles.inputBase, // inputBase uses 'colors' through getGlobalStyles
+    width: '100%',
+    borderRadius: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  sendButtonCustom: {
+    backgroundColor: colors.primary, // << use 'colors'
+    alignItems: 'center',
+    width: '100%',
+    borderRadius: 25,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    marginBottom: 20,
+  },
+  sendButtonTextCustom: {
+    color: colors.primaryText, // << use 'colors'
+    fontWeight: 'bold',
+  },
+  backToLoginLinkContainer: {
+    marginTop: 10,
+  },
+  backToLoginLinkTextCustom: {
+    textAlign: 'center',
+    // Color comes from appGlobalStyles.bodyText
+  },
+  backToLoginLinkTextHighlightCustom: {
+    color: colors.primary, // << use 'colors'
+    fontWeight: 'bold',
+  },
+});
 
 /**
  * `ForgotPasswordScreen` allows users to request a password reset link.
@@ -14,6 +86,14 @@ import { showAlert } from "../../utils/showAlert";
  * account enumeration.
  */
 export default function ForgotPasswordScreen() {
+// Gebruik de geïmporteerde vaste kleuren voor authenticatie
+  const fixedAuthColors = authScreenFixedColors;
+
+  // Genereer globale stijlen met deze vaste kleuren
+  const appGlobalStyles = useMemo(() => getGlobalStyles(fixedAuthColors), []); // Dependency array kan leeg zijn
+  // Genereer schermstijlen met de vaste kleuren en de daarop gebaseerde globale stijlen
+  const screenStyles = useMemo(() => getScreenStyles(fixedAuthColors, appGlobalStyles), [appGlobalStyles]);
+
   const [email, setEmail] = useState('');
   const router = useRouter();
 
@@ -43,104 +123,35 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Image source={require('../../assets/icons/back_arrow.png')} style={styles.backArrow} />
-      </TouchableOpacity>
-      <Image source={require('../../assets/images/splash_icon_edustreak.png')} style={styles.logo} />
-      <Text style={[globalStyles.titleText, styles.headerTextCustom]}>FORGOT PASSWORD?</Text>
-      <Text style={[globalStyles.bodyText, styles.subHeaderTextCustom]}>
-Enter your email address and we'll send you a link to reset your password.
-      </Text>
+    <View style={screenStyles.container}>
+          <TouchableOpacity onPress={() => router.back()} style={screenStyles.backButton}>
+            <Image source={require('../../assets/icons/back_arrow.png')} style={screenStyles.backArrow} />
+          </TouchableOpacity>
+          <Image source={require('../../assets/images/splash_icon_edustreak.png')} style={screenStyles.logo} />
 
-      <TextInput
-        style={[globalStyles.inputBase, styles.inputCustom]}
-        placeholder="Email address"
-        placeholderTextColor={colors.placeholderText}
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TouchableOpacity style={[globalStyles.inputBase, styles.sendButtonCustom]} onPress={handleResetPassword}>
-        <Text style={[globalStyles.bodyText, styles.sendButtonTextCustom]}>SEND RESET LINK</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.backToLoginLinkContainer} onPress={() => router.back()}>
-        <Text style={[globalStyles.bodyText, styles.backToLoginLinkTextCustom]}>Back to <Text style={styles.backToLoginLinkTextHighlightCustom}>LOG IN</Text></Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
+          <Text style={[appGlobalStyles.titleText, screenStyles.headerTextCustom]}>FORGOT PASSWORD?</Text>
+          <Text style={[appGlobalStyles.bodyText, screenStyles.subHeaderTextCustom]}>
+            Enter your email address and we'll send you a link to reset your password.
+          </Text>
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'android' ? 40 : 60,
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? 45 : 65,
-    left: 20,
-    zIndex: 1,
-    padding: 10,
-  },
-  backArrow: {
-    width: 24,
-    height: 24,
-    resizeMode: 'contain',
-    tintColor: colors.textDefault,
-  },
-  logo: {
-    width: 180,
-    height: 90,
-    resizeMode: 'contain',
-    marginBottom: 20,
-    marginTop: 20,
-  },
-  headerTextCustom: {
-    color: colors.textDefault,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  subHeaderTextCustom: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 20, 
-  },
-  inputCustom: {
-    width: '100%',
-    borderRadius: 10,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  sendButtonCustom: {
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    width: '100%',
-    borderRadius: 25,
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    marginBottom: 20,
-  },
-  sendButtonTextCustom: {
-    color: colors.white,
-    fontWeight: 'bold',
-  },
-  backToLoginLinkContainer: {
-    marginTop: 10,
-  },
-  backToLoginLinkTextCustom: {
-    color: colors.textDefault,
-    textAlign: 'center',
-  },
-  backToLoginLinkTextHighlightCustom: {
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
-}); 
+          <TextInput
+            style={screenStyles.inputCustom} // inputCustom gebruikt nu fixedAuthColors via getScreenStyles
+            placeholder="Email address"
+            placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+
+          <TouchableOpacity style={screenStyles.sendButtonCustom} onPress={handleResetPassword}>
+            <Text style={[appGlobalStyles.bodyText, screenStyles.sendButtonTextCustom]}>SEND RESET LINK</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={screenStyles.backToLoginLinkContainer} onPress={() => router.back()}>
+            <Text style={[appGlobalStyles.bodyText, screenStyles.backToLoginLinkTextCustom]}>
+              Back to <Text style={screenStyles.backToLoginLinkTextHighlightCustom}>LOG IN</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }

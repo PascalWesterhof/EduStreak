@@ -1,8 +1,10 @@
 import { useNavigation } from '@react-navigation/native';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react'; // << Voeg useMemo toe
 import { ActivityIndicator, FlatList, Image, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { auth } from '../config/firebase';
-import { colors } from '../constants/Colors';
+import { useTheme } from '../functions/themeFunctions/themeContext'; // << NIEUW (controleer pad)
+import { ColorScheme, AppThemeColors } from '../constants/Colors';    // << NIEUW (controleer pad)
+import { getGlobalStyles } from '../styles/globalStyles';           // << NIEUW (controleer pad)
 import { getAllGroups, getUserGroups } from '../functions/groupService';
 import {
   fetchGroupLeaderboardDataFromService,
@@ -10,7 +12,6 @@ import {
   LeaderboardItem,
   SortMetricType
 } from '../functions/leaderboardService';
-import { globalStyles } from '../styles/globalStyles';
 
 /**
  * `SORT_METRICS` defines the available options for sorting the leaderboard.
@@ -22,6 +23,175 @@ const SORT_METRICS: { label: string; value: SortMetricType }[] = [
   { label: 'Longest Streak', value: 'longestStreak' },
 ];
 
+const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleSheet.create({
+  outerContainerCustom: {
+    backgroundColor: colors.background, // << THEMA (was "#FFF")
+  },
+  headerContainer: {
+    backgroundColor: colors.background, // << THEMA (was '#FFF')
+    // Overweeg een borderBottomColor: colors.borderColor als je een scheiding wilt
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    marginLeft: 20,
+    marginTop: -10 // Controleer of dit nog steeds goed uitlijnt met thematische header
+  },
+  headerTitleCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.headerText
+    color: colors.textDefault, // << THEMA
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  headerTitleHighlight: {
+    color: colors.accent, // << THEMA
+  },
+  sortOptionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginBottom: 10,
+    backgroundColor: colors.background, // << THEMA (was '#FFF')
+    // Overweeg een borderBottomColor: colors.borderColor als je een scheiding wilt
+  },
+  sortOptionTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.mutedText
+    marginHorizontal: 5,
+    paddingVertical: 5,
+    fontSize: 14,
+    // Kleur komt van appGlobalStyles.mutedText, wat colors.textMuted gebruikt
+  },
+  sortOptionTextActive: {
+    color: colors.accent, // << THEMA
+    fontWeight: 'bold',
+    borderBottomWidth: 2,
+    borderBottomColor: colors.accent, // << THEMA
+  },
+  sortSeparator: {
+    fontSize: 14,
+    color: colors.textMuted, // << THEMA (was colors.mediumGray, gebruik thematische muted)
+    marginHorizontal: 3,
+  },
+  errorTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.errorText
+    marginTop: 20,
+    paddingHorizontal: 20,
+    textAlign: 'center',
+    // Kleur komt van appGlobalStyles.errorText, wat colors.error gebruikt
+  },
+  emptyTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.bodyText
+    color: colors.textMuted, // << THEMA
+    textAlign: 'center',
+    marginTop: 50,
+    paddingHorizontal: 20,
+  },
+  listContentContainer: {
+    paddingHorizontal: 15,
+    paddingBottom: 15,
+  },
+  itemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground, // << THEMA
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    marginVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.borderColor, // << THEMA
+    shadowColor: colors.shadow, // << THEMA (was colors.black)
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08, // Dit kan je eventueel thematisch maken als je wilt
+    shadowRadius: 3,
+    elevation: 2, // Android shadow
+  },
+  topUserItemContainer: {
+    // backgroundColor: colors.accentMuted, // Je had dit teruggezet naar cardBackground
+    borderColor: colors.accent, // << THEMA
+  },
+  rankCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  rankCircleDefault: {
+    backgroundColor: colors.inputBackground, // << THEMA (was colors.lightGray, inputBackground is een goede thematische optie)
+  },
+  rankCircleTop: {
+    backgroundColor: colors.accent, // << THEMA
+  },
+  rankText: {
+    fontSize: 14,
+    color: colors.textDefault, // << THEMA
+    fontWeight: 'bold',
+  },
+  rankTextTop: {
+    color: colors.primaryText, // << THEMA (ervan uitgaande dat accent een donkere achtergrond is, anders textDefault)
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+    backgroundColor: colors.inputBackground, // << THEMA (was colors.lightGray)
+  },
+  avatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.textMuted, // << THEMA (was colors.mediumGray)
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  avatarPlaceholderText: {
+    color: colors.background, // << THEMA (als placeholder achtergrond donker is, anders primaryText of textDefault)
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  nameText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    color: colors.textDefault, // << THEMA
+  },
+  separator: {
+    height: '60%',
+    width: 1,
+    backgroundColor: colors.borderColor, // << THEMA
+    marginHorizontal: 10,
+  },
+  scoreText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.accent, // << THEMA
+    minWidth: 40,
+    textAlign: 'right',
+  },
+  tabsContainer: {
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: colors.background, // << THEMA (was '#FFF')
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderColor, // << THEMA
+  },
+  tabButton: {
+    paddingBottom: 5,
+  },
+  tabText: {
+    paddingHorizontal: 5,
+    fontSize: 16,
+    color: colors.textMuted, // << THEMA
+  },
+  tabTextActive: {
+    color: colors.accent, // << THEMA
+    fontWeight: 'bold',
+    borderBottomWidth: 2,
+    borderBottomColor: colors.accent, // << THEMA
+  },
+});
+
 /**
  * `Leaderboard` component displays a ranked list of users based on selectable metrics
  * (points, current streak, longest streak). It fetches data from `leaderboardService`
@@ -29,6 +199,10 @@ const SORT_METRICS: { label: string; value: SortMetricType }[] = [
  */
 export default function Leaderboard() {
   const navigation = useNavigation();
+  const { colors: themeColors, isDark } = useTheme(); // << NIEUW: Haal theme kleuren en isDark op
+  const appGlobalStyles = useMemo(() => getGlobalStyles(themeColors), [themeColors]); // << NIEUW
+  const screenStyles = useMemo(() => getScreenStyles(themeColors, appGlobalStyles), [themeColors, appGlobalStyles]); // << NIEUW
+
 
   // State for leaderboard data, loading status, selected sort metric, errors, and current user ID
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardItem[]>([]);
@@ -129,10 +303,10 @@ export default function Leaderboard() {
    */
   const renderItem = ({ item }: { item: LeaderboardItem }) => {
     const isTopUser = item.rank === 1;
-    const isTopThree = item.rank !== undefined && item.rank <= 3;
-    const rankCircleStyle = isTopThree ? styles.rankCircleTop : styles.rankCircleDefault;
-    const rankTextStyle = isTopThree ? styles.rankTextTop : styles.rankText;
-    
+       const isTopThree = item.rank !== undefined && item.rank <= 3;
+       const rankCircleStyle = isTopThree ? screenStyles.rankCircleTop : screenStyles.rankCircleDefault;
+       const rankTextStyle = isTopThree ? screenStyles.rankTextTop : screenStyles.rankText;
+
     // Determine the score to display based on the active sortMetric
     let scoreValue: number;
     switch (sortMetric) {
@@ -143,256 +317,89 @@ export default function Leaderboard() {
     }
 
     return (
-      <View style={[styles.itemContainer, isTopUser && styles.topUserItemContainer]}>
-        <View style={[styles.rankCircle, rankCircleStyle]}>
-          <Text style={rankTextStyle}>{item.rank}</Text>
-        </View>
-        {item.photoURL ? (
-          <Image source={{ uri: item.photoURL }} style={styles.avatar} />
-        ) : (
-          // Placeholder avatar with the first letter of the display name
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarPlaceholderText}>
-              {item.displayName ? item.displayName.charAt(0).toUpperCase() : 'U'} {/* Default to 'U' for User */}
-            </Text>
-          </View>
-        )}
-        <Text style={styles.nameText} numberOfLines={1} ellipsizeMode="tail">{item.displayName}</Text>
-        <View style={styles.separator} />
-        <Text style={styles.scoreText}>{scoreValue}</Text>
-      </View>
-    );
-  };
+      // Gebruik screenStyles
+           <View style={[screenStyles.itemContainer, isTopUser && screenStyles.topUserItemContainer]}>
+             <View style={[screenStyles.rankCircle, rankCircleStyle]}>
+               <Text style={rankTextStyle}>{item.rank}</Text>
+             </View>
+             {item.photoURL ? (
+               <Image source={{ uri: item.photoURL }} style={screenStyles.avatar} />
+             ) : (
+               <View style={screenStyles.avatarPlaceholder}>
+                 <Text style={screenStyles.avatarPlaceholderText}>
+                   {item.displayName ? item.displayName.charAt(0).toUpperCase() : 'U'}
+                 </Text>
+               </View>
+             )}
+             <Text style={screenStyles.nameText} numberOfLines={1} ellipsizeMode="tail">{item.displayName}</Text>
+             <View style={screenStyles.separator} />
+             <Text style={screenStyles.scoreText}>{scoreValue}</Text>
+           </View>
+         );
+       };
 
   return (
-    <View style={[globalStyles.screenContainer, styles.outerContainerCustom]}>
-      <StatusBar barStyle="dark-content" />
-      {/* Custom Header: Menu button and Title */}
-      <View style={styles.headerContainer}>
-        <View style={styles.headerTitleContainer}>
-          <Text style={[globalStyles.headerText, styles.headerTitleCustom]}>Group </Text>
-          <Text style={[globalStyles.headerText, styles.headerTitleCustom, styles.headerTitleHighlight]}>Leaderboard</Text>
-        </View>
-      </View>
+    // Gebruik appGlobalStyles en screenStyles
+        <View style={[appGlobalStyles.screenContainer, screenStyles.outerContainerCustom]}>
+          <StatusBar barStyle={isDark ? "light-content" : "dark-content"} /> {/* << THEMA StatusBar */}
 
-      {/* Leaderboard Tabs */}
-      <View style={styles.tabsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity onPress={() => setActiveTab('global')} style={styles.tabButton}>
-            <Text style={[styles.tabText, activeTab === 'global' && styles.tabTextActive]}>
-              Global
+          <View style={screenStyles.headerContainer}>
+            <View style={screenStyles.headerTitleContainer}>
+              <Text style={[appGlobalStyles.headerText, screenStyles.headerTitleCustom]}>Group </Text>
+              <Text style={[appGlobalStyles.headerText, screenStyles.headerTitleCustom, screenStyles.headerTitleHighlight]}>Leaderboard</Text>
+            </View>
+          </View>
+
+          <View style={screenStyles.tabsContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <TouchableOpacity onPress={() => setActiveTab('global')} style={screenStyles.tabButton}>
+                <Text style={[screenStyles.tabText, activeTab === 'global' && screenStyles.tabTextActive]}>
+                  Global
+                </Text>
+              </TouchableOpacity>
+              {userGroups.map((group) => (
+                <TouchableOpacity key={group.id} onPress={() => setActiveTab(group.id)} style={screenStyles.tabButton}>
+                  <Text style={[screenStyles.tabText, activeTab === group.id && screenStyles.tabTextActive]}>
+                    {group.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={screenStyles.sortOptionsContainer}>
+            {SORT_METRICS.map((option, index) => (
+              <React.Fragment key={option.value}>
+                <TouchableOpacity onPress={() => setSortMetric(option.value)}>
+                  <Text style={[
+                    appGlobalStyles.mutedText, // Globale stijl voor gedempt tekst
+                    screenStyles.sortOptionTextCustom, // Scherm-specifieke tweaks
+                    sortMetric === option.value && screenStyles.sortOptionTextActive // Actieve stijl
+                  ]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+                {index < SORT_METRICS.length - 1 && <Text style={screenStyles.sortSeparator}> | </Text>}
+              </React.Fragment>
+            ))}
+          </View>
+
+          {isLoading ? (
+            <ActivityIndicator size="large" color={themeColors.accent} style={appGlobalStyles.centeredContainer} />
+          ) : error ? (
+            <Text style={[appGlobalStyles.errorText, screenStyles.errorTextCustom]}>{error}</Text>
+          ) : leaderboardData.length === 0 ? (
+            <Text style={[appGlobalStyles.bodyText, screenStyles.emptyTextCustom]}>
+              {"The leaderboard is currently empty or no users match the criteria. Keep up the good work!"}
             </Text>
-          </TouchableOpacity>
-          {userGroups.map((group) => (
-            <TouchableOpacity key={group.id} onPress={() => setActiveTab(group.id)} style={styles.tabButton}>
-              <Text style={[styles.tabText, activeTab === group.id && styles.tabTextActive]}>
-                {group.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Sort Metric Selection Tabs */}
-      <View style={styles.sortOptionsContainer}>
-        {SORT_METRICS.map((option, index) => (
-          <React.Fragment key={option.value}>
-            <TouchableOpacity onPress={() => setSortMetric(option.value)}>
-              <Text style={[
-                globalStyles.mutedText, 
-                styles.sortOptionTextCustom, 
-                sortMetric === option.value && styles.sortOptionTextActive
-              ]}>
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-            {index < SORT_METRICS.length - 1 && <Text style={styles.sortSeparator}> | </Text>}
-          </React.Fragment>
-        ))}
-      </View>
-
-      {/* Main Content: Loading Indicator, Error Message, or Leaderboard List */}
-      {isLoading ? (
-        <ActivityIndicator size="large" color={colors.accent} style={globalStyles.centeredContainer} />
-      ) : error ? (
-        <Text style={[globalStyles.errorText, styles.errorTextCustom]}>{error}</Text>
-      ) : leaderboardData.length === 0 ? (
-        <Text style={[globalStyles.bodyText, styles.emptyTextCustom]}>
-          {"The leaderboard is currently empty or no users match the criteria. Keep up the good work!"}
-        </Text>
-      ) : (
-        <FlatList
-          data={leaderboardData}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContentContainer}
-        />
-      )}
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  outerContainerCustom: {
-    backgroundColor: "#FFF", // Consistent background
-  },
-  headerContainer: {
-    backgroundColor: '#FFF',
-  },
-  headerTitleContainer: {
-    flexDirection: 'row',
-    marginLeft: 20,
-    marginTop: -10
-  },
-  headerTitleCustom: {
-    color: colors.textDefault,
-    fontSize: 28, // Ensure headerText from globalStyles is applied or define size here
-    fontWeight: 'bold', // Make title bold
-  },
-  headerTitleHighlight: {
-    color: colors.accent,
-  },
-  sortOptionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginBottom: 10,
-    backgroundColor: '#FFF', // Give sort options a subtle background
-  },
-  sortOptionTextCustom: {
-    marginHorizontal: 5,
-    paddingVertical: 5, // Add some padding for better touch area
-    fontSize: 14, // Standardize font size
-  },
-  sortOptionTextActive: {
-    color: colors.accent,
-    fontWeight: 'bold',
-    borderBottomWidth: 2, // Highlight active sort option
-    borderBottomColor: colors.accent,
-  },
-  sortSeparator: {
-    fontSize: 14,
-    color: colors.mediumGray,
-    marginHorizontal: 3, // Reduce space around separator
-  },
-  errorTextCustom: {
-    marginTop: 20,
-    paddingHorizontal: 20,
-    textAlign: 'center', // Center error text
-  },
-  emptyTextCustom: {
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: 50,
-    paddingHorizontal: 20,
-  },
-  listContentContainer: {
-    paddingHorizontal: 15,
-    paddingBottom: 15, // Add padding at the bottom of the list
-  },
-  itemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    paddingVertical: 12, // Increased padding for better spacing
-    paddingHorizontal: 10,
-    marginVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.borderColor,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  topUserItemContainer: {
-    backgroundColor: colors.cardBackground, // Reverted from accentMuted
-    borderColor: colors.accent, // Keep accent border for highlighting
-  },
-  rankCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15, // Perfect circle
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  rankCircleDefault: {
-    backgroundColor: colors.lightGray, // Softer background for default rank
-  },
-  rankCircleTop: {
-    backgroundColor: colors.accent,
-  },
-  rankText: {
-    fontSize: 14,
-    color: colors.textDefault,
-    fontWeight: 'bold',
-  },
-  rankTextTop: {
-    color: colors.primaryText, // White text on accent background
-  },
-  avatar: {
-    width: 40, // Slightly larger avatar
-    height: 40,
-    borderRadius: 20, // Perfect circle
-    marginRight: 10,
-    backgroundColor: colors.lightGray, // Placeholder background for image loading
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.mediumGray,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10, // Consistent margin
-  },
-  avatarPlaceholderText: {
-    color: colors.primaryText,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  nameText: {
-    flex: 1, // Allow name to take available space
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.textDefault,
-  },
-  separator: {
-    height: '60%', // Vertical separator line
-    width: 1,
-    backgroundColor: colors.borderColor, // Use border color for separator
-    marginHorizontal: 10,
-  },
-  scoreText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.accent,
-    minWidth: 40, // Ensure score has some minimum width for alignment
-    textAlign: 'right', // Align score to the right
-  },
-  tabsContainer: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderColor,
-  },
-  tabButton: {
-    paddingBottom: 5,
-  },
-  tabText: {
-    paddingHorizontal: 5,
-    fontSize: 16,
-    color: colors.textMuted,
-  },
-  tabTextActive: {
-    color: colors.accent,
-    fontWeight: 'bold',
-    borderBottomWidth: 2,
-    borderBottomColor: colors.accent,
-  },
-});
+          ) : (
+            <FlatList
+              data={leaderboardData}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={screenStyles.listContentContainer}
+            />
+          )}
+        </View>
+      );
+    }

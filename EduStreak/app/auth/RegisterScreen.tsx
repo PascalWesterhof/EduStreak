@@ -1,10 +1,79 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react'; // << Voeg useMemo toe
 import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { colors } from '../../constants/Colors';
-import { registerWithEmail } from '../../functions/authService'; // Import the service function
-import { globalStyles } from '../../styles/globalStyles';
+import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // << Importeer authScreenFixedColors en ColorScheme
+import { registerWithEmail } from '../../functions/authService';
+import { getGlobalStyles } from '../../styles/globalStyles'; // << Importeer de functie
 import { showAlert } from "../../utils/showAlert";
+
+const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background, // << Gebruik 'colors' (was colors.white)
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'android' ? 40 : 60,
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? 45 : 65,
+    left: 20,
+    zIndex: 1,
+    padding: 10,
+  },
+  backArrow: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+    tintColor: colors.textDefault, // << Gebruik 'colors'
+  },
+  logo: {
+    width: 180,
+    height: 90,
+    resizeMode: 'contain',
+    marginBottom: 20,
+    marginTop: 20,
+  },
+  headerTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.titleText
+    // color: colors.textDefault, // Komt nu van appGlobalStyles.titleText
+    fontWeight: 'bold', // Kan blijven als lokale override/specificatie
+    marginBottom: 30,
+  },
+  inputCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.inputBase
+    // ...appGlobalStyles.inputBase, // Als je de basis uit globale stijlen wilt
+    // backgroundColor: colors.inputBackground, // Komt van appGlobalStyles.inputBase
+    width: '100%',
+    borderRadius: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    marginBottom: 15,
+  },
+  registerButtonCustom: {
+    // ...appGlobalStyles.inputBase, // Als basis voor vorm als dat gewenst is
+    backgroundColor: colors.primary, // << Gebruik 'colors'
+    alignItems: 'center',
+    width: '100%',
+    borderRadius: 25,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    marginBottom: 20,
+  },
+  registerButtonTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.bodyText
+    color: colors.primaryText, // << Gebruik 'colors' (was colors.white)
+    fontWeight: 'bold',
+  },
+  loginLinkContainer: {
+    marginTop: 10,
+  },
+  loginLinkTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.bodyText
+    // color: colors.textDefault, // Komt van appGlobalStyles.bodyText
+    textAlign: 'center',
+  },
+  loginLinkTextHighlightCustom: {
+    color: colors.primary, // << Gebruik 'colors'
+    fontWeight: 'bold',
+  },
+});
 
 /**
  * `RegisterScreen` allows new users to create an account.
@@ -14,11 +83,17 @@ import { showAlert } from "../../utils/showAlert";
  * Navigates to the Login screen upon successful registration.
  */
 export default function RegisterScreen() {
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const router = useRouter();
+  const fixedAuthColors = authScreenFixedColors;
+
+    // Genereer globale stijlen met deze vaste kleuren
+    const appGlobalStyles = useMemo(() => getGlobalStyles(fixedAuthColors), []);
+    const screenStyles = useMemo(() => getScreenStyles(fixedAuthColors, appGlobalStyles), [appGlobalStyles]);
+
+    const [displayName, setDisplayName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const router = useRouter();
 
   /**
    * Handles the user registration process.
@@ -48,118 +123,57 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-        <Image source={require('../../assets/icons/back_arrow.png')} style={styles.backArrow} />
-      </TouchableOpacity>
-      <Image source={require('../../assets/images/splash_icon_edustreak.png')} style={styles.logo} />
-      <Text style={[globalStyles.titleText, styles.headerTextCustom]}>CREATE ACCOUNT</Text>
+    <View style={screenStyles.container}>
+         <TouchableOpacity onPress={() => router.back()} style={screenStyles.backButton}>
+           <Image source={require('../../assets/icons/back_arrow.png')} style={screenStyles.backArrow} />
+         </TouchableOpacity>
+         <Image source={require('../../assets/images/splash_icon_edustreak.png')} style={screenStyles.logo} />
 
-      <TextInput
-        style={[globalStyles.inputBase, styles.inputCustom]}
-        placeholder="Display Name"
-        placeholderTextColor={colors.placeholderText}
-        value={displayName}
-        onChangeText={setDisplayName}
-        autoCapitalize="words"
-      />
-      <TextInput
-        style={[globalStyles.inputBase, styles.inputCustom]}
-        placeholder="Email address"
-        placeholderTextColor={colors.placeholderText}
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={[globalStyles.inputBase, styles.inputCustom]}
-        placeholder="Password"
-        placeholderTextColor={colors.placeholderText}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TextInput
-        style={[globalStyles.inputBase, styles.inputCustom]}
-        placeholder="Confirm Password"
-        placeholderTextColor={colors.placeholderText}
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-      />
-      <TouchableOpacity style={[globalStyles.inputBase, styles.registerButtonCustom]} onPress={handleRegister}>
-        <Text style={[globalStyles.bodyText, styles.registerButtonTextCustom]}>CREATE ACCOUNT</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.loginLinkContainer} onPress={() => router.push('/auth/LoginScreen')}>
-        <Text style={[globalStyles.bodyText, styles.loginLinkTextCustom]}>Already have an account? <Text style={[styles.loginLinkTextHighlightCustom]}>LOG IN</Text></Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
+         <Text style={[appGlobalStyles.titleText, screenStyles.headerTextCustom]}>CREATE ACCOUNT</Text>
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'android' ? 40 : 60,
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? 45 : 65,
-    left: 20,
-    zIndex: 1,
-    padding:10,
-  },
-  backArrow: {
-    width: 24,
-    height: 24,
-    resizeMode: 'contain',
-    tintColor: colors.textDefault,
-  },
-  logo: {
-    width: 180,
-    height: 90,
-    resizeMode: 'contain',
-    marginBottom: 20,
-    marginTop: 20,
-  },
-  headerTextCustom: {
-    color: colors.textDefault,
-    fontWeight: 'bold',
-    marginBottom: 30,
-  },
-  inputCustom: {
-    width: '100%',
-    borderRadius: 10,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    marginBottom: 15,
-  },
-  registerButtonCustom: {
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    width: '100%',
-    borderRadius: 25,
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    marginBottom: 20,
-  },
-  registerButtonTextCustom: {
-    color: colors.white,
-    fontWeight: 'bold',
-  },
-  loginLinkContainer: {
-    marginTop: 10,
-  },
-  loginLinkTextCustom: {
-    color: colors.textDefault,
-    textAlign: 'center',
-  },
-  loginLinkTextHighlightCustom: {
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
-}); 
+         <TextInput
+           style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
+           placeholder="Display Name"
+           placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+           value={displayName}
+           onChangeText={setDisplayName}
+           autoCapitalize="words"
+         />
+         <TextInput
+           style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
+           placeholder="Email address"
+           placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+           value={email}
+           onChangeText={setEmail}
+           keyboardType="email-address"
+           autoCapitalize="none"
+         />
+         <TextInput
+           style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
+           placeholder="Password"
+           placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+           value={password}
+           onChangeText={setPassword}
+           secureTextEntry
+         />
+         <TextInput
+           style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
+           placeholder="Confirm Password"
+           placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+           value={confirmPassword}
+           onChangeText={setConfirmPassword}
+           secureTextEntry
+         />
+         {/* registerButtonCustom is al volledig gedefinieerd in getScreenStyles met vaste kleuren */}
+         {/* Je kunt appGlobalStyles.inputBase hier weglaten als de vorm niet exact die van een input hoeft te zijn */}
+         <TouchableOpacity style={[appGlobalStyles.inputBase, screenStyles.registerButtonCustom]} onPress={handleRegister}>
+           <Text style={[appGlobalStyles.bodyText, screenStyles.registerButtonTextCustom]}>CREATE ACCOUNT</Text>
+         </TouchableOpacity>
+         <TouchableOpacity style={screenStyles.loginLinkContainer} onPress={() => router.push('/auth/LoginScreen')}>
+           <Text style={[appGlobalStyles.bodyText, screenStyles.loginLinkTextCustom]}>
+             Already have an account? <Text style={screenStyles.loginLinkTextHighlightCustom}>LOG IN</Text>
+           </Text>
+         </TouchableOpacity>
+       </View>
+     );
+   }

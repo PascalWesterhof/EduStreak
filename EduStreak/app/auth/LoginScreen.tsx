@@ -1,11 +1,92 @@
 import { statusCodes } from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react'; // << Voeg useMemo toe
 import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { colors } from '../../constants/Colors';
 import { signInWithEmail, signInWithGoogle as signInWithGoogleService } from '../../functions/authService';
-import { globalStyles } from '../../styles/globalStyles';
+import { getGlobalStyles } from '../../styles/globalStyles'; // << NIEUW
 import { showAlert } from "../../utils/showAlert";
+import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // << Importeer authScreenFixedColors
+
+const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleSheet.create({
+   container: {
+      flex: 1,
+      backgroundColor: colors.background, // << GEBRUIK 'colors'
+      alignItems: 'center',
+      paddingTop: Platform.OS === 'android' ? 40 : 60,
+      paddingHorizontal: 20,
+    },
+    logo: {
+      width: 200,
+      height: 100,
+      resizeMode: 'contain',
+      marginBottom: 40,
+      marginTop: 20,
+    },
+    googleButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.white, // << GEBRUIK 'colors'
+      borderWidth: 1,
+      borderColor: colors.borderColor, // << GEBRUIK 'colors'
+      borderRadius: 25,
+      paddingVertical: 12,
+      paddingHorizontal: 30,
+      marginBottom: 20,
+      width: '100%',
+      justifyContent: 'center',
+    },
+    googleIcon: {
+      width: 20,
+      height: 20,
+      marginRight: 15,
+    },
+    googleButtonTextCustom: {
+      color: colors.textDefault, // << GEBRUIK 'colors'
+      fontWeight: 'bold',
+    },
+    orTextCustom: {
+      color: colors.primary, // << GEBRUIK 'colors'
+      fontWeight: 'bold',
+      marginBottom: 20,
+    },
+    inputCustom: {
+      // ...appGlobalStyles.inputBase, // Als je inputBase ook met 'colors' wilt genereren
+      // backgroundColor: colors.inputBackground,
+      // borderColor: colors.inputBorder,
+      // color: colors.textInput,
+      width: '100%',
+      borderRadius: 10,
+      paddingVertical: 15,
+      paddingHorizontal: 20,
+      marginBottom: 15,
+    },
+    loginButtonCustom: {
+      backgroundColor: colors.primary, // << GEBRUIK 'colors'
+      alignItems: 'center',
+      width: '100%',
+      borderRadius: 25,
+      paddingVertical: 15,
+      paddingHorizontal: 30,
+      marginBottom: 20,
+    },
+    loginButtonTextCustom: {
+      color: colors.primaryText, // << GEBRUIK 'colors'
+      fontWeight: 'bold',
+    },
+    linksContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: '100%',
+      paddingHorizontal: 10,
+    },
+    linkTextCustom: {
+      color: colors.textDefault, // << GEBRUIK 'colors'
+      fontWeight: 'bold',
+    },
+    signUpTextCustom: {
+      color: colors.primary, // << GEBRUIK 'colors'
+    },
+  });
 
 /**
  * `LoginScreen` provides options for user authentication.
@@ -14,9 +95,13 @@ import { showAlert } from "../../utils/showAlert";
  * It handles various states including input validation and error messages from the auth services.
  */
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const router = useRouter();
+   const fixedAuthColors = authScreenFixedColors;
+   const appGlobalStyles = useMemo(() => getGlobalStyles(fixedAuthColors), []); // fixedAuthColors is stabiel, dus [] dependency is ok
+   const screenStyles = useMemo(() => getScreenStyles(fixedAuthColors, appGlobalStyles), [appGlobalStyles]); // afhankelijk van appGlobalStyles omdat het wordt meegegeven
+
+   const [email, setEmail] = useState('');
+   const [password, setPassword] = useState('');
+   const router = useRouter();
 
   /**
    * Handles the email and password login process.
@@ -70,133 +155,44 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={require('../../assets/images/splash_icon_edustreak.png')} style={styles.logo} />
-      
-      <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
-        <Image source={require('../../assets/images/google-logo.png')} style={styles.googleIcon} />
-        <Text style={[globalStyles.bodyText, styles.googleButtonTextCustom]}>CONTINUE WITH GOOGLE</Text>
-      </TouchableOpacity>
+   <View style={screenStyles.container}>
+        <Image source={require('../../assets/images/splash_icon_edustreak.png')} style={screenStyles.logo} />
 
-      <Text style={[globalStyles.mutedText, styles.orTextCustom]}>OR LOG IN WITH EMAIL</Text>
+        <TouchableOpacity style={screenStyles.googleButton} onPress={handleGoogleSignIn}>
+          <Image source={require('../../assets/images/google-logo.png')} style={screenStyles.googleIcon} />
+          <Text style={[appGlobalStyles.bodyText, screenStyles.googleButtonTextCustom]}>CONTINUE WITH GOOGLE</Text>
+        </TouchableOpacity>
 
-      <TextInput
-        style={[globalStyles.inputBase, styles.inputCustom]}
-        placeholder="Email address"
-        placeholderTextColor={colors.placeholderText} 
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={[globalStyles.inputBase, styles.inputCustom]}
-        placeholder="Password"
-        placeholderTextColor={colors.placeholderText} 
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TouchableOpacity style={[globalStyles.inputBase, styles.loginButtonCustom]} onPress={handleLogin}>
-        <Text style={[globalStyles.bodyText, styles.loginButtonTextCustom]}>LOG IN</Text>
-      </TouchableOpacity>
-      <View style={styles.linksContainer}>
-        <TouchableOpacity onPress={() => router.push('/auth/ForgotPasswordScreen')}>
-          <Text style={[globalStyles.bodyText, styles.linkTextCustom]}>Forgot Password?</Text>
+        <Text style={[appGlobalStyles.mutedText, screenStyles.orTextCustom]}>OR LOG IN WITH EMAIL</Text>
+
+        <TextInput
+          style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
+          placeholder="Email address"
+          placeholderTextColor={fixedAuthColors.placeholderText} // << GEBRUIK 'fixedAuthColors'
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <TextInput
+          style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
+          placeholder="Password"
+          placeholderTextColor={fixedAuthColors.placeholderText} // << GEBRUIK 'fixedAuthColors'
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        <TouchableOpacity style={[appGlobalStyles.inputBase, screenStyles.loginButtonCustom]} onPress={handleLogin}>
+          <Text style={[appGlobalStyles.bodyText, screenStyles.loginButtonTextCustom]}>LOG IN</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/auth/RegisterScreen')}>
-          <Text style={[globalStyles.bodyText, styles.linkTextCustom, styles.signUpTextCustom]}>SIGN UP</Text>
-        </TouchableOpacity>
+        <View style={screenStyles.linksContainer}>
+          <TouchableOpacity onPress={() => router.push('/auth/ForgotPasswordScreen')}>
+            <Text style={[appGlobalStyles.bodyText, screenStyles.linkTextCustom]}>Forgot Password?</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/auth/RegisterScreen')}>
+            <Text style={[appGlobalStyles.bodyText, screenStyles.linkTextCustom, screenStyles.signUpTextCustom]}>SIGN UP</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
   );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white, // Use theme white for auth screens
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'android' ? 40 : 60, // Adjust top padding for status bar
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    position: 'absolute',
-    top: Platform.OS === 'android' ? 45 : 65, // Adjust for status bar
-    left: 20,
-    zIndex: 1, // Ensure it's above other elements
-    padding: 10, // Add padding for easier touch
-  },
-  backArrow: {
-    width: 24, // Adjust as needed
-    height: 24, // Adjust as needed
-    resizeMode: 'contain',
-  },
-  logo: {
-    width: 200, // Adjust as needed
-    height: 100, // Adjust as needed
-    resizeMode: 'contain',
-    marginBottom: 40,
-    marginTop: 20, // Add some margin top if back button is present
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.borderColor,
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    marginBottom: 20,
-    width: '100%',
-    justifyContent: 'center',
-  },
-  googleIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 15,
-  },
-  googleButtonTextCustom: { // Based on globalStyles.bodyText
-    color: colors.textDefault, // Was black
-    fontWeight: 'bold',
-  },
-  orTextCustom: { // Based on globalStyles.mutedText
-    color: colors.primary,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  inputCustom: { // Based on globalStyles.inputBase
-    width: '100%', // Kept local
-    borderRadius: 10, // Keep local override if different from inputBase
-    paddingVertical: 15, // Keep local override
-    paddingHorizontal: 20, // Keep local override
-    marginBottom: 15, // Keep local override
-  },
-  loginButtonCustom: { // Based on globalStyles.inputBase for shape, then color override
-    backgroundColor: colors.primary, 
-    alignItems: 'center',
-    width: '100%',
-    borderRadius: 25, // Specific for this button
-    paddingVertical: 15, // Specific for this button
-    paddingHorizontal: 30, // Specific for this button
-    marginBottom: 20, // Specific for this button
-  },
-  loginButtonTextCustom: { // Based on globalStyles.bodyText
-    color: colors.white, // White text
-    fontWeight: 'bold',
-  },
-  linksContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 10, // Add some padding if needed
-  },
-  linkTextCustom: { // Based on globalStyles.bodyText
-    color: colors.textDefault, // Was black
-    fontWeight: 'bold',
-  },
-  signUpTextCustom: { // Extends linkTextCustom
-    color: colors.primary, 
-  },
-}); 
+};

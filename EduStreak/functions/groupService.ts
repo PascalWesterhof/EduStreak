@@ -6,6 +6,8 @@ import {
   updateDoc,
   getDoc,
   getDocs,
+  query,
+  where,
   arrayUnion,
   arrayRemove,
   deleteDoc,
@@ -18,6 +20,14 @@ export const createGroup = async (
   description: string,
   imageUrl?: string
 ) => {
+  // Check for duplicate group name
+  const groupQuery = query(collection(db, "groups"), where("name", "==", name));
+  const existing = await getDocs(groupQuery);
+
+  if (!existing.empty) {
+    throw new Error("A group with this name already exists");
+  }
+
   const groupRef = await addDoc(collection(db, "groups"), {
     name,
     description,
@@ -85,7 +95,11 @@ export const leaveGroup = async (userId: string, groupId: string) => {
   const updatedGroupSnap = await getDoc(groupRef);
   const updatedGroupData = updatedGroupSnap.data();
 
-  if (!updatedGroupData || !updatedGroupData.members || updatedGroupData.members.length === 0) {
+  if (
+    !updatedGroupData ||
+    !updatedGroupData.members ||
+    updatedGroupData.members.length === 0
+  ) {
     // No members left, delete the group
     await deleteDoc(groupRef);
   }
@@ -127,5 +141,3 @@ export const getGroupMembersWithDetails = async (groupId: string) => {
   // Filter out any nulls (users not found)
   return membersDetails.filter(Boolean);
 };
-
-

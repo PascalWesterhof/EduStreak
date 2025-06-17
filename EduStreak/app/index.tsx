@@ -7,7 +7,6 @@ import { ActivityIndicator, FlatList, Modal, Platform, ScrollView, StatusBar, St
 import 'react-native-get-random-values'; // For uuid
 import { CircularProgress } from '../components/CircularProgress'; // Restored import
 import { auth, db } from '../config/firebase'; // Import db and auth
-import { colors } from '../constants/Colors'; // Import global colors
 import {
   addNewHabit as addNewHabitService,
   completeHabitLogic as completeHabitService,
@@ -15,10 +14,13 @@ import {
   updateDailyStreakLogic as updateDailyStreakService
 } from '../functions/habitService'; // Import the service
 import { checkAndResetDailyStreak } from '../functions/userService';
-import { globalStyles } from '../styles/globalStyles'; // Import global styles
+import { getGlobalStyles } from '../styles/globalStyles'; // << NIEUW: importeer de functie
 import { Habit } from '../types'; // Path for types
 import { getIsoDateString } from '../utils/dateUtils'; // Added import
 import AddHabitScreen from './habit/AddHabitScreen';
+import { useTheme } from '../functions/themeFunctions/themeContext'; // Pas het pad aan naar jouw bestand
+
+
 
 const isWeb = Platform.OS === 'web';
 
@@ -26,6 +28,159 @@ const isWeb = Platform.OS === 'web';
  * Array of day abbreviations for the date selector.
  */
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// BUITEN DE Index COMPONENT
+    const getStyles = (colors: ColorScheme): StyleSheet.NamedStyles<any> => {
+      return StyleSheet.create({
+      container: {
+        flex: 1,
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+      },
+      headerContainer: {
+        flexDirection: 'row',
+        marginLeft: 20,
+        marginBottom: 10,
+      },
+      greetingText: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        flexShrink: 1,
+      },
+      userNameText: {
+      },
+      dateSelectorContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        marginBottom: 20,
+      },
+      dateScrollContent: {
+        alignItems: 'center',
+        flexGrow: 1,
+      },
+      dateItem: {
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        marginHorizontal: 4,
+        borderRadius: 10,
+      },
+      selectedDateItem: {
+      },
+      dateDayText: {
+        fontSize: 12,
+      },
+      dateNumberText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+      },
+      selectedDateText: {
+      },
+      dateChevron: {
+          fontSize: 20,
+          paddingHorizontal: 10,
+      },
+      overallProgressContainer: {
+        alignItems: 'center',
+        marginBottom: 20,
+        paddingHorizontal: 20,
+      },
+      progressText: {
+        fontSize: 16,
+        marginTop: 10,
+        fontWeight: 'bold',
+      },
+      listContentContainer: {
+        paddingHorizontal: 15,
+        paddingBottom: 80,
+      },
+      webListContentContainer: {
+        width: '80%',
+        alignSelf: 'center',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+      },
+       row: {
+        justifyContent: 'space-between',
+        marginBottom: 15,
+      },
+      habitCard: {
+        borderRadius: 15,
+        padding: 15,
+        width: '48%',
+        aspectRatio: 1,
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      },
+      webHabitCard: {
+        width: 250,
+        margin: 10,
+      },
+      habitInfoTouchable: {
+          alignItems: 'center',
+          width: '100%',
+      },
+      habitNameContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 8,
+      },
+      habitName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        textAlign: 'center',
+      },
+      checkmarkText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 5,
+      },
+      completeButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        borderRadius: 20,
+        width: '80%',
+        alignItems: 'center',
+        marginTop: 'auto',
+      },
+      completedButton: {
+      },
+      completeButtonText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+      },
+      emptyText: {
+        textAlign: 'center',
+        marginTop: 50,
+        fontSize: 16,
+      },
+      addHabitFab: {
+        position: 'absolute',
+        right: 20,
+        bottom: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.accent,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+      },
+      addHabitFabText: {
+        fontSize: 30,
+        color: colors.primaryText,
+      },
+    })};
 
 /**
  * `Index` component serves as the Home screen of the application.
@@ -36,6 +191,9 @@ const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export default function Index() {
   const appNavigation = useNavigation();
   const router = useRouter();
+  const { colors: themeColors, themeMode } = useTheme();
+  const styles = useMemo(() => getStyles(themeColors), [themeColors]);
+  const globalStyles = useMemo(() => getGlobalStyles(themeColors), [themeColors]); // << NIEUW: Genereer stijlen met thema kleuren
 
   // State for habits, modal visibility, loading status, user ID, selected date, etc.
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -257,61 +415,79 @@ export default function Index() {
     const isButtonDisabled = getIsoDateString(selectedDate) !== getIsoDateString(new Date()) || isFullyCompleted;
 
     return (
-      <View style={[styles.habitCard, isWeb && styles.webHabitCard]}>
-        <TouchableOpacity style={styles.habitInfoTouchable} onPress={() => router.push(`/habit/${item.id}`)}>
-          <View style={styles.habitNameContainer}> 
-            <Text style={styles.habitName}>{item.name}</Text>
-            {isFullyCompleted && <Text style={styles.checkmarkText}> ✓</Text>}
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.completeButton, isButtonDisabled ? styles.completedButton : {}]} 
-          onPress={() => handleCompleteHabit(item.id)}
-          disabled={isButtonDisabled}
-        >
-          <Text style={styles.completeButtonText}>{isFullyCompleted ? "COMPLETED" : "COMPLETE"}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  };
+            <View style={[styles.habitCard, { backgroundColor: themeColors.cardBackground, shadowColor: themeColors.shadow || '#000' }, isWeb && styles.webHabitCard]}>
+              <TouchableOpacity>
+                <View>
+                  <Text style={[styles.habitName, { color: themeColors.text }]}>{item.name}</Text>
+                  {isFullyCompleted && <Text style={[styles.checkmarkText, { color: themeColors.accent }]}> ✓</Text>}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.completeButton,
+                  { backgroundColor: themeColors.accent },
+                  isButtonDisabled ? [styles.completedButton, { backgroundColor: themeColors.textMuted }] : {}
+                ]}
+              >
+                <Text style={[styles.completeButtonText, { color: themeColors.primaryText }]}>{isFullyCompleted ? "COMPLETED" : "COMPLETE"}</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        };
 
   // Display loading indicator while fetching initial data.
-  if (isLoading) {
-    return <View style={globalStyles.centeredContainer}><ActivityIndicator size="large" color={colors.accent} /></View>;
-  }
+   if (isLoading) {
+          return <View style={globalStyles.centeredContainer}><ActivityIndicator size="large" color={themeColors.accent} /></View>; // Gebruik themeColors.accent
+        }
 
   return (
-    <View style={styles.container}>
-      {/* Header Section: Menu, Greeting, Notifications */}
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.headerContainer}>
-        <Text style={styles.greetingText}>Hello, <Text style={styles.userNameText}>{userName}!</Text></Text>
-      </View>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+             <StatusBar
+               barStyle={themeMode === 'dark' ? 'light-content' : 'dark-content'}
+               backgroundColor={themeColors.headerBackground}
+             />
+             <View style={styles.headerContainer}>
+               <Text style={[styles.greetingText, { color: themeColors.text }]}>Hello, <Text style={[styles.userNameText, { color: themeColors.accent }]}>{userName}!</Text></Text>
+             </View>
 
-    
+
       {/* Horizontal Date Selector */}
       <View style={styles.dateSelectorContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateScrollContent}>
-          {dateRange.map((date, index) => {
-            const isSelected = date.toDateString() === selectedDate.toDateString();
-            return (
-              <TouchableOpacity key={index} onPress={() => handleDateSelect(date)} style={[styles.dateItem, isSelected && styles.selectedDateItem]}>
-                <Text style={[styles.dateDayText, isSelected && styles.selectedDateText]}>{days[date.getDay()]}</Text>
-                <Text style={[styles.dateNumberText, isSelected && styles.selectedDateText]}>{date.getDate()}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-         <TouchableOpacity onPress={() => router.push(`/calendar`)}>
-             <Text style={styles.dateChevron}>{`>>`}</Text>
-        </TouchableOpacity>
-      </View>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateScrollContent}>
+                    {dateRange.map((date, index) => {
+                      const isSelected = date.toDateString() === selectedDate.toDateString();
+                      return (
+                        <TouchableOpacity
+                          key={index}
+                          onPress={() => handleDateSelect(date)}
+                          style={[
+                            styles.dateItem,
+                            { backgroundColor: themeColors.cardBackground }, // Gebruik themeColors.cardBackground
+                            isSelected && [styles.selectedDateItem, { backgroundColor: themeColors.accent }] // Gebruik themeColors.accent
+                          ]}
+                        >
+                          <Text style={[styles.dateDayText, { color: themeColors.textMuted }, isSelected && { color: themeColors.primaryText }]}>{days[date.getDay()]}</Text>
+                          <Text style={[styles.dateNumberText, { color: themeColors.text }, isSelected && { color: themeColors.primaryText }]}>{date.getDate()}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                  <TouchableOpacity onPress={() => router.push(`/calendar`)}>
+                    <Text style={[styles.dateChevron, { color: themeColors.textMuted }]}>{`>>`}</Text>
+                  </TouchableOpacity>
+                </View>
 
       {/* Overall Daily Progress Display */}
-      <View style={styles.overallProgressContainer}>
-        <CircularProgress percentage={dailyProgress.percentage} radius={60} strokeWidth={10} />
-        <Text style={styles.progressText}>{dailyProgress.count}/{dailyProgress.total} habits completed</Text>
-      </View>
+       <View style={styles.overallProgressContainer}>
+                  <CircularProgress
+                    percentage={dailyProgress.percentage}
+                    radius={60}
+                    strokeWidth={10}
+                    color={themeColors.accent} // Zorg dat CircularProgress deze prop accepteert
+                    backgroundColor={themeColors.textMuted} // Zorg dat CircularProgress deze prop accepteert
+                  />
+                  <Text style={[styles.progressText, { color: themeColors.accent }]}>{dailyProgress.count}/{dailyProgress.total} habits completed</Text>
+                </View>
 
       {/* List of Habits for the Selected Date */}
       <FlatList
@@ -340,184 +516,3 @@ export default function Index() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF', 
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    marginLeft: 20,
-    marginBottom: 10,
-  },
-  menuIcon: {
-    width: 24,
-    height: 24,
-    resizeMode: 'contain',
-  },
-  menuButtonContainer: {
-    position: 'absolute',
-    left: 10,
-    padding: 10,
-    zIndex: 1,
-  },
-  greetingText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.textDefault,
-    textAlign: 'center',
-    flexShrink: 1, // Allow greeting text to shrink if needed
-  },
-  userNameText: {
-    color: colors.accent,
-  },
-  dateSelectorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10, // Adjusted for better spacing with chevron
-    marginBottom: 20,
-  },
-  dateScrollContent: {
-    alignItems: 'center',
-    flexGrow: 1, // Allow ScrollView to take available space before chevron
-  },
-  dateItem: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginHorizontal: 4,
-    borderRadius: 10,
-    backgroundColor: colors.cardBackground,
-  },
-  selectedDateItem: {
-    backgroundColor: colors.accent,
-  },
-  dateDayText: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  dateNumberText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.textDefault,
-  },
-  selectedDateText: {
-    color: colors.primaryText,
-  },
-  dateChevron: {
-      fontSize: 20,
-      color: colors.textMuted,
-      paddingHorizontal: 10, // Give chevron some touchable area
-  },
-  overallProgressContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
-  progressText: {
-    fontSize: 16,
-    color: colors.accent,
-    marginTop: 10,
-    fontWeight: 'bold',
-  },
-  listContentContainer: {
-    paddingHorizontal: 15, // Horizontal padding for the FlatList content
-    paddingBottom: 80, // Add padding to the bottom to avoid FAB overlap
-  },
-  webListContentContainer: {
-    width: '80%',
-    alignSelf: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-   row: {
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  habitCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 15,
-    padding: 15,
-    width: '48%', 
-    aspectRatio: 1, 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  webHabitCard: {
-    width: 250,
-    margin: 10,
-  },
-  habitInfoTouchable: {
-      alignItems: 'center', 
-      width: '100%',
-  },
-  habitNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  habitName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.textDefault,
-    textAlign: 'center',
-  },
-  checkmarkText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.accent,
-    marginLeft: 5,
-  },
-  completeButton: {
-    backgroundColor: colors.accent,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    width: '80%',
-    alignItems: 'center',
-    marginTop: 'auto', 
-  },
-  completedButton: {
-    backgroundColor: colors.textMuted,
-  },
-  completeButtonText: {
-    color: colors.primaryText,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 50,
-    fontSize: 16,
-    color: colors.textMuted,
-  },
-  addHabitFab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    backgroundColor: colors.accent,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8, // For Android shadow
-    shadowColor: '#000', // For iOS shadow
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  addHabitFabText: {
-    fontSize: 30,
-    color: colors.primaryText,
-  },
-});
