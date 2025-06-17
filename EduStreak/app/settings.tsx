@@ -11,7 +11,7 @@ export default function Settings() {
             // State for daily reminders toggle
         const [dailyRemindersEnabled, setDailyRemindersEnabled] = useState(true);
             // Load custom fonts asynchronously
-        const [fontLoaded] = useFonts({
+        const [fontsLoaded] = useFonts({
           'DMSans-SemiBold': require('../assets/fonts/DMSans-SemiBold.ttf'),
           'Rubik-Medium': require('../assets/fonts/Rubik-Medium.ttf'),
           });
