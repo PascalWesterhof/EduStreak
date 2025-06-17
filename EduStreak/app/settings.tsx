@@ -6,9 +6,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { cancelAllScheduledNotifications, scheduleDailyReminder } from './helpers/notificationReminder';
 
 export default function Settings() {
+        // State for notification toggle
         const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+            // State for daily reminders toggle
         const [dailyRemindersEnabled, setDailyRemindersEnabled] = useState(true);
-        const [fontsLoaded] = useFonts({
+            // Load custom fonts asynchronously
+        const [fontLoaded] = useFonts({
           'DMSans-SemiBold': require('../assets/fonts/DMSans-SemiBold.ttf'),
           'Rubik-Medium': require('../assets/fonts/Rubik-Medium.ttf'),
           });
@@ -29,7 +32,7 @@ export default function Settings() {
               });
             }
         }, [navigation, fontsLoaded]);
-
+    // Load notification preferences from AsyncStorage on component mount
       useEffect(() => {
         (async () => {
           const notifValue = await AsyncStorage.getItem("notificationsEnabled");
@@ -38,11 +41,12 @@ export default function Settings() {
             notificationsEnabled: notifValue,
             dailyRemindersEnabled: dailyValue,
           });
+              // Update state with parsed values if they exist
           if (notifValue !== null) setNotificationsEnabled(JSON.parse(notifValue));
           if (dailyValue !== null) setDailyRemindersEnabled(JSON.parse(dailyValue));
         })();
       }, []);
-
+    // Handler to toggle notifications on/off
     const toggleNotifications = async (value: boolean) => {
         console.log("toggleNotifications called with:", value);
       setNotificationsEnabled(value);
@@ -55,7 +59,7 @@ export default function Settings() {
         await cancelAllScheduledNotifications();
       }
     };
-
+    // Handler to toggle daily reminders on/off
     const toggleDailyReminders = async (value: boolean) => {
         console.log("toggleNotifications called with:", value);
       setDailyRemindersEnabled(value);
@@ -68,7 +72,7 @@ export default function Settings() {
         await cancelAllScheduledNotifications();
       }
     };
-
+    // Return null while fonts are loading to avoid UI glitches
         if(!fontsLoaded)
         {
             return null;

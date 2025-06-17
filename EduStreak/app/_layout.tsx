@@ -1,4 +1,6 @@
 import 'react-native-gesture-handler';
+import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // ✅ Add this
 
 import { Drawer } from "expo-router/drawer";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -8,17 +10,20 @@ import { useEffect } from 'react';
 
 const DrawerLayout = () =>
 {
+        // useEffect runs once when component mounts
       useEffect(() => {
         const setupNotifications = async () => {
+            // Request permissions to show notifications
           const { granted } = await Notifications.requestPermissionsAsync();
-          if (!granted) return;
+          if (!granted) return; // Exit if permission not granted
 
+          // Read notification preferences from AsyncStorage
           const notifValue = await AsyncStorage.getItem("notificationsEnabled");
           const dailyValue = await AsyncStorage.getItem("dailyRemindersEnabled");
-
+          // Parse stored string values to booleans, default false if null
           const notificationsEnabled = JSON.parse(notifValue ?? "false");
           const dailyRemindersEnabled = JSON.parse(dailyValue ?? "false");
-
+          // Schedule or cancel daily reminders based on preferences
           if (notificationsEnabled && dailyRemindersEnabled) {
             await scheduleDailyReminder();
           } else {

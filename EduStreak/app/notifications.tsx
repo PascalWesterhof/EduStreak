@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect, useEffect } from "react";
+import React, { useState, useLayoutEffect } from "react";
 import {
   Text,
   View,
@@ -16,23 +16,19 @@ import { useNavigation, DrawerActions, useFocusEffect } from "@react-navigation/
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { usePushNotifications } from "./usePushNotifications";
-import {notificationReminder} from "./helpers/notificationReminder"
+import { cancelAllNotifications, scheduleDailyHabitReminder } from "./helpers/notificationReminder";
 
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../config/firebase";
 
-import {
-  fetchUserHabits,
-} from "../functions/habitService";
+import { fetchUserHabits } from "../functions/habitService";
 import { checkAndResetDailyStreak } from "../functions/userService";
 
-
 const isWeb = Platform.OS === "web";
-// Interfaces for better type checking
+
 interface Habit {
   id: string;
   name: string;
-  // add other habit properties if needed
 }
 
 interface Notification {
@@ -46,76 +42,60 @@ export default function Notifications() {
   const navigation = useNavigation();
   const router = useRouter();
 
-  // Custom hook to handle push notifications logic (registering tokens, listening, etc.)
   const { expoPushToken, notifications } = usePushNotifications();
 
-  // State to manage the selected notification for modal display
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // State to store habits and loading state
   const [habits, setHabits] = useState<Habit[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Track current user info
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState("User");
 
-  // On component mount, cancel all notifications to start fresh
-useEffect(() => {
-  (async () => {
-    await cancelAllNotifications();
-  })();
-}, []);
+  // Removed auto-cancel from useEffect
 
-  // This runs whenever the screen is focused (like React Navigation's focus event)
-useFocusEffect(
-  React.useCallback(() => {
-      // Listen for Firebase auth changes
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        console.log("[Notifications] Auth: User signed in - ID:", user.uid);
-        setCurrentUserId(user.uid);
-        setUserName(user.displayName || "User");
+  useFocusEffect(
+    React.useCallback(() => {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            console.log("expoPushToken:", expoPushToken);
+          console.log("[Notifications] Auth: User signed in - ID:", user.uid);
+          setCurrentUserId(user.uid);
+          setUserName(user.displayName || "User");
 
-          // Reset daily streak if necessary (custom app logic)
-        await checkAndResetDailyStreak(user.uid);
+          await checkAndResetDailyStreak(user.uid);
 
-        try {
-            // Fetch user's habits from the backend or Firebase
-          const { habits: fetchedHabits } = await fetchUserHabits(user.uid);
-          setHabits(fetchedHabits);
-          console.log("[Notifications] Data fetched and set successfully.");
+          try {
+            const { habits: fetchedHabits } = await fetchUserHabits(user.uid);
+            setHabits(fetchedHabits);
+            console.log("[Notifications] Data fetched and set successfully.");
 
-            // Schedule notifications for each habit, defaulting to 8 AM reminder time
-          for (const habit of fetchedHabits) {
-            // Use a default time (e.g., 8 AM) or attach time to habit if available
-            const time = new Date();
-            time.setHours(8);
-            time.setMinutes(0);
-
-            await scheduleDailyHabitReminder(habit.name, time);
+            for (const habit of fetchedHabits) {
+              const time = new Date();
+              time.setHours(8);
+              time.setMinutes(0);
+              await scheduleDailyHabitReminder(habit.name, time);
+            }
+          } catch (error) {
+            console.error("[Notifications] Error loading data: ", error);
+            setHabits([]);
+          } finally {
+            setIsLoading(false);
           }
-        } catch (error) {
-          console.error("[Notifications] Error loading data: ", error);
-          setHabits([]);
-        } finally {
-          setIsLoading(false);
+        } else {
+          console.log("[Notifications] Auth: No user found. Redirecting to login.");
+          router.replace("/auth/LoginScreen");
         }
-      } else {
-          // If no user logged in, redirect to login screen
-        console.log("[Notifications] Auth: No user found. Redirecting to login.");
-        router.replace("/auth/LoginScreen");
-      }
-    });
-      // Cleanup listener on screen unfocus or unmount
-    return () => {
-      console.log("[Notifications] Cleanup: Auth listener.");
-      unsubscribe();
-    };
-  }, [router])
-);
-  // Setup screen header and hamburger menu icon
+      });
+
+      return () => {
+        console.log("[Notifications] Cleanup: Auth listener.");
+        unsubscribe();
+      };
+    }, [router])
+  );
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "Notifications",
@@ -142,14 +122,12 @@ useFocusEffect(
     });
   }, [navigation]);
 
-  // When user taps on a notification item, show modal with details
   const onPressNotification = (item: Notification) => {
-      console.log("Tapped notification:", item)
+    console.log("Tapped notification:", item);
     setSelectedNotification(item);
     setModalVisible(true);
   };
 
-  // Render a single notification in the FlatList
   const renderItem = ({ item }: { item: Notification }) => (
     <Pressable onPress={() => onPressNotification(item)} style={styles.notificationItem}>
       <MaterialIcons name="notifications-active" size={20} color="#fff" style={styles.icon} />
@@ -163,6 +141,7 @@ useFocusEffect(
   );
 
   return (
+
     <SafeAreaView style={styles.safeArea}>
       {notifications.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -172,7 +151,7 @@ useFocusEffect(
         <FlatList
           data={notifications}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+          keyExtract    or={(item) => item.id}
           contentContainerStyle={styles.listContainer}
         />
       )}

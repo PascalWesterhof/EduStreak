@@ -1,74 +1,95 @@
 import { useState, useEffect, useRef } from "react";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { Platform, Alert } from "react-native";
 
-// Set how notifications behave when received while the app is foregrounded
+// Configure notification behavior for foregrounded notifications
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true, // Show notification as an alert
-    shouldPlaySound: true, // Play notification sound
-    shouldSetBadge: true,  // Set app icon badge number
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
   }),
 });
 
+interface Notification {
+  id: string;
+  title: string;
+  body?: string;
+  time?: string;
+}
+
 export const usePushNotifications = () => {
-      // Store Expo push token for sending push notifications from backend
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
-    // Store list of received notifications to display inside the app
-  const [notifications, setNotifications] = useState<any[]>([]);
-
-  // Hold references to notification listeners to clean up on unmount
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
 
   useEffect(() => {
-          // Function to register device for push notifications
     const registerForPush = async () => {
-              // Push notifications only work on physical devices, not simulators/emulators
-      if (!Device.isDevice) {
-        console.log("Push notifications require a physical device.");
+      if (Platform.OS === "web") {
+        console.log("[PushNotifications] Web platform: using simulated notification");
+        // Simulate a notification
+        const simulatedNotification = {
+          id: Date.now().toString(),
+          title: "Simulated Notification",
+          body: "This is a test notification on web.",
+          time: new Date().toLocaleTimeString(),
+        };
+        setNotifications(prev => [simulatedNotification, ...prev]);
+
+        // Optional: show a visual alert
+        Alert.alert(simulatedNotification.title, simulatedNotification.body);
         return;
       }
 
-      // Check existing notification permission status
+      if (!Device.isDevice) {
+        console.log("[PushNotifications] Must use physical device for push notifications.");
+        return;
+      }
+
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
 
-      // Request permissions if not granted yet
       if (existingStatus !== "granted") {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
 
-      // Alert if permission not granted and exit early
       if (finalStatus !== "granted") {
-        alert("Push notifications permission not granted.");
+        alert("Failed to get push token for push notifications!");
         return;
       }
 
-      // Get Expo push token to register device with Expo Push service
       const tokenData = await Notifications.getExpoPushTokenAsync();
       setExpoPushToken(tokenData.data);
 
-      // Get Expo push token to register device with Expo Push service
       if (Platform.OS === "android") {
         await Notifications.setNotificationChannelAsync("default", {
           name: "default",
-          importance: Notifications.AndroidImportance.MAX, // Max importance to show heads-up notifications
+          importance: Notifications.AndroidImportance.MAX,
         });
       }
+
+      // Schedule test notification (native only)
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Test Notification",
+          body: "This is just a test notification.",
+          channelId: "default",
+        },
+        trigger: { seconds: 6 },
+      });
     };
-    // Call the async registration function on mount
+
     registerForPush();
 
-    // Listen for notifications received while the app is foregrounded
+    // Listeners for notifications
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-        // Prepend new notification to the existing list, add unique id and timestamp
       setNotifications(prev => [
         {
-          id: Date.now().toString(),  // Generate a unique id using timestamp
+          id: Date.now().toString(),
           title: notification.request.content.title ?? "New Notification",
           body: notification.request.content.body ?? "",
           time: new Date().toLocaleTimeString(),
@@ -77,28 +98,17 @@ export const usePushNotifications = () => {
       ]);
     });
 
-    // Listen for user interaction with notifications (tapping on them)
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log("Notification tapped:", response);
+      console.log("[PushNotifications] Notification tapped:", response);
     });
 
-    // Test notification after 6 seconds
-
-    Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Test Notification",
-        body: "This is just a test notification.",
-        channelId: "default",
-      },
-      trigger: { seconds: 6 },
-    });
-
-    // Cleanup notification listeners when component unmounts
     return () => {
-      Notifications.removeNotificationSubscription(notificationListener.current);
-      Notifications.removeNotificationSubscription(responseListener.current);
+      if (notificationListener.current)
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      if (responseListener.current)
+        Notifications.removeNotificationSubscription(responseListener.current);
     };
   }, []);
-  // Return expoPushToken and list of received notifications for UI use
+
   return { expoPushToken, notifications };
 };
