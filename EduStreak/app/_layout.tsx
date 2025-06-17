@@ -1,16 +1,17 @@
-import 'react-native-gesture-handler';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import voor AsyncStorage
+import * as Notifications from 'expo-notifications'; // Import voor Notifications
 import { Drawer } from "expo-router/drawer";
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import CustomDrawerContent from '../components/CustomDrawerContent'; // Controleer dit pad
-import { scheduleDailyReminder, cancelAllScheduledNotifications } from './helpers/notificationReminder'; // Controleer dit pad
 import React, { useEffect } from 'react'; // React is nodig
 import { Platform } from 'react-native'; // Platform kan nodig zijn voor web specifieke body style
-import * as Notifications from 'expo-notifications'; // Import voor Notifications
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import voor AsyncStorage
+import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import 'react-native-get-random-values';
+import CustomDrawerContent from '../components/CustomDrawerContent'; // Controleer dit pad
+import { cancelAllScheduledNotifications, scheduleDailyReminder } from './helpers/notificationReminder';
 
 // BELANGRIJKE IMPORTS VOOR THEMA
-import { ThemeProvider, useTheme } from '../functions/themeFunctions/themeContext'; // Controleer dit pad
 import { AppThemeColors } from '../constants/Colors'; // Controleer dit pad
+import { ThemeProvider, useTheme } from '../functions/themeFunctions/themeContext'; // Controleer dit pad
 
 
 
@@ -109,7 +110,7 @@ const ConfiguredDrawer = () => {
                    name='leaderboard'
                    options={{
                      drawerLabel: 'Leaderboard',
-                     headerTitle: 'Leaderboard',
+                     headerTitle: '',
                      headerShown: true,
                    }}
                  />
@@ -117,7 +118,7 @@ const ConfiguredDrawer = () => {
                    name='settings'
                    options={{
                      drawerLabel: 'Settings',
-                     headerTitle: 'Settings',
+                     headerTitle: '',
                      headerShown: true,
                    }}
                  />
@@ -141,7 +142,7 @@ const ConfiguredDrawer = () => {
                    name='groupboard'
                    options={{
                      drawerLabel: 'Group Board', // Was drawerItemStyle: { display: 'none' },
-                     headerTitle: 'Group Board',
+                     headerTitle: '',
                      headerShown: true,
                    }}
                  />
@@ -149,7 +150,7 @@ const ConfiguredDrawer = () => {
                    name='creategroup'
                    options={{
                      drawerItemStyle: { display: 'none' },
-                     headerTitle: 'Create Group',
+                     headerTitle: '',
                      headerShown: true,
                    }}
                  />
@@ -171,23 +172,37 @@ const ConfiguredDrawer = () => {
                  />
                  <Drawer.Screen
                    name="auth"
-                   options={{ drawerItemStyle: { display: 'none' }, headerShown: false }}
+                   options={{
+                    drawerItemStyle: { display: 'none' }, 
+                    headerShown: false 
+                  }}
                  />
                  <Drawer.Screen
                    name="habit"
-                   options={{ drawerItemStyle: { display: 'none' }, headerShown: true, headerTitle: 'Habit Details' }}
+                   options={{ 
+                    drawerItemStyle: { display: 'none' }, 
+                    headerShown: false, 
+                  }}
                  />
                  <Drawer.Screen
                    name="settingsScreens/profileSettings"
-                   options={{ drawerItemStyle: { display: 'none' }, headerTitle: 'Profile Settings', headerShown: true }}
+                   options={{ 
+                    drawerItemStyle: { display: 'none' }, 
+                    headerShown: false }}
                  />
                  <Drawer.Screen
                    name="settingsScreens/changePasswordScreen"
-                   options={{ drawerItemStyle: { display: 'none' }, headerTitle: 'Change Password', headerShown: true }}
+                   options={{ 
+                    drawerItemStyle: { display: 'none' }, 
+                    headerShown: false 
+                  }}
                  />
                  <Drawer.Screen
                    name="settingsScreens/deleteAccountScreen"
-                   options={{ drawerItemStyle: { display: 'none' }, headerTitle: 'Delete Account', headerShown: true }}
+                   options={{ 
+                    drawerItemStyle: { display: 'none' }, 
+                    headerShown: false 
+                  }}
                  />
                </Drawer>
           );

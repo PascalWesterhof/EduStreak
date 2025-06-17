@@ -1,14 +1,20 @@
 import { useRouter } from 'expo-router';
 import { User } from 'firebase/auth';
-import React, { useEffect, useState, useMemo } from 'react'; // << Voeg useMemo toe
+import React, { useEffect, useMemo, useState } from 'react'; // << Voeg useMemo toe
 import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth } from '../../config/firebase';
 import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // << NIEUW
-import { getGlobalStyles } from '../../styles/globalStyles';           // << NIEUW
 import { deleteUserAccount } from '../../functions/authService';
+import { getGlobalStyles } from '../../styles/globalStyles'; // << NIEUW
 import { showAlert } from '../../utils/showAlert';
 
-// Definieer getScreenStyles functie
+/**
+ * This function creates all the style rules for this screen.
+ * It's a "fixed theme" screen, so it uses the `authScreenFixedColors`.
+ * @param colors - An object containing all the colors for the auth theme.
+ * @param appGlobalStyles - The global styles object, passed in for reference.
+ * @returns A StyleSheet object containing all the styles for this component.
+ */
 const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
@@ -124,11 +130,18 @@ export default function DeleteAccountScreen() {
   const [isPasswordProviderUser, setIsPasswordProviderUser] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
+  /**
+   * This `useEffect` hook runs once when the component mounts.
+   * It checks the currently logged-in user to determine if they signed up using an
+   * email and password, which is needed to conditionally show the password input field.
+   */
   useEffect(() => {
     const user = auth.currentUser;
     setCurrentUser(user);
     if (user) {
+      // We check the user's provider data to see if 'password' is one of them.
       const passwordProvider = user.providerData.find(p => p.providerId === 'password');
+      // The '!!' converts the result to a boolean (true if found, false if not) and sets our state.
       setIsPasswordProviderUser(!!passwordProvider);
     }
   }, []);
@@ -143,38 +156,48 @@ export default function DeleteAccountScreen() {
    * On successful deletion, navigates the user to the Login screen.
    */
   const handleConfirmDelete = async () => {
-    setError('');
+    setError(''); // Clear any previous errors.
+
+    // --- Pre-delete validation ---
     if (!currentUser) {
       showAlert('Error', 'User not found. Please re-login.');
-      router.replace('/auth/LoginScreen');
+      router.replace('/auth/LoginScreen'); // Redirect to login if no user is found.
       return;
     }
 
+    // If it's a password user, they MUST provide their password to confirm.
     if (isPasswordProviderUser && !currentPassword) {
       showAlert('Password Required', 'Please enter your current password to confirm account deletion.');
       return;
     }
 
-    setIsProcessing(true);
+    setIsProcessing(true); // Put the UI into a "deleting" state.
     try {
+      // The service function needs the password only if it's a password user.
       const passwordForService = isPasswordProviderUser && currentPassword ? currentPassword : undefined;
+      // Call the service function to handle all deletion steps (re-auth, delete data, delete auth user).
       await deleteUserAccount(currentUser, passwordForService);
 
+      // On success, show a final confirmation message and redirect to the login screen.
       showAlert('Account Deleted', 'Your account and associated data have been permanently deleted.');
       router.replace('/auth/LoginScreen');
 
     } catch (err: any) {
+      // If any step in the `try` block fails, we land here.
       console.error("[DeleteAccountScreen] Delete Account Error via service:", err);
       let errorMessage = 'Failed to delete account. Please try again.';
+      // Provide more specific feedback based on the error code from Firebase.
       if (err.code === 'auth/wrong-password') {
         errorMessage = 'Incorrect current password. Please try again.';
       } else if (err.code === 'auth/requires-recent-login') {
         errorMessage = 'This operation is sensitive and requires recent authentication. Please sign out and log back in, then try deleting your account again.';
       }
+      // Display the error message to the user.
       setError(errorMessage);
       showAlert('Error', errorMessage);
     } finally {
-      setIsProcessing(false);
+      // This block always runs, on success or failure.
+      setIsProcessing(false); // Reset the UI state.
     }
   };
 

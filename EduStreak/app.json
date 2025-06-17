@@ -4,7 +4,7 @@
     "slug": "edustreak",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/edustreak-favicon-modified.png",
+    "icon": "./assets/icons/app_icon_edustreak.png",
     "scheme": "edustreak",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/edustreak-favicon-modified.png",
+        "foregroundImage": "./assets/icons/app_icon_edustreak.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

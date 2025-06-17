@@ -1,13 +1,20 @@
 import { useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import React, { useEffect, useState, useMemo } from 'react'; // << Voeg useMemo toe
+import React, { useEffect, useMemo, useState } from 'react'; // << Voeg useMemo toe
 import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth } from '../../config/firebase';
 import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // << NIEUW
-import { getGlobalStyles } from '../../styles/globalStyles';           // << NIEUW
 import { updateUserAuthProfile } from '../../functions/authService';
+import { getGlobalStyles } from '../../styles/globalStyles'; // << NIEUW
 import { showAlert, showConfirmationDialog } from '../../utils/showAlert';
 
+/**
+ * This function creates all the style rules for this screen.
+ * It's a "fixed theme" screen, so it uses the `authScreenFixedColors`.
+ * @param colors - An object containing all the colors for the auth theme.
+ * @param appGlobalStyles - The global styles object, passed in for reference.
+ * @returns A StyleSheet object containing all the styles for this component.
+ */
 const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
@@ -15,7 +22,6 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     justifyContent: 'space-between',
     paddingHorizontal: 10,
     paddingVertical: 10,
-    backgroundColor: colors.accent, // << THEMA
   },
   backButton: {
     padding: 10,
@@ -122,11 +128,11 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
  */
 export default function ProfileSettingsScreen() {
  const router = useRouter();
-  // Gebruik de geïmporteerde vaste kleuren voor authenticatie/instellingen
+  // We use a fixed set of colors for all authentication-related screens for a consistent look.
   const fixedAuthColors = authScreenFixedColors;
-  // Genereer globale stijlen met deze vaste kleuren
+  // `useMemo` prevents the global styles from being recalculated on every render, which is a performance optimization.
   const appGlobalStyles = useMemo(() => getGlobalStyles(fixedAuthColors), []);
-  // Genereer schermstijlen met de vaste kleuren en de daarop gebaseerde globale stijlen
+  // We also memoize the screen-specific styles. They only recalculate if the global styles change (which they won't here).
   const screenStyles = useMemo(() => getScreenStyles(fixedAuthColors, appGlobalStyles), [appGlobalStyles]);
   const [displayName, setDisplayName] = useState('');
   const [originalDisplayName, setOriginalDisplayName] = useState('');
@@ -135,23 +141,34 @@ export default function ProfileSettingsScreen() {
   const [isPasswordProvider, setIsPasswordProvider] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
+  /**
+   * This `useEffect` hook runs once when the component mounts to set up a listener
+   * for Firebase authentication changes. It updates the component's state whenever a user
+   * logs in or out.
+   */
   useEffect(() => {
     setIsLoading(true);
+    // `onAuthStateChanged` is a Firebase function that listens for auth events.
     const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
       setCurrentUser(user);
       if (user) {
+        // If a user is logged in, we populate our state variables with their data.
         const name = user.displayName || "User Name";
         setDisplayName(name);
         setOriginalDisplayName(name);
+        // We check the user's provider data to see if 'password' is one of them.
         const passwordProvider = user.providerData.find(p => p.providerId === 'password');
-        setIsPasswordProvider(!!passwordProvider);
+        setIsPasswordProvider(!!passwordProvider); // The '!!' converts the result to a boolean.
       } else {
+        // If no user is logged in, reset the state.
         setDisplayName("Guest");
         setOriginalDisplayName("Guest");
         setIsPasswordProvider(false);
       }
-      setIsLoading(false);
+      setIsLoading(false); // Hide the loading spinner.
     });
+    // The returned function is a "cleanup" function. It runs when the component
+    // is unmounted to prevent memory leaks by removing the listener.
     return () => unsubscribe();
   }, []);
 
@@ -163,30 +180,36 @@ export default function ProfileSettingsScreen() {
    * Displays alerts for success or failure.
    */
   const handleSaveChanges = async () => {
+    // --- Pre-save validation ---
     if (!currentUser) {
         showAlert("Error", "No user session found. Please re-login.");
         setIsSaving(false);
-        return;
+        return; // Stop the function.
     }
+    // Check if the name was actually changed.
     if (displayName === originalDisplayName) {
       showAlert("No Changes", "Your display name is the same.");
       return;
     }
+    // Check if the new name is just empty spaces.
     const trimmedDisplayName = displayName.trim();
     if (!trimmedDisplayName) {
       showAlert("Invalid Name", "Display name cannot be empty.");
       return;
     }
-    setIsSaving(true);
+
+    setIsSaving(true); // Put the UI into a "saving" state.
     try {
+      // Call the service function to update the profile in Firebase.
       await updateUserAuthProfile(currentUser, { displayName: trimmedDisplayName });
-      setOriginalDisplayName(trimmedDisplayName);
+      setOriginalDisplayName(trimmedDisplayName); // Update the "original" name to the new name.
       showAlert('Success', 'Display name updated successfully!');
     } catch (error: any) {
       console.error("[ProfileSettings] Error updating display name via service:", error);
       showAlert('Error', error.message || 'An unexpected error occurred. Please try again.');
     } finally {
-      setIsSaving(false);
+      // This block always runs, on success or failure.
+      setIsSaving(false); // Reset the UI state.
     }
   };
 
@@ -197,12 +220,14 @@ export default function ProfileSettingsScreen() {
    */
   const handleChangePassword = () => {
     if (!isPasswordProvider) {
+      // If the user did not sign in with a password, they can't change it here.
       showAlert(
         "External Account",
         "You are signed in with an external account (e.g., Google). Please manage your password through your provider."
       );
-      return;
+      return; // Stop the function.
     }
+    // Navigate to the change password screen.
     router.push('/settingsScreens/changePasswordScreen');
     console.log('Navigating to Change Password Screen');
   };
@@ -213,14 +238,16 @@ export default function ProfileSettingsScreen() {
    * `DeleteAccountScreen` for the final steps of account deletion.
    */
   const handleDeleteAccount = () => {
+    // Use a utility to show a confirmation pop-up.
     showConfirmationDialog(
-      "Delete Account",
-      "Are you absolutely sure you want to delete your account? This action is permanent and cannot be undone.",
+      "Delete Account", // Title of the dialog
+      "Are you absolutely sure you want to delete your account? This action is permanent and cannot be undone.", // Message
       () => {
+        // This function is the "callback" that runs only if the user presses the confirm button.
         console.log("User confirmed account deletion. Navigating to delete screen...");
         router.push('/settingsScreens/deleteAccountScreen');
       },
-      "Delete My Account"
+      "Delete My Account" // Text for the confirm button
     );
   };
 
@@ -228,7 +255,7 @@ export default function ProfileSettingsScreen() {
   <SafeAreaView style={appGlobalStyles.screenContainer}>
         <StatusBar barStyle="dark-content" />
         <View style={screenStyles.headerContainer}>
-          <TouchableOpacity onPress={() => router.back()} style={screenStyles.backButton}>
+          <TouchableOpacity onPress={() => router.push('/settings')} style={screenStyles.backButton}>
             <Image source={require('../../assets/icons/back_arrow.png')} style={screenStyles.backArrowIcon} />
           </TouchableOpacity>
           <Text style={[appGlobalStyles.headerText, screenStyles.headerTitleCustom]}>Profile Settings</Text>

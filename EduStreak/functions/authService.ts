@@ -1,3 +1,12 @@
+/**
+ * @file authService.ts
+ * @description This service handles all authentication-related functionalities.
+ * It provides a layer of abstraction over the Firebase Authentication library,
+ * combining Firebase Auth operations with corresponding Firestore document management.
+ * This ensures that when a user is created, signed in, or updated via authentication,
+ * their data in the Firestore database remains consistent.
+ */
+
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import {
   EmailAuthProvider,
@@ -21,10 +30,16 @@ import { auth, db } from '../config/firebase';
 // to ensure it's configured only once at app startup.
 
 /**
- * Ensures a user document exists in Firestore. If it doesn't, a new document
- * is created with default values.
- * @param user The Firebase User object from authentication.
- * @throws Throws an error if the Firestore operation fails.
+ * Ensures a user document exists in Firestore for a given authenticated user.
+ * 
+ * This function is critical for maintaining data consistency. After a user signs in,
+ * this function checks if a corresponding document for them exists in the 'users'
+ * collection in Firestore. If it doesn't (e.g., for a first-time Google sign-in),
+ * it creates a new document with a default structure.
+ * 
+ * @param user The Firebase User object from an authentication event (e.g., after sign-in).
+ * @throws Throws an error if the Firestore read/write operation fails, allowing the
+ *         calling function to handle the UI feedback (e.g., show an error message).
  */
 export const ensureUserDocument = async (user: User): Promise<void> => {
   if (!user) {
@@ -56,10 +71,13 @@ export const ensureUserDocument = async (user: User): Promise<void> => {
 
 /**
  * Signs in a user with their email and password using Firebase Authentication.
+ * This is a straightforward wrapper around Firebase's `signInWithEmailAndPassword`.
+ * 
  * @param emailIn The user's email address.
  * @param passwordIn The user's password.
  * @returns A Promise that resolves with the Firebase User object upon successful authentication.
- * @throws Throws an error if sign-in fails (e.g., wrong password, user not found).
+ * @throws Throws an error if sign-in fails (e.g., wrong password, user not found, network error).
+ *         The error is a Firebase error object, which can be inspected for a specific error code.
  */
 export const signInWithEmail = async (emailIn: string, passwordIn: string): Promise<User> => {
   try {
@@ -74,9 +92,13 @@ export const signInWithEmail = async (emailIn: string, passwordIn: string): Prom
 
 /**
  * Handles Google Sign-In for both web and native platforms using Firebase Authentication.
- * It also ensures that a corresponding user document is created in Firestore after successful sign-in.
+ * This function abstracts the platform-specific differences for Google Sign-In.
+ * After a successful sign-in, it calls `ensureUserDocument` to create a Firestore
+ * profile if one doesn't already exist.
+ * 
  * @returns A Promise that resolves with the Firebase User object upon successful authentication.
- * @throws Throws an error if Google Sign-In fails at any step.
+ * @throws Throws an error if the Google Sign-In process fails at any step, from getting the
+ *         token to authenticating with Firebase.
  */
 export const signInWithGoogle = async (): Promise<User> => {
   try {
@@ -88,8 +110,6 @@ export const signInWithGoogle = async (): Promise<User> => {
       console.log("[AuthService] Google Sign-In (Web) successful for user:", userToReturn.uid);
     } else {
       await GoogleSignin.hasPlayServices();
-      // The structure from signIn() can be different based on library versions or wrappers.
-      // The log revealed the token is inside a `data` object for this setup.
       const signInResult = await GoogleSignin.signIn();
       const idToken = (signInResult as any).idToken || (signInResult as any).data?.idToken;
 
@@ -112,12 +132,15 @@ export const signInWithGoogle = async (): Promise<User> => {
 };
 
 /**
- * Registers a new user with email, password, and display name using Firebase Authentication.
- * It also updates the user's Firebase Auth profile with the display name and creates
- * a corresponding user document in Firestore with initial values.
+ * Registers a new user with email, password, and display name.
+ * This is a multi-step process:
+ * 1. Create the user in Firebase Authentication.
+ * 2. Update the user's Auth profile with their display name.
+ * 3. Create a corresponding user document in Firestore with initial values.
+ * 
  * @param displayNameIn The desired display name for the new user.
  * @param emailIn The new user's email address.
- * @param passwordIn The new user's password (must be at least 6 characters).
+ * @param passwordIn The new user's password (must be at least 6 characters as per Firebase rules).
  * @returns A Promise that resolves with the newly created Firebase User object.
  * @throws Throws an error if registration fails (e.g., email already in use, weak password).
  */
@@ -130,7 +153,6 @@ export const registerWithEmail = async (displayNameIn: string, emailIn: string, 
     await updateProfile(user, { displayName: displayNameIn });
     console.log("[AuthService] Firebase Auth profile updated for user:", user.uid);
     
-    // Create Firestore document (ensureUserDocument is more for sign-in, this is for new registration)
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, {
       uid: user.uid,
@@ -153,9 +175,11 @@ export const registerWithEmail = async (displayNameIn: string, emailIn: string, 
 };
 
 /**
- * Sends a password reset email to the given email address via Firebase Authentication.
+ * Sends a password reset email to a given email address via Firebase Authentication.
+ * Firebase handles the token generation and email sending.
+ * 
  * @param emailIn The email address to send the reset link to.
- * @throws Throws an error if sending the email fails (e.g., user not found, network issue).
+ * @throws Throws an error if sending the email fails (e.g., user email not found, network issue).
  */
 export const resetPassword = async (emailIn: string): Promise<void> => {
   try {
@@ -168,11 +192,13 @@ export const resetPassword = async (emailIn: string): Promise<void> => {
 };
 
 /**
- * Updates the Firebase Auth profile for the given user (e.g., displayName, photoURL).
- * It also updates the corresponding fields in the user's Firestore document to maintain consistency.
+ * Updates the Firebase Auth profile for a given user (e.g., displayName, photoURL).
+ * It is crucial that this function also updates the corresponding fields in the user's
+ * Firestore document to maintain data consistency across the application.
+ * 
  * @param user The Firebase User object whose profile is to be updated.
- * @param updates An object containing the profile updates, e.g., { displayName: string, photoURL?: string }.
- * @throws Throws an error if the profile update fails in Auth or Firestore.
+ * @param updates An object containing the profile updates, e.g., `{ displayName: 'New Name', photoURL?: 'http://...' }`.
+ * @throws Throws an error if the profile update fails in either Firebase Auth or Firestore.
  */
 export const updateUserAuthProfile = async (
   user: User, 
@@ -189,7 +215,6 @@ export const updateUserAuthProfile = async (
     await updateProfile(user, updates);
     console.log("[AuthService] User Auth profile updated successfully with:", updates);
 
-    // Prepare Firestore updates object to only set fields that are actually being updated.
     const firestoreUpdates: { displayName?: string; photoURL?: string } = {};
     if (updates.displayName !== undefined) {
         firestoreUpdates.displayName = updates.displayName;
@@ -212,7 +237,9 @@ export const updateUserAuthProfile = async (
 
 /**
  * Re-authenticates the current user with their current password.
- * This is often required for sensitive operations like changing passwords or deleting accounts.
+ * This is a security measure required by Firebase for sensitive operations like
+ * changing a password or deleting an account, to ensure the user is who they say they are.
+ * 
  * @param user The Firebase User object to re-authenticate.
  * @param currentPasswordInput The user's current password.
  * @throws Throws an error if re-authentication fails (e.g., wrong password, user not found).
@@ -233,10 +260,11 @@ export const reauthenticateCurrentUser = async (user: User, currentPasswordInput
 
 /**
  * Changes the current user's password in Firebase Authentication.
- * Assumes the user has been recently re-authenticated if required by Firebase.
+ * It is assumed that the user has been recently re-authenticated before this function is called.
+ * 
  * @param user The Firebase User object whose password is to be changed.
  * @param newPasswordInput The new password (must be at least 6 characters).
- * @throws Throws an error if the password update fails (e.g., weak password, user not found).
+ * @throws Throws an error if the password update fails (e.g., weak new password, user not found).
  */
 export const changeUserPassword = async (user: User, newPasswordInput: string): Promise<void> => {
   if (!user) {
@@ -252,10 +280,17 @@ export const changeUserPassword = async (user: User, newPasswordInput: string): 
 };
 
 /**
- * Deletes the user's Firebase Authentication account and their corresponding Firestore document.
- * Attempts re-authentication if a current password is provided (for password-based accounts).
+ * Deletes a user's account from Firebase Authentication and their document from Firestore.
+ * This is a destructive and irreversible operation.
+ * 
+ * The process is:
+ * 1. (Optional but recommended) Re-authenticate the user if they signed up with a password.
+ * 2. Delete their document from the 'users' collection in Firestore.
+ * 3. Delete their account from Firebase Authentication.
+ * 
  * @param user The Firebase User object to delete.
- * @param currentPasswordInput Optional. The user's current password for re-authentication if applicable.
+ * @param currentPasswordInput Optional. The user's current password for re-authentication.
+ *        This is only necessary for users who signed up with email/password.
  * @throws Throws an error if any step of the deletion process fails.
  */
 export const deleteUserAccount = async (user: User, currentPasswordInput?: string): Promise<void> => {
@@ -266,31 +301,24 @@ export const deleteUserAccount = async (user: User, currentPasswordInput?: strin
   const userIdToDelete = user.uid;
 
   try {
-    // Step 1: Re-authenticate if password is provided and user is a password provider
     if (currentPasswordInput && user.email) {
       const isPasswordProvider = user.providerData.some(p => p.providerId === EmailAuthProvider.PROVIDER_ID);
       if (isPasswordProvider) {
           await reauthenticateCurrentUser(user, currentPasswordInput);
           console.log("[AuthService] User re-authenticated successfully for deletion.");
       } else {
-          // This case should ideally be handled by the calling component (e.g., not asking for a password
-          // if the user signed in via Google). If password still provided, log a warning.
           console.warn("[AuthService] Password provided for deletion, but user is not a password provider. Skipping re-authentication step in service.");
       }
     }
 
-    // Step 2: Delete Firestore document
     try {
       const userDocRef = doc(db, "users", userIdToDelete);
       await firestoreDeleteDoc(userDocRef);
       console.log(`[AuthService] Firestore document for user ${userIdToDelete} deleted.`);
     } catch (firestoreError) {
       console.error("[AuthService] Error deleting Firestore document during account deletion:", firestoreError);
-      // Optionally, re-throw this as a more specific error to inform the user that only part of the data might be deleted.
-      // For now, log and proceed to Auth deletion, as Auth deletion is usually the primary goal for the user.
     }
 
-    // Step 3: Delete Firebase Auth user
     await firebaseDeleteUser(user);
     console.log("[AuthService] Firebase Auth user deleted successfully:", userIdToDelete);
 

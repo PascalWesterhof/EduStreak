@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { deleteField } from 'firebase/firestore';
-import React, { useEffect, useState, useMemo } from 'react'; // << useMemo toegevoegd
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -13,30 +13,30 @@ import {
   View
 } from 'react-native';
 import { auth } from '../../config/firebase';
+import { ColorScheme } from '../../constants/Colors';
 import { getHabitDetails, updateHabitDetails as updateHabitService } from '../../functions/habitService';
+import { useTheme } from '../../functions/themeFunctions/themeContext';
 import { Habit } from '../../types';
 import { showAlert } from '../../utils/showAlert';
-import { useTheme } from '../../functions/themeFunctions/themeContext'; // << NIEUW (pas pad aan)
-import { ColorScheme } from '../../functions/themeFunctions/themeContext'; // << NIEUW (pas pad aan)
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const getStyles = (colors: ColorScheme) => StyleSheet.create({
   pageContainer: {
     flex: 1,
-    backgroundColor: colors.background, // Was #FFFFFF
+    backgroundColor: colors.background,
     paddingTop: Platform.OS === 'android' ? 25 : 40,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background, // Was #FFFFFF
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: colors.primary, // Was #d05b52
+    color: colors.primary,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -45,8 +45,7 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
     paddingHorizontal: 15,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderColor, // Was #E0E0E0
-    // backgroundColor: colors.headerBackground, // Als je een specifieke header achtergrond wilt
+    borderBottomColor: colors.borderColor,
   },
   backButton: {
     padding: 10,
@@ -55,12 +54,11 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
     width: 24,
     height: 24,
     resizeMode: 'contain',
-    // tintColor: colors.icon, // Als het een monochrome icoon is die je wilt herkleuren
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.text, // Was #000000
+    color: colors.text,
   },
   headerRightPlaceholder: {
     width: 24 + 20,
@@ -74,21 +72,19 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: colors.textDefault, // Was #333333
+    color: colors.textDefault,
     marginTop: 20,
     marginBottom: 8,
     fontWeight: '500',
   },
   input: {
-    backgroundColor: colors.inputBackground, // Was #F5F5F5
+    backgroundColor: colors.inputBackground,
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 15,
     fontSize: 16,
-    color: colors.textInput, // Was #000000
+    color: colors.textInput,
     marginBottom: 10,
-    // borderColor: colors.inputBorder, // Optioneel: voeg een border toe
-    // borderWidth: 1,
   },
   multilineInput: {
     minHeight: 80,
@@ -96,7 +92,7 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   segmentedControlContainer: {
     flexDirection: 'row',
-    backgroundColor: colors.inputBackground, // Was #EFEFF4
+    backgroundColor: colors.inputBackground,
     borderRadius: 8,
     padding: 2,
     marginBottom: 15,
@@ -109,9 +105,8 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
     borderRadius: 7,
   },
   segmentedControlButtonActive: {
-    backgroundColor: colors.background, // Was #FFFFFF, maak het de pagina achtergrond
-                                        // Overweeg colors.cardBackground voor dark mode
-    shadowColor: colors.shadow, // Was #000
+    backgroundColor: colors.background,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -119,10 +114,10 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   segmentedControlButtonText: {
     fontSize: 15,
-    color: colors.textSecondary, // Was #000000
+    color: colors.textSecondary,
   },
   segmentedControlButtonTextActive: {
-    color: colors.primary, // Was #d05b52
+    color: colors.primary,
     fontWeight: 'bold',
   },
   daysSelectorContainer: {
@@ -132,7 +127,7 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: 15,
   },
   dayButton: {
-    backgroundColor: colors.inputBackground, // Was #F5F5F5
+    backgroundColor: colors.inputBackground,
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -140,22 +135,22 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: colors.borderColor, // Was #E0E0E0
+    borderColor: colors.borderColor,
   },
   dayButtonSelected: {
-    backgroundColor: colors.primary, // Was #d05b52
-    borderColor: colors.primary, // Was #d05b52
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   dayButtonText: {
     fontSize: 14,
-    color: colors.textDefault, // Was #000000
+    color: colors.textDefault,
   },
   dayButtonTextSelected: {
-    color: colors.primaryText, // Was #FFFFFF
+    color: colors.primaryText,
     fontWeight: 'bold',
   },
   primaryButton: {
-    backgroundColor: colors.primary, // Was #d05b52
+    backgroundColor: colors.primary,
     borderRadius: 25,
     paddingVertical: 15,
     alignItems: 'center',
@@ -163,29 +158,28 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: 10,
   },
   primaryButtonText: {
-    color: colors.primaryText, // Was #FFFFFF
+    color: colors.primaryText,
     fontSize: 16,
     fontWeight: 'bold',
   },
   secondaryButton: {
-    backgroundColor: colors.background, // Was #FFFFFF (of colors.cardBackground)
+    backgroundColor: colors.background,
     borderRadius: 25,
     paddingVertical: 15,
     alignItems: 'center',
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: colors.primary, // Was #d05b52
+    borderColor: colors.primary,
   },
   secondaryButtonText: {
-    color: colors.primary, // Was #d05b52
+    color: colors.primary,
     fontSize: 16,
     fontWeight: 'bold',
   },
-  disabledButtonBackground: { // Stijl voor disabled primary button
-    backgroundColor: colors.disabledBackground, // Was #cccccc
-    // borderColor: colors.disabledBorder, // indien nodig
+  disabledButtonBackground: {
+    backgroundColor: colors.textMuted,
   },
-  disabledButtonOpacity: { // Stijl voor andere disabled elementen (zoals secondary button, day buttons)
+  disabledButtonOpacity: {
     opacity: 0.5,
   }
 });
@@ -200,8 +194,8 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
  * Handles loading, saving, and error states.
  */
 export default function EditHabitScreen() {
- const { colors: themeColors } = useTheme(); // << NIEUW
-   const styles = useMemo(() => getStyles(themeColors), [themeColors]); // << NIEUW
+ const { colors: themeColors } = useTheme();
+ const styles = useMemo(() => getStyles(themeColors), [themeColors]);
 
    const router = useRouter();
    const navigation = useNavigation();
@@ -238,7 +232,6 @@ export default function EditHabitScreen() {
             setTimesPerWeek(String(habitData.frequency.times || 1));
             setSelectedDays(habitData.frequency.days || []);
           }
-          // notes and reminderTime state setting is REMOVED
         } else {
           showAlert("Error", "Habit not found for editing.");
           if(router.canGoBack()) router.back(); else router.replace('/');
@@ -324,7 +317,7 @@ export default function EditHabitScreen() {
   if (isLoading) {
     return (
      <View style={styles.loadingContainer}>
-             <ActivityIndicator size="large" color={themeColors.primary} /> {/* Was #d05b52 */}
+             <ActivityIndicator size="large" color={themeColors.primary} /> 
              <Text style={styles.loadingText}>Loading Habit...</Text>
            </View>
          );
@@ -347,7 +340,7 @@ export default function EditHabitScreen() {
                value={name}
                onChangeText={setName}
                placeholder="e.g., Drink Water, Read for 30 mins"
-               placeholderTextColor={themeColors.placeholderText} // Was #A9A9A9
+               placeholderTextColor={themeColors.placeholderText}
                editable={!isSaving}
              />
 
@@ -357,7 +350,7 @@ export default function EditHabitScreen() {
                value={description}
                onChangeText={setDescription}
                placeholder="e.g., Stay hydrated throughout the day"
-               placeholderTextColor={themeColors.placeholderText} // Was #A9A9A9
+               placeholderTextColor={themeColors.placeholderText}
                multiline
                numberOfLines={3}
                editable={!isSaving}
@@ -389,7 +382,7 @@ export default function EditHabitScreen() {
                    value={timesPerWeek}
                    onChangeText={setTimesPerWeek}
                    placeholder="e.g., 3"
-                   placeholderTextColor={themeColors.placeholderText} // Was #A9A9A9
+                   placeholderTextColor={themeColors.placeholderText}
                    keyboardType="numeric"
                    editable={!isSaving}
                  />
@@ -401,7 +394,7 @@ export default function EditHabitScreen() {
                        style={[
                          styles.dayButton,
                          selectedDays.includes(index) && styles.dayButtonSelected,
-                         isSaving && styles.disabledButtonOpacity // Gebruik opacity voor disabled state
+                         isSaving && styles.disabledButtonOpacity
                        ]}
                        onPress={() => !isSaving && toggleDay(index)}
                        disabled={isSaving}
@@ -417,7 +410,7 @@ export default function EditHabitScreen() {
              )}
 
              <TouchableOpacity
-                 style={[styles.primaryButton, isSaving && styles.disabledButtonBackground]} // Gebruik background voor primary
+                 style={[styles.primaryButton, isSaving && styles.disabledButtonBackground]}
                  onPress={handleUpdateHabit}
                  disabled={isSaving}
              >
@@ -425,7 +418,7 @@ export default function EditHabitScreen() {
              </TouchableOpacity>
 
              <TouchableOpacity
-                 style={[styles.secondaryButton, isSaving && styles.disabledButtonOpacity]} // Gebruik opacity voor secondary
+                 style={[styles.secondaryButton, isSaving && styles.disabledButtonOpacity]}
                  onPress={handleCancel}
                  disabled={isSaving}
              >
