@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react"; // << useMemo toegevoegd
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -10,18 +10,18 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, DrawerActions } from "@react-navigation/native";
-// import { Ionicons } from "@expo/vector-icons"; // Niet gebruikt, kan weg als je geen Ionicons gebruikt hier
 import { getAuth } from "firebase/auth";
 
 import { getAllGroups, getUserGroups, joinGroup } from "../functions/groupService";
 import { showAlert } from "../utils/showAlert";
-import { useTheme } from '../functions/themeFunctions/themeContext'; // << NIEUW
-import { ColorScheme } from '../functions/themeFunctions/themeContext'; // << NIEUW
+import { useTheme } from '../functions/themeFunctions/themeContext';
+import { ColorScheme } from '../functions/themeFunctions/themeContext';
 
+// Dynamic theming styles based on the active color scheme
 const getStyles = (colors: ColorScheme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background, // Was #fff
+    backgroundColor: colors.background,
   },
   scroll: {
     paddingBottom: 20,
@@ -33,15 +33,15 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  titleBaseText: { // Nieuwe basisstijl voor de titel
+  titleBaseText: {
     fontSize: 28,
     fontWeight: "bold",
-    color: colors.text, // Thematische kleur voor "Group"
+    color: colors.text,
   },
-  titleAccentText: { // Nieuwe stijl voor het geaccentueerde deel van de titel
-    fontSize: 28, // Moet overeenkomen met titleBaseText
-    fontWeight: "bold", // Moet overeenkomen
-    color: colors.primary, // Was #D05B52, nu thematisch primary
+  titleAccentText: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: colors.primary,
   },
   section: {
     fontSize: 18,
@@ -49,7 +49,7 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
     marginHorizontal: 24,
     marginTop: 32,
     marginBottom: 16,
-    color: colors.text, // Thematische sectietitel kleur
+    color: colors.text,
   },
   grid: {
     flexDirection: "row",
@@ -59,7 +59,7 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
   },
   card: {
     width: 150,
-    backgroundColor: colors.cardBackground, // Was #F8F8F8
+    backgroundColor: colors.cardBackground,
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
@@ -70,51 +70,50 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.primary, // Was #D05B52
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
   },
   addPlus: {
-    color: colors.primaryText, // Was #fff
+    color: colors.primaryText,
     fontSize: 24,
     fontWeight: "bold",
   },
-  cardText: { // Standaard kaarttekst
+  cardText: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.textDefault, // Was #000, nu thematisch
+    color: colors.textDefault,
     textAlign: "center",
     marginBottom: 8,
   },
-  cardTextAccent: { // Geaccentueerde kaarttekst
+  cardTextAccent: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.primary, // Was #D05B52
+    color: colors.primary,
     textAlign: "center",
     marginBottom: 8,
   },
-  circle: { // Fallback cirkel
+  circle: { // Fallback circle
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.secondary, // Was #DC817A (gerelateerd aan primary, nu secondary)
-                                     // Of een andere themakleur zoals colors.placeholderText
+    backgroundColor: colors.secondary,
     borderWidth: 1,
-    borderColor: colors.borderColor, // Was #000, nu thematisch
+    borderColor: colors.borderColor,
     marginBottom: 8,
   },
-  circleAccentBorder: { // Voor "Your Groups" cirkel met accent border
-    borderColor: colors.primary, // Was #D05B52
+  circleAccentBorder: {
+    borderColor: colors.primary,
   },
   joinButton: {
-    backgroundColor: colors.primary, // Was #D05B52
+    backgroundColor: colors.primary,
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 20,
   },
   joinText: {
-    color: colors.primaryText, // Was #fff
+    color: colors.primaryText,
     fontSize: 12,
     fontWeight: "bold",
   },
@@ -125,9 +124,6 @@ const getStyles = (colors: ColorScheme) => StyleSheet.create({
     marginBottom: 8,
     resizeMode: "cover",
   },
-  activityIndicator: { // Stijl voor ActivityIndicator
-    // Je kunt hier meer stijlen toevoegen als je wilt dat het groter is of anders gepositioneerd
-  }
 });
 
 // Image mapping
@@ -138,8 +134,8 @@ const IMAGE_MAP: Record<string, any> = {
 };
 
 const GroupBoard = () => {
- const { colors: themeColors } = useTheme(); // << NIEUW
-   const styles = useMemo(() => getStyles(themeColors), [themeColors]); // << NIEUW
+ const { colors: themeColors } = useTheme();
+   const styles = useMemo(() => getStyles(themeColors), [themeColors]);
 
    const navigation = useNavigation();
    const [groups, setGroups] = useState<any[]>([]);
@@ -202,14 +198,10 @@ const GroupBoard = () => {
          <ScrollView contentContainerStyle={styles.scroll}>
            {/* Header */}
            <View style={styles.header}>
-             <Text> {/* Container Text om inline styling van kind Text componenten toe te staan */}
+             <Text> {/* Container text for inline styling */}
                <Text style={styles.titleBaseText}>Group</Text>{" "}
                <Text style={styles.titleAccentText}>Board</Text>
              </Text>
-             {/* Hamburger menu icoon (als nodig, nu leeg View voor spacing) */}
-             {/* <TouchableOpacity onPress={() => navigation.dispatch(DrawerActions.openDrawer())}>
-                <Ionicons name="menu" size={28} color={themeColors.icon} />
-             </TouchableOpacity> */}
              <View style={{ width: 28 }} />
            </View>
 
@@ -235,7 +227,7 @@ const GroupBoard = () => {
                    {IMAGE_MAP[group.imageUrl] ? (
                      <Image source={IMAGE_MAP[group.imageUrl]} style={styles.image} />
                    ) : (
-                     <View style={styles.circle} /> // Standaard cirkel
+                     <View style={styles.circle} /> // Fallback circle
                    )}
                    <Text style={styles.cardText}>{group.name}</Text>
                    <TouchableOpacity
@@ -267,7 +259,6 @@ const GroupBoard = () => {
                    {IMAGE_MAP[group.imageUrl] ? (
                      <Image source={IMAGE_MAP[group.imageUrl]} style={styles.image} />
                    ) : (
-                     // Cirkel met geaccentueerde border
                      <View style={[styles.circle, styles.circleAccentBorder]} />
                    )}
                    <Text style={styles.cardTextAccent}>{group.name}</Text>
