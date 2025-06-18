@@ -252,7 +252,7 @@ export default function ProfileSettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={[appGlobalStyles.screenContainer, { backgroundColor: '#D1624A' }]}> // Set background color
+    <SafeAreaView style={[appGlobalStyles.screenContainer, { backgroundColor: '#D1624A' }]}>
         <StatusBar barStyle="dark-content" />
         <View style={screenStyles.headerContainer}>
           <TouchableOpacity onPress={() => router.push('/settings')} style={screenStyles.backButton}>
@@ -262,7 +262,7 @@ export default function ProfileSettingsScreen() {
           <View style={screenStyles.headerRightPlaceholder} />
         </View>
 
-        <ScrollView contentContainerStyle={[appGlobalStyles.contentContainer, screenStyles.containerCustom, { backgroundColor: '#D1624A', flexGrow: 1 }]}> // Set background color
+        <ScrollView contentContainerStyle={[appGlobalStyles.contentContainer, screenStyles.containerCustom, { backgroundColor: '#D1624A', flexGrow: 1 }]}> 
           {isLoading ? (
             <Text style={[appGlobalStyles.bodyText, screenStyles.loadingTextCustom]}>Loading profile...</Text>
           ) : (
