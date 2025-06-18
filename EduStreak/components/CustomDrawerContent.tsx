@@ -1,11 +1,10 @@
-import React, { useMemo } from 'react'; // Importeer useMemo
-import { View, Text, StyleSheet, Alert } from "react-native";
 import { DrawerContentScrollView, DrawerItem, DrawerItemList } from "@react-navigation/drawer";
-import { signOut } from 'firebase/auth';
-import { auth } from '../config/firebase';
 import { useRouter } from 'expo-router'; // Voor navigatie na logout
-import { useTheme } from '../functions/themeFunctions/themeContext'; // << NIEUW: Importeer useTheme
-import { ColorScheme } from '../functions/themeFunctions/themeContext'; // << NIEUW: Voor typering (optioneel, maar goed)
+import { signOut } from 'firebase/auth';
+import React, { useMemo } from 'react'; // Importeer useMemo
+import { Alert, StyleSheet, Text, View } from "react-native";
+import { auth } from '../config/firebase';
+import { ColorScheme, useTheme } from '../functions/themeFunctions/themeContext'; // << NIEUW: Importeer useTheme
 
 const getStyles = (colors: ColorScheme) => StyleSheet.create({
   contentScrollView: {

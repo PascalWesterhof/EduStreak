@@ -5,16 +5,15 @@ import { browserLocalPersistence, getReactNativePersistence, initializeAuth } fr
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
-import Config from "react-native-config";
 
 // Ensure you have these environment variables set in your EAS build profile (and locally for development if needed)
 const firebaseConfig = {
-  apiKey: Config.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: Config.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: Config.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: Config.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: Config.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: Config.EXPO_PUBLIC_FIREBASE_APP_ID
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
@@ -30,10 +29,12 @@ const auth = initializeAuth(app, {
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// Configure Google Sign-In
-GoogleSignin.configure({
-  webClientId: Config.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
+// Configure Google Sign-In only for native platforms
+if (Platform.OS !== 'web') {
+  GoogleSignin.configure({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  });
+}
 
 export { app, auth, db, storage };
 

@@ -8,10 +8,10 @@
  */
 
 import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, Timestamp, updateDoc } from 'firebase/firestore';
-import { v4 as uuidv4 } from 'uuid';
 import { db } from '../config/firebase'; // auth removed as it's not used in this file directly yet
 import { Habit } from '../types';
 import { getIsoDateString } from '../utils/dateUtils';
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * Recalculates the current and longest streaks for a single habit based on its completion history.

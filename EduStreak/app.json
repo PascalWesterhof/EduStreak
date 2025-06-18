@@ -9,7 +9,19 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.edustreak",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.538149596527-r2kafqd4fbcjklbmi95o8fke87tvu3j4"
+            ]
+          }
+        ]
+      },
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "icon": "./assets/icons/app_icon_edustreak.png"
     },
     "extra": {
       "eas": {
@@ -41,7 +53,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "@react-native-firebase/app"
     ],
     "experiments": {
       "typedRoutes": true
