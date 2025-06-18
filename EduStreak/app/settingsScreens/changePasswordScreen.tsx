@@ -226,7 +226,7 @@ export default function ChangePasswordScreen() {
   // The component returns JSX, which describes what the UI should look like.
   return (
       // SafeAreaView ensures content doesn't overlap with system UI like the status bar or notches.
-      <SafeAreaView style={appGlobalStyles.screenContainer}>
+      <SafeAreaView style={[appGlobalStyles.screenContainer, { backgroundColor: '#D1624A' }]}> // Set background color
         {/* StatusBar controls the appearance of the system status bar. 'dark-content' makes the text/icons dark. */}
         <StatusBar barStyle="dark-content" />
 
@@ -240,7 +240,7 @@ export default function ChangePasswordScreen() {
         </View>
 
         {/* The main content area is a ScrollView to allow scrolling on smaller screens. */}
-        <ScrollView contentContainerStyle={[appGlobalStyles.contentContainer, screenStyles.containerCustom]}>
+        <ScrollView contentContainerStyle={[appGlobalStyles.contentContainer, screenStyles.containerCustom, { backgroundColor: '#D1624A', flexGrow: 1 }]}> // Set background color
           {/* Current Password Input */}
           <Text style={[appGlobalStyles.bodyText, screenStyles.labelCustom]}>Current Password</Text>
           <TextInput

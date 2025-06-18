@@ -13,6 +13,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 // `React` is the core library for building the user interface. We import its hooks.
 import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 // These are the visual building blocks from React Native, like Text, View, etc.
+import { useFocusEffect } from '@react-navigation/native';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 // --- Local Project Imports ---
@@ -258,22 +259,30 @@ export default function Calendar() {
    */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user); // Store the user object.
-      if (user) {
-        // If a user is logged in, load their streak and habit data.
-        loadStreakData(user.uid);
-        loadHabitData(user.uid);
-      } else {
-        // If the user logs out, clear their data.
-        setStreakData({ currentStreak: 0, longestStreak: 0 });
-        setHabits([]);
-      }
+      setCurrentUser(user);
     });
-
+    
     // This is a cleanup function. It runs when the component is removed
     // to stop the listener and prevent memory leaks.
     return () => unsubscribe();
   }, []); // The empty array `[]` means this effect only runs once on mount.
+
+  /**
+   * This `useFocusEffect` hook runs every time the screen comes into focus.
+   * It's useful for refreshing data when the user returns to this screen.
+   */
+  useFocusEffect(
+    React.useCallback(() => {
+      if (currentUser) {
+        // Reload both streak and habit data when the screen is focused
+        loadStreakData(currentUser.uid);
+        loadHabitData(currentUser.uid);
+      }
+      
+      // No cleanup function needed here
+      return () => {};
+    }, [currentUser]) // Only re-run if currentUser changes
+  );
 
   /**
    * This `useEffect` hook fetches the daily motivational quote.
@@ -387,7 +396,6 @@ export default function Calendar() {
       return 'some'; // Some, but not all, were completed.
     }
   };
-
 
   // --- Render Logic ---
   // This is the main JSX returned by the component, defining what the user sees.

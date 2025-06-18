@@ -202,7 +202,7 @@ export default function DeleteAccountScreen() {
   };
 
   return (
-     <SafeAreaView style={appGlobalStyles.screenContainer}>
+     <SafeAreaView style={[appGlobalStyles.screenContainer, { backgroundColor: '#D1624A' }]}> // Set background color
           <StatusBar barStyle="dark-content" />
           <View style={screenStyles.headerContainer}>
             <TouchableOpacity onPress={() => router.back()} style={screenStyles.backButton} disabled={isProcessing}>
@@ -212,7 +212,7 @@ export default function DeleteAccountScreen() {
             <View style={screenStyles.headerRightPlaceholder} />
           </View>
 
-          <ScrollView contentContainerStyle={[appGlobalStyles.contentContainer, screenStyles.containerCustom]}>
+          <ScrollView contentContainerStyle={[appGlobalStyles.contentContainer, screenStyles.containerCustom, { backgroundColor: '#D1624A', flexGrow: 1 }]}> // Set background color
             <Text style={[appGlobalStyles.headerText, screenStyles.warningTitleCustom]}>WARNING!</Text>
             <Text style={[appGlobalStyles.bodyText, screenStyles.warningTextCustom]}>
               This action is permanent and cannot be undone. All your data, including habits, progress, and streaks, will be permanently erased.
