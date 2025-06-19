@@ -7,7 +7,7 @@ import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-get-random-values';
 import CustomDrawerContent from '../components/CustomDrawerContent';
-import { cancelAllScheduledNotifications, scheduleDailyReminder } from './helpers/notificationReminder';
+import { cancelAllScheduledNotifications, scheduleDailyReminder } from '../helpers/notificationReminder';
 
 import { AppThemeColors } from '../constants/Colors';
 import { ThemeProvider, useTheme } from '../functions/themeFunctions/themeContext';

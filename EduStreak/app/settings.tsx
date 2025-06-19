@@ -1,9 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from "expo-font";
 import { Link, useNavigation } from "expo-router";
-import React, { useLayoutEffect, useState, useEffect,} from 'react';
-import { Platform, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View,} from "react-native";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { cancelAllScheduledNotifications, scheduleDailyReminder } from './helpers/notificationReminder';
+import React, { useEffect, useLayoutEffect, useState, } from 'react';
+import { Platform, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View, } from "react-native";
+import { cancelAllScheduledNotifications, scheduleDailyReminder } from '../helpers/notificationReminder';
 
 export default function Settings() {
         // State for notification toggle

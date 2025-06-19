@@ -1,22 +1,22 @@
-import React, { useState, useLayoutEffect } from "react";
+import { MaterialIcons } from "@expo/vector-icons";
+import { DrawerActions, useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
+import React, { useLayoutEffect, useState } from "react";
 import {
+  Button,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
   Text,
   View,
-  StyleSheet,
-  SafeAreaView,
-  FlatList,
-  Modal,
-  Pressable,
-  Button,
-  ScrollView,
-  Image,
-  Platform,
 } from "react-native";
-import { useNavigation, DrawerActions, useFocusEffect } from "@react-navigation/native";
-import { useRouter } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
-import { usePushNotifications } from "./usePushNotifications";
-import { cancelAllNotifications, scheduleDailyHabitReminder } from "./helpers/notificationReminder";
+import { scheduleDailyHabitReminder } from "../helpers/notificationReminder";
+import { usePushNotifications } from "../helpers/usePushNotifications";
 
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../config/firebase";
