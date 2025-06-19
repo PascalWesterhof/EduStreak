@@ -1,9 +1,7 @@
-// In constants/Colors.ts
-
     const tintColorLight = '#0a7ea4';
     const tintColorDark = '#fff';
 
-    // Definieer hier je ColorScheme interface, zoals eerder besproken
+
     export interface ColorScheme {
       text: string;
       background: string;
@@ -35,15 +33,13 @@
 
     export const AppThemeColors: { light: ColorScheme, dark: ColorScheme } = {
       light: {
-        // Bestaande light mode kleuren
+        // Colors for Light mode
         text: '#11181C',
         background: '#FFFFFF', // Wit
         tint: tintColorLight,
         icon: '#687076',
         tabIconDefault: '#687076',
         tabIconSelected: tintColorLight,
-
-        // Toevoegingen van 'colors' voor light mode
         primary: '#D05B52',
         primaryText: '#FFFFFF',
         accent: '#D9534F',
@@ -66,7 +62,7 @@
         progressBackground: '#E0E0E0',
       },
       dark: {
-        // Bestaande dark mode kleuren
+        // Colors for Dark mode
         text: '#ECEDEE',
         background: '#121212',
         tint: tintColorDark,
@@ -74,7 +70,6 @@
         tabIconDefault: '#9BA1A6',
         tabIconSelected: tintColorDark,
 
-        // Dark mode equivalenten
         primary: '#E57373',
         primaryText: '#000000',
         accent: '#D9534F',
@@ -98,31 +93,31 @@
       },
     };
 
+// Colors for standard Light mode, this makes it so the pages with these colors will always be in light mode
 export const authScreenFixedColors: ColorScheme = {
       background: '#FFFFFF',
       text: '#11181C',
       textDefault: '#333333',
       textSecondary: '#555555',
       textMuted: '#888888',
-      primary: '#D05B52', // Je bestaande primary
+      primary: '#D05B52',
       primaryText: '#FFFFFF',
       accent: '#D9534F',
-      cardBackground: '#F8F8F8', // Als je kaarten zou gebruiken
+      cardBackground: '#F8F8F8',
       error: 'red',
       inputBackground: '#F0F0F0',
       inputBorder: '#D0D0D0',
       textInput: '#333333',
       placeholderText: '#A9A9A9',
       borderColor: '#E0E0E0',
-      white: '#FFFFFF', // Expliciet wit
-      black: '#000000', // Expliciet zwart
-      // Vul alle andere properties van ColorScheme in die je nodig hebt voor auth-schermen
-      tint: '#0a7ea4', // Bijvoorbeeld je light tint
+      white: '#FFFFFF',
+      black: '#000000',
+      tint: '#0a7ea4',
       icon: '#687076',
-      tabIconDefault: '#687076', // Waarschijnlijk niet relevant voor auth-schermen
-      tabIconSelected: '#0a7ea4', // Waarschijnlijk niet relevant
-      unreadItemBackground: '#E8F0FE', // Waarschijnlijk niet relevant
-      calendarAccent: '#c44', // Waarschijnlijk niet relevant
+      tabIconDefault: '#687076',
+      tabIconSelected: '#0a7ea4',
+      unreadItemBackground: '#E8F0FE',
+      calendarAccent: '#c44',
       shadow: '#000000',
       headerBackground: '#FFFFFF',
     };

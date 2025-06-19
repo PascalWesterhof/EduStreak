@@ -15,7 +15,7 @@ import { getAuth } from "firebase/auth";
 import { getAllGroups, getUserGroups, joinGroup } from "../functions/groupService";
 import { showAlert } from "../utils/showAlert";
 import { useTheme } from '../functions/themeFunctions/themeContext';
-import { ColorScheme } from '../functions/themeFunctions/themeContext';
+import { ColorScheme } from '../constants/Colors';
 
 // Dynamic theming styles based on the active color scheme
 const getStyles = (colors: ColorScheme) => StyleSheet.create({

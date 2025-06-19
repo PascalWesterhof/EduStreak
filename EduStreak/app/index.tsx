@@ -14,9 +14,9 @@ import {
   fetchUserHabits,
   updateDailyStreakLogic as updateDailyStreakService
 } from '../functions/habitService'; // Import the service
-import { useTheme } from '../functions/themeFunctions/themeContext'; // Pas het pad aan naar jouw bestand
+import { useTheme } from '../functions/themeFunctions/themeContext';
 import { checkAndResetDailyStreak } from '../functions/userService';
-import { getGlobalStyles } from '../styles/globalStyles'; // << NIEUW: importeer de functie
+import { getGlobalStyles } from '../styles/globalStyles';
 import { Habit } from '../types'; // Path for types
 import { getIsoDateString } from '../utils/dateUtils'; // Added import
 import AddHabitScreen from './habit/AddHabitScreen';

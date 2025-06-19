@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Circle, Text as SvgText } from 'react-native-svg';
-import { useTheme } from '../functions/themeFunctions/themeContext'; // << NIEUW: Pas het pad aan indien nodig
+import { useTheme } from '../functions/themeFunctions/themeContext';
 
 interface CircularProgressProps {
   percentage: number;
@@ -17,25 +17,24 @@ interface CircularProgressProps {
       percentage,
       radius = 40,
       strokeWidth = 8,
-      color, // Verwijder de oude default
+      color,
       backgroundColor,
       textColor,
     }: CircularProgressProps) => {
-      const { colors: themeColors } = useTheme(); // << NIEUW: Haal themakleuren op
+      const { colors: themeColors } = useTheme();
 
       const circumference = 2 * Math.PI * radius;
       const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-      // Bepaal de kleuren die gebruikt worden, met fallback naar themakleuren
-      const progressColor = color || themeColors.accent; // Gebruik prop 'color' of thematische accentkleur
-      const trackColor = backgroundColor || themeColors.progressBackground || themeColors.borderColor; // Met fallback // Gebruik prop 'backgroundColor' of een thematische track kleur (bijv. borderColor of een nieuw gedefinieerde 'trackColor')
-      const percentageTextColor = textColor || themeColors.textDefault; // Gebruik prop 'textColor' of thematische tekstkleur
+      const progressColor = color || themeColors.accent;
+      const trackColor = backgroundColor || themeColors.progressBackground || themeColors.borderColor;
+      const percentageTextColor = textColor || themeColors.textDefault;
 
       return (
         <View style={{ alignItems: 'center', justifyContent: 'center' }}>
           <Svg height={radius * 2 + strokeWidth} width={radius * 2 + strokeWidth}>
             <Circle
-              stroke={trackColor} // << GEBRUIK THEMATISCHE TRACK KLEUR
+              stroke={trackColor}
               fill="none"
               cx={(radius * 2 + strokeWidth) / 2}
               cy={(radius * 2 + strokeWidth) / 2}
@@ -43,7 +42,7 @@ interface CircularProgressProps {
               strokeWidth={strokeWidth}
             />
             <Circle
-              stroke={progressColor} // << GEBRUIK PROGRESS KLEUR
+              stroke={progressColor}
               fill="none"
               cx={(radius * 2 + strokeWidth) / 2}
               cy={(radius * 2 + strokeWidth) / 2}
@@ -59,9 +58,9 @@ interface CircularProgressProps {
               y="50%"
               textAnchor="middle"
               dy=".3em"
-              fontSize="16" // Je kunt dit ook thematisch maken of als prop meegeven
-              fill={percentageTextColor} // << GEBRUIK THEMATISCHE TEKSTKLEUR
-              fontWeight="bold" // Idem
+              fontSize="16"
+              fill={percentageTextColor}
+              fontWeight="bold"
             >
               {`${Math.round(percentage)}%`}
             </SvgText>

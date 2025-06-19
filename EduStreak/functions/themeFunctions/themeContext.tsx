@@ -1,9 +1,8 @@
-// functions/themeFunctions/themeContext.tsx
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { Appearance } from 'react-native';
 import { AppThemeColors, ColorScheme as AppColorScheme } from '../../constants/Colors';
 
-// 1. Definieer de structuur van je kleurenschema
+// Defines the structure of the color scheme
 interface ThemeContextData {
   themeMode: 'light' | 'dark';
   colors: AppColorScheme;
@@ -18,72 +17,82 @@ interface ThemeProviderProps {
   children: ReactNode;
   initialTheme?: {
     themeMode: 'light' | 'dark';
-    colors: AppColorScheme; // Deze 'colors' prop in initialTheme wordt momenteel niet direct gebruikt
-                           // omdat we AppThemeColors[resolvedInitialMode] gebruiken, maar is goed voor compleetheid.
+    colors: AppColorScheme;
     isDark: boolean;
   };
 }
 
-export const ThemeProvider = ({ children, initialTheme }: ThemeProviderProps) => { // << CORRECTIE 1: initialTheme hier
-//                                          ^^^^^^^^^^^^
-  const systemScheme = Appearance.getColorScheme(); // << CORRECTIE 2: Definieer systemScheme hier
+export const ThemeProvider = ({ children, initialTheme }: ThemeProviderProps) => {
+  // Get the current system color scheme (e.g., 'light', 'dark', or null).
+  const systemScheme = Appearance.getColorScheme();
 
-  const defaultInitialMode = systemScheme || 'light';
-  const resolvedInitialMode = initialTheme?.themeMode || defaultInitialMode;
+  // Set the initial mode for the app to 'light' regardless of system settings or initialTheme prop.
+  const resolvedInitialMode: 'light' | 'dark' = 'light';
 
-  const [themeMode, setThemeModeState] = useState<'light' | 'dark'>(resolvedInitialMode);
+  // Initialize the themeMode state. It will start as 'light'.
+    const [themeMode, setThemeModeState] = useState<'light' | 'dark'>(resolvedInitialMode);
 
-  useEffect(() => {
-    // Deze listener zal de `themeMode` nog steeds bijwerken als het systeemthema verandert.
-    // Dit kan de `initialTheme` of een handmatige keuze overschrijven.
-    // Voor een robuustere oplossing, overweeg AsyncStorage en geef gebruikerskeuze prioriteit.
+ useEffect(() => {
+    // Listens for system theme changes and update the app's theme accordingly.
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      // If the system theme changes, update the app's theme.
+      // Fallback to 'light' if the new system scheme is undefined.
       setThemeModeState(colorScheme || 'light');
     });
     return () => subscription.remove();
   }, []);
 
-  const toggleTheme = () => {
-    setThemeModeState(prevMode => {
-      const newMode = prevMode === 'light' ? 'dark' : 'light';
-      // TODO: Sla newMode op in AsyncStorage
-      return newMode;
-    });
-  };
-
-   const setThemeMode = (mode: 'light' | 'dark') => {
-      setThemeModeState(mode);
-      // TODO: Sla mode op in AsyncStorage
+   // Function to toggle between light and dark mode
+    const toggleTheme = () => {
+      setThemeModeState(prevMode => {
+        const newMode = prevMode === 'light' ? 'dark' : 'light';
+        return newMode;
+      });
     };
 
-    const currentColors = AppThemeColors[themeMode];
-    const isDark = themeMode === 'dark'; // << Zorg dat deze is gedefinieerd
+const setThemeMode = (mode: 'light' | 'dark') => {
+    setThemeModeState(mode);
+  };
 
-    if (!currentColors) {
-      console.error("ThemeProvider Error: currentColors is undefined! themeMode was:", themeMode, ". Falling back to light.");
-      return (
-        <ThemeContext.Provider value={{
+  // Determine the current color set based on the themeMode
+  const currentColors = AppThemeColors[themeMode];
+  // Determine if the current mode is dark
+  const isDark = themeMode === 'dark';
+
+ // Fallback logic: If currentColors are somehow undefined (e.g., themeMode is an invalid value)
+  // provide a default safe theme context.
+  if (!currentColors) {
+    console.error(
+      "ThemeProvider Error: currentColors is undefined! themeMode was:",
+      themeMode,
+      ". Falling back to light theme."
+    );
+    return (
+      <ThemeContext.Provider
+        value={{
           themeMode: 'light',
-          colors: AppThemeColors.light, // Fallback colors
+          colors: AppThemeColors.light,
           toggleTheme,
           setThemeMode,
-          isDark: false // << CORRECTIE 3a: isDark in fallback
-        }}>
-          {children}
-        </ThemeContext.Provider>
-      );
-    }
+          isDark: false,
+        }}
+      >
+        {children}
+      </ThemeContext.Provider>
+    );
+  }
 
-
-
-return (
-    <ThemeContext.Provider value={{
-      themeMode,
-      colors: currentColors, // << CORRECTIE 3b: Gebruik currentColors (was colorsToUse)
-      toggleTheme,
-      setThemeMode,
-      isDark // << CORRECTIE 3c: Voeg isDark toe aan de context value
-    }}>
+  // Provide the theme context to children
+  return (
+    <ThemeContext.Provider
+      value={{
+        themeMode,
+        colors: currentColors,
+        toggleTheme,
+        setThemeMode,
+        isDark,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );
