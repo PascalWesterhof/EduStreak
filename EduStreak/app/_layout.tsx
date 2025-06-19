@@ -107,6 +107,14 @@ const ConfiguredDrawer = () => {
                    }}
                  />
                  <Drawer.Screen
+                   name='groupboard'
+                   options={{
+                     drawerLabel: 'Group Board',
+                     headerTitle: '',
+                     headerShown: true,
+                   }}
+                 />
+                 <Drawer.Screen
                    name='leaderboard'
                    options={{
                      drawerLabel: 'Leaderboard',
@@ -139,14 +147,6 @@ const ConfiguredDrawer = () => {
                    }}
                  />
                  <Drawer.Screen
-                   name='groupboard'
-                   options={{
-                     drawerLabel: 'Group Board', // Was drawerItemStyle: { display: 'none' },
-                     headerTitle: '',
-                     headerShown: true,
-                   }}
-                 />
-                 <Drawer.Screen
                    name='creategroup'
                    options={{
                      drawerItemStyle: { display: 'none' },
@@ -158,7 +158,7 @@ const ConfiguredDrawer = () => {
                    name='groupdetails'
                    options={{
                      drawerItemStyle: { display: 'none' },
-                     headerTitle: 'Group Details',
+                     headerTitle: '',
                      headerShown: true,
                    }}
                  />
@@ -227,4 +227,4 @@ const ConfiguredDrawer = () => {
       );
     };
 
-    export default RootLayout; // Expor
+    export default RootLayout;
