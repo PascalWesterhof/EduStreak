@@ -2,7 +2,7 @@
 import axios from 'axios';
 import Config from 'react-native-config';
 
-const key = Config.API_KEY;
+const key = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 
 export const fetchDailyQuoteFromGemini = async () => {
   console.log("Fetching daily quote...");

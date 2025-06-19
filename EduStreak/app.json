@@ -30,6 +30,7 @@
       "router": {}
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icons/app_icon_edustreak.png",
         "backgroundColor": "#ffffff"
