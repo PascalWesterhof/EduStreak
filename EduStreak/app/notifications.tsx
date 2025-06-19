@@ -1,3 +1,4 @@
+// Importing necessary libraries and components
 import { MaterialIcons } from "@expo/vector-icons";
 import { DrawerActions, useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -15,17 +16,19 @@ import {
   Text,
   View,
 } from "react-native";
+
+// Helper functions for notifications and reminders
 import { scheduleDailyHabitReminder } from "../helpers/notificationReminder";
 import { usePushNotifications } from "../helpers/usePushNotifications";
-
+// Firebase authentication
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../config/firebase";
-
+// Functions to fetch and manage user and habit data
 import { fetchUserHabits } from "../functions/habitService";
 import { checkAndResetDailyStreak } from "../functions/userService";
-
+// Platform check (web or native)
 const isWeb = Platform.OS === "web";
-
+// TypeScript interfaces for strong typing
 interface Habit {
   id: string;
   name: string;
@@ -39,22 +42,21 @@ interface Notification {
 }
 
 export default function Notifications() {
-  const navigation = useNavigation();
-  const router = useRouter();
+  const navigation = useNavigation(); // Used to customize navigation options
+  const router = useRouter(); // Used to navigate programmatically
 
-  const { expoPushToken, notifications } = usePushNotifications();
+  const { expoPushToken, notifications } = usePushNotifications(); // Custom hook for managing push notifications
 
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null); // Selected notification for modal
+  const [modalVisible, setModalVisible] = useState(false); // Control modal visibility
 
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [habits, setHabits] = useState<Habit[]>([]); // User's habits list
+  const [isLoading, setIsLoading] = useState(true); // Loading state
 
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [userName, setUserName] = useState("User");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null); // Current user ID
+  const [userName, setUserName] = useState("User"); // Current user name
 
-  // Removed auto-cancel from useEffect
-
+  // Listen to focus events on this screen
   useFocusEffect(
     React.useCallback(() => {
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -63,14 +65,15 @@ export default function Notifications() {
           console.log("[Notifications] Auth: User signed in - ID:", user.uid);
           setCurrentUserId(user.uid);
           setUserName(user.displayName || "User");
-
+          // Check and reset daily streak if needed
           await checkAndResetDailyStreak(user.uid);
 
           try {
+              // Fetch habits and schedule reminders
             const { habits: fetchedHabits } = await fetchUserHabits(user.uid);
             setHabits(fetchedHabits);
             console.log("[Notifications] Data fetched and set successfully.");
-
+            // Schedule a daily reminder at 8:00 AM for each habit
             for (const habit of fetchedHabits) {
               const time = new Date();
               time.setHours(8);
@@ -81,21 +84,21 @@ export default function Notifications() {
             console.error("[Notifications] Error loading data: ", error);
             setHabits([]);
           } finally {
-            setIsLoading(false);
+            setIsLoading(false); // Stop showing loading indicator
           }
         } else {
           console.log("[Notifications] Auth: No user found. Redirecting to login.");
           router.replace("/auth/LoginScreen");
         }
       });
-
+      // Cleanup function
       return () => {
         console.log("[Notifications] Cleanup: Auth listener.");
         unsubscribe();
       };
     }, [router])
   );
-
+  // Setup header UI with title and drawer menu icon
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "Notifications",
@@ -121,13 +124,13 @@ export default function Notifications() {
       ),
     });
   }, [navigation]);
-
+  // Handle press event on a notification item
   const onPressNotification = (item: Notification) => {
     console.log("Tapped notification:", item);
     setSelectedNotification(item);
     setModalVisible(true);
   };
-
+  // Render a single notification item
   const renderItem = ({ item }: { item: Notification }) => (
     <Pressable onPress={() => onPressNotification(item)} style={styles.notificationItem}>
       <MaterialIcons name="notifications-active" size={20} color="#fff" style={styles.icon} />
