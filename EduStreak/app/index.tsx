@@ -174,7 +174,7 @@ const getStyles = (colors: ColorScheme) => {
       checkmarkText: {
         fontSize: 16,
         fontWeight: 'bold',
-        marginLeft: 5,
+        marginLeft: 25,
       },
       // Style for the "COMPLETE" button on a habit card.
       completeButton: {

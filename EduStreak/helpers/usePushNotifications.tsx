@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { Platform, Alert } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Platform } from "react-native";
 
 // Set up how notifications behave when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -75,7 +75,7 @@ export const usePushNotifications = () => {
           importance: Notifications.AndroidImportance.MAX,
         });
       }
-
+    }; 
 
     // Start the registration process
     registerForPush();
