@@ -1,15 +1,15 @@
 import { useRouter } from 'expo-router';
-import React, { useState, useMemo } from 'react'; // << Voeg useMemo toe
+import React, { useState, useMemo } from 'react';
 import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // << Importeer authScreenFixedColors en ColorScheme
+import { authScreenFixedColors, ColorScheme } from '../../constants/Colors';
 import { registerWithEmail } from '../../functions/authService';
-import { getGlobalStyles } from '../../styles/globalStyles'; // << Importeer de functie
+import { getGlobalStyles } from '../../styles/globalStyles';
 import { showAlert } from "../../utils/showAlert";
 
 const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background, // << Gebruik 'colors' (was colors.white)
+    backgroundColor: colors.background,
     alignItems: 'center',
     paddingTop: Platform.OS === 'android' ? 40 : 60,
     paddingHorizontal: 20,
@@ -25,7 +25,7 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     width: 24,
     height: 24,
     resizeMode: 'contain',
-    tintColor: colors.textDefault, // << Gebruik 'colors'
+    tintColor: colors.textDefault,
   },
   logo: {
     width: 180,
@@ -34,14 +34,11 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     marginBottom: 20,
     marginTop: 20,
   },
-  headerTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.titleText
-    // color: colors.textDefault, // Komt nu van appGlobalStyles.titleText
-    fontWeight: 'bold', // Kan blijven als lokale override/specificatie
+  headerTextCustom: {
+    fontWeight: 'bold',
     marginBottom: 30,
   },
-  inputCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.inputBase
-    // ...appGlobalStyles.inputBase, // Als je de basis uit globale stijlen wilt
-    // backgroundColor: colors.inputBackground, // Komt van appGlobalStyles.inputBase
+  inputCustom: {
     width: '100%',
     borderRadius: 10,
     paddingVertical: 15,
@@ -49,8 +46,7 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     marginBottom: 15,
   },
   registerButtonCustom: {
-    // ...appGlobalStyles.inputBase, // Als basis voor vorm als dat gewenst is
-    backgroundColor: colors.primary, // << Gebruik 'colors'
+    backgroundColor: colors.primary,
     alignItems: 'center',
     width: '100%',
     borderRadius: 25,
@@ -58,19 +54,18 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     paddingHorizontal: 30,
     marginBottom: 20,
   },
-  registerButtonTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.bodyText
-    color: colors.primaryText, // << Gebruik 'colors' (was colors.white)
+  registerButtonTextCustom: {
+    color: colors.primaryText,
     fontWeight: 'bold',
   },
   loginLinkContainer: {
     marginTop: 10,
   },
-  loginLinkTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.bodyText
-    // color: colors.textDefault, // Komt van appGlobalStyles.bodyText
+  loginLinkTextCustom: {
     textAlign: 'center',
   },
   loginLinkTextHighlightCustom: {
-    color: colors.primary, // << Gebruik 'colors'
+    color: colors.primary,
     fontWeight: 'bold',
   },
 });
@@ -85,7 +80,6 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
 export default function RegisterScreen() {
   const fixedAuthColors = authScreenFixedColors;
 
-    // Genereer globale stijlen met deze vaste kleuren
     const appGlobalStyles = useMemo(() => getGlobalStyles(fixedAuthColors), []);
     const screenStyles = useMemo(() => getScreenStyles(fixedAuthColors, appGlobalStyles), [appGlobalStyles]);
 
@@ -134,7 +128,7 @@ export default function RegisterScreen() {
          <TextInput
            style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
            placeholder="Display Name"
-           placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+           placeholderTextColor={fixedAuthColors.placeholderText}
            value={displayName}
            onChangeText={setDisplayName}
            autoCapitalize="words"
@@ -142,7 +136,7 @@ export default function RegisterScreen() {
          <TextInput
            style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
            placeholder="Email address"
-           placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+           placeholderTextColor={fixedAuthColors.placeholderText}
            value={email}
            onChangeText={setEmail}
            keyboardType="email-address"
@@ -151,7 +145,7 @@ export default function RegisterScreen() {
          <TextInput
            style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
            placeholder="Password"
-           placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+           placeholderTextColor={fixedAuthColors.placeholderText}
            value={password}
            onChangeText={setPassword}
            secureTextEntry
@@ -159,13 +153,11 @@ export default function RegisterScreen() {
          <TextInput
            style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
            placeholder="Confirm Password"
-           placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+           placeholderTextColor={fixedAuthColors.placeholderText}
            value={confirmPassword}
            onChangeText={setConfirmPassword}
            secureTextEntry
          />
-         {/* registerButtonCustom is al volledig gedefinieerd in getScreenStyles met vaste kleuren */}
-         {/* Je kunt appGlobalStyles.inputBase hier weglaten als de vorm niet exact die van een input hoeft te zijn */}
          <TouchableOpacity style={[appGlobalStyles.inputBase, screenStyles.registerButtonCustom]} onPress={handleRegister}>
            <Text style={[appGlobalStyles.bodyText, screenStyles.registerButtonTextCustom]}>CREATE ACCOUNT</Text>
          </TouchableOpacity>

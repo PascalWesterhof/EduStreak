@@ -1,11 +1,11 @@
 import { useRouter } from 'expo-router';
 import { User } from 'firebase/auth';
-import React, { useEffect, useMemo, useState } from 'react'; // << Voeg useMemo toe
+import React, { useEffect, useMemo, useState } from 'react';
 import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth } from '../../config/firebase';
-import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // << NIEUW
+import { authScreenFixedColors, ColorScheme } from '../../constants/Colors';
 import { deleteUserAccount } from '../../functions/authService';
-import { getGlobalStyles } from '../../styles/globalStyles'; // << NIEUW
+import { getGlobalStyles } from '../../styles/globalStyles';
 import { showAlert } from '../../utils/showAlert';
 
 /**
@@ -22,7 +22,7 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     justifyContent: 'space-between',
     paddingHorizontal: 10,
     paddingVertical: 10,
-    backgroundColor: colors.headerBackground, // << THEMA
+    backgroundColor: colors.headerBackground,
   },
   backButton: {
     padding: 10,
@@ -31,78 +31,77 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     width: 24,
     height: 24,
     resizeMode: 'contain',
-    tintColor: colors.primaryText, // << THEMA
+    tintColor: colors.primaryText,
   },
-  headerTitleCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.headerText
-    color: colors.primaryText, // << THEMA
+  headerTitleCustom: {
+    color: colors.primaryText,
     fontSize: 20,
   },
   headerRightPlaceholder: {
     width: 24 + 20,
   },
-  containerCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.contentContainer
+  containerCustom: {
     paddingHorizontal: 20,
     paddingBottom: 20,
     flexGrow: 1,
     justifyContent: 'center',
-    // backgroundColor: colors.background, // Komt van appGlobalStyles.screenContainer
   },
-  warningTitleCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.headerText (of een nieuwe globalStyle.warningTitle)
-    color: colors.warning, // << THEMA (was #FFD700, gebruik je thema warning kleur)
+  warningTitleCustom: {
+    color: colors.warning,
     textAlign: 'center',
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 10,
   },
-  warningTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.bodyText
-    color: colors.textDefault, // << THEMA (was colors.primaryText, gebruik je standaard tekstkleur)
+  warningTextCustom: {
+    color: colors.textDefault,
     textAlign: 'center',
     marginBottom: 25,
     fontSize: 16,
     lineHeight: 22,
   },
-  infoTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.mutedText
-    color: colors.textMuted, // << THEMA (was #F0F0F0)
+  infoTextCustom: {
+    color: colors.textMuted,
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 20,
     fontSize: 14,
   },
-  labelCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.bodyText
-    color: colors.textDefault, // << THEMA (was colors.primaryText)
+  labelCustom: {
+    color: colors.textDefault,
     marginBottom: 8,
     marginTop: 15,
     fontSize: 16,
   },
   input: {
-    backgroundColor: colors.inputBackground, // << THEMA (was #DE7460)
+    backgroundColor: colors.inputBackground,
     borderRadius: 6,
     padding: 12,
     fontSize: 16,
-    color: colors.textInput, // << THEMA (was #fff)
+    color: colors.textInput,
     marginBottom: 20,
   },
   button: {
-    backgroundColor: colors.primary, // << THEMA (was #DE7460)
+    backgroundColor: colors.primary,
     borderRadius: 6,
     padding: 15,
     alignItems: 'center',
     marginTop: 20,
   },
   deleteConfirmButton: {
-    backgroundColor: colors.error, // << THEMA (was #B22222, gebruik je thema error/destructieve actie kleur)
+    backgroundColor: colors.error,
   },
   buttonDisabled: {
-    backgroundColor: colors.textMuted, // << THEMA (gebruik een gedempte kleur)
-    opacity: 0.7, // Behoud opacity of maak het onderdeel van de themakleur voor disabled state
+    backgroundColor: colors.textMuted,
+    opacity: 0.7,
   },
   buttonText: {
-    color: colors.primaryText, // << THEMA (was #fff)
+    color: colors.primaryText,
     fontSize: 16,
     fontWeight: 'bold',
   },
-  errorTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.errorText
-    color: colors.error, // << THEMA (was #FFBABA)
+  errorTextCustom: {
+    color: colors.error,
     textAlign: 'center',
     marginTop: 10,
     marginBottom: 10,
@@ -226,7 +225,7 @@ export default function DeleteAccountScreen() {
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
                   placeholder="Your current password"
-                  placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+                  placeholderTextColor={fixedAuthColors.placeholderText}
                   secureTextEntry
                   editable={!isProcessing}
                 />

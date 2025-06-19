@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useState, useMemo } from 'react'; // Add useMemo
 import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // Importeer authScreenFixedColors and ColorScheme
+import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // Import authScreenFixedColors and ColorScheme
 import { resetPassword } from '../../functions/authService'; // Import the service function
 import { getGlobalStyles } from '../../styles/globalStyles';
 import { showAlert } from "../../utils/showAlert";
@@ -86,12 +86,9 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
  * account enumeration.
  */
 export default function ForgotPasswordScreen() {
-// Gebruik de geïmporteerde vaste kleuren voor authenticatie
   const fixedAuthColors = authScreenFixedColors;
 
-  // Genereer globale stijlen met deze vaste kleuren
-  const appGlobalStyles = useMemo(() => getGlobalStyles(fixedAuthColors), []); // Dependency array kan leeg zijn
-  // Genereer schermstijlen met de vaste kleuren en de daarop gebaseerde globale stijlen
+  const appGlobalStyles = useMemo(() => getGlobalStyles(fixedAuthColors), []);
   const screenStyles = useMemo(() => getScreenStyles(fixedAuthColors, appGlobalStyles), [appGlobalStyles]);
 
   const [email, setEmail] = useState('');
@@ -135,9 +132,9 @@ export default function ForgotPasswordScreen() {
           </Text>
 
           <TextInput
-            style={screenStyles.inputCustom} // inputCustom gebruikt nu fixedAuthColors via getScreenStyles
+            style={screenStyles.inputCustom}
             placeholder="Email address"
-            placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+            placeholderTextColor={fixedAuthColors.placeholderText}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"

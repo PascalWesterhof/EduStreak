@@ -1,16 +1,16 @@
 import { statusCodes } from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
-import React, { useState, useMemo } from 'react'; // << Voeg useMemo toe
+import React, { useState, useMemo } from 'react';
 import { Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { signInWithEmail, signInWithGoogle as signInWithGoogleService } from '../../functions/authService';
-import { getGlobalStyles } from '../../styles/globalStyles'; // << NIEUW
+import { getGlobalStyles } from '../../styles/globalStyles';
 import { showAlert } from "../../utils/showAlert";
-import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // << Importeer authScreenFixedColors
+import { authScreenFixedColors, ColorScheme } from '../../constants/Colors';
 
 const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleSheet.create({
    container: {
       flex: 1,
-      backgroundColor: colors.background, // << GEBRUIK 'colors'
+      backgroundColor: colors.background,
       alignItems: 'center',
       paddingTop: Platform.OS === 'android' ? 40 : 60,
       paddingHorizontal: 20,
@@ -25,9 +25,9 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     googleButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.white, // << GEBRUIK 'colors'
+      backgroundColor: colors.white,
       borderWidth: 1,
-      borderColor: colors.borderColor, // << GEBRUIK 'colors'
+      borderColor: colors.borderColor,
       borderRadius: 25,
       paddingVertical: 12,
       paddingHorizontal: 30,
@@ -41,19 +41,15 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
       marginRight: 15,
     },
     googleButtonTextCustom: {
-      color: colors.textDefault, // << GEBRUIK 'colors'
+      color: colors.textDefault,
       fontWeight: 'bold',
     },
     orTextCustom: {
-      color: colors.primary, // << GEBRUIK 'colors'
+      color: colors.primary,
       fontWeight: 'bold',
       marginBottom: 20,
     },
     inputCustom: {
-      // ...appGlobalStyles.inputBase, // Als je inputBase ook met 'colors' wilt genereren
-      // backgroundColor: colors.inputBackground,
-      // borderColor: colors.inputBorder,
-      // color: colors.textInput,
       width: '100%',
       borderRadius: 10,
       paddingVertical: 15,
@@ -61,7 +57,7 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
       marginBottom: 15,
     },
     loginButtonCustom: {
-      backgroundColor: colors.primary, // << GEBRUIK 'colors'
+      backgroundColor: colors.primary,
       alignItems: 'center',
       width: '100%',
       borderRadius: 25,
@@ -70,7 +66,7 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
       marginBottom: 20,
     },
     loginButtonTextCustom: {
-      color: colors.primaryText, // << GEBRUIK 'colors'
+      color: colors.primaryText,
       fontWeight: 'bold',
     },
     linksContainer: {
@@ -80,11 +76,11 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
       paddingHorizontal: 10,
     },
     linkTextCustom: {
-      color: colors.textDefault, // << GEBRUIK 'colors'
+      color: colors.textDefault,
       fontWeight: 'bold',
     },
     signUpTextCustom: {
-      color: colors.primary, // << GEBRUIK 'colors'
+      color: colors.primary,
     },
   });
 
@@ -168,7 +164,7 @@ export default function LoginScreen() {
         <TextInput
           style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
           placeholder="Email address"
-          placeholderTextColor={fixedAuthColors.placeholderText} // << GEBRUIK 'fixedAuthColors'
+          placeholderTextColor={fixedAuthColors.placeholderText}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -177,7 +173,7 @@ export default function LoginScreen() {
         <TextInput
           style={[appGlobalStyles.inputBase, screenStyles.inputCustom]}
           placeholder="Password"
-          placeholderTextColor={fixedAuthColors.placeholderText} // << GEBRUIK 'fixedAuthColors'
+          placeholderTextColor={fixedAuthColors.placeholderText}
           value={password}
           onChangeText={setPassword}
           secureTextEntry

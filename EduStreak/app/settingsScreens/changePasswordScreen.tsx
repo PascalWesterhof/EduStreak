@@ -4,9 +4,9 @@ import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Alert, Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth } from '../../config/firebase';
-import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // << NIEUW
+import { authScreenFixedColors, ColorScheme } from '../../constants/Colors';
 import { changeUserPassword, reauthenticateCurrentUser } from '../../functions/authService'; // Import service functions
-import { getGlobalStyles } from '../../styles/globalStyles'; // << NIEUW
+import { getGlobalStyles } from '../../styles/globalStyles';
 import { showAlert } from '../../utils/showAlert';
 
 /**
@@ -34,11 +34,11 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     width: 24,
     height: 24,
     resizeMode: 'contain',
-    tintColor: colors.primaryText, // << THEMA (of colors.textDefault afhankelijk van je header achtergrond)
+    tintColor: colors.primaryText,
   },
   // Custom style for the header title, used with a global style.
-  headerTitleCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.headerText
-    color: colors.primaryText, // << THEMA (of colors.textDefault)
+  headerTitleCustom: {
+    color: colors.primaryText,
     fontSize: 20,
   },
   // A placeholder view on the right to perfectly center the title.
@@ -46,32 +46,31 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     width: 24 + 20,
   },
   // Custom style for the main content container.
-  containerCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.contentContainer
+  containerCustom: {
     paddingHorizontal: 20,
     paddingBottom: 20,
     flexGrow: 1,
-    // backgroundColor: colors.background, // Komt van appGlobalStyles.screenContainer
   },
   // Custom style for a text label above an input field.
-  labelCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.bodyText
-    color: colors.textDefault, // << THEMA (was colors.primaryText, aanpassen aan je vaste witte thema)
+  labelCustom: {
+    color: colors.textDefault,
     marginBottom: 8,
     marginTop: 15,
     fontSize: 16,
   },
   // Style for a text input field.
-  input: { // Dit lijkt een unieke stijl, dus we maken het thematisch
-    backgroundColor: colors.inputBackground, // << THEMA (was #DE7460)
+  input: {
+    backgroundColor: colors.inputBackground,
     borderRadius: 6,
     padding: 12,
     fontSize: 16,
-    color: colors.textInput, // << THEMA (was #fff)
+    color: colors.textInput,
     marginBottom: 10,
-    // Overweeg borderColor: colors.inputBorder als je dat wilt toevoegen
+
   },
   // General style for a button.
-  button: { // Basis knopstijl
-    backgroundColor: colors.primary, // << THEMA (was #DE7460)
+  button: {
+    backgroundColor: colors.primary,
     borderRadius: 6,
     padding: 15,
     alignItems: 'center',
@@ -79,24 +78,22 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
   },
   // Style for the text inside a button.
   buttonText: {
-    color: colors.primaryText, // << THEMA (was #fff)
+    color: colors.primaryText, /
     fontSize: 16,
     fontWeight: 'bold',
   },
   // Specific style for the "Update Password" button.
-  saveButton: { // Specifieke override voor de save knop
-    backgroundColor: colors.accent, // << THEMA (was #C0573F, gebruik je accentkleur of een variant van primary)
-    // Als je wilt dat deze donkerder is dan de primaire knop, definieer dan een specifieke kleur
-    // in authScreenFixedColors, bijv. colors.primaryDark
+  saveButton: {
+    backgroundColor: colors.accent,
   },
   // Style to apply to a button when it is disabled.
   buttonDisabled: {
-    backgroundColor: colors.textMuted, // << THEMA (was #A0A0A0, gebruik een gedempte kleur)
-    opacity: 0.7, // Opaciteit kan blijven
+    backgroundColor: colors.textMuted,
+    opacity: 0.7,
   },
   // Custom style for the error message text.
-  errorTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.errorText
-    color: colors.error, // << THEMA (was #FFBABA, gebruik je standaard error kleur)
+  errorTextCustom: {
+    color: colors.error,
     textAlign: 'center',
     marginTop: 10,
     marginBottom: 5,
@@ -244,11 +241,11 @@ export default function ChangePasswordScreen() {
           {/* Current Password Input */}
           <Text style={[appGlobalStyles.bodyText, screenStyles.labelCustom]}>Current Password</Text>
           <TextInput
-            style={screenStyles.input} // << Gebruik screenStyles
+            style={screenStyles.input}
             value={currentPassword}
             onChangeText={setCurrentPassword}
             placeholder="Enter your current password"
-            placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+            placeholderTextColor={fixedAuthColors.placeholderText}
             secureTextEntry // Hides the password input.
             editable={!isSaving} // Prevent editing while saving.
           />
@@ -256,11 +253,11 @@ export default function ChangePasswordScreen() {
           {/* New Password Input */}
           <Text style={[appGlobalStyles.bodyText, screenStyles.labelCustom]}>New Password</Text>
           <TextInput
-            style={screenStyles.input} // << Gebruik screenStyles
+            style={screenStyles.input}
             value={newPassword}
             onChangeText={setNewPassword}
             placeholder="Enter your new password (min. 6 characters)"
-            placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+            placeholderTextColor={fixedAuthColors.placeholderText}
             secureTextEntry
             editable={!isSaving}
           />
@@ -268,11 +265,11 @@ export default function ChangePasswordScreen() {
           {/* Confirm New Password Input */}
           <Text style={[appGlobalStyles.bodyText, screenStyles.labelCustom]}>Confirm New Password</Text>
           <TextInput
-            style={screenStyles.input} // << Gebruik screenStyles
+            style={screenStyles.input}
             value={confirmNewPassword}
             onChangeText={setConfirmNewPassword}
             placeholder="Confirm your new password"
-            placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+            placeholderTextColor={fixedAuthColors.placeholderText}
             secureTextEntry
             editable={!isSaving}
           />

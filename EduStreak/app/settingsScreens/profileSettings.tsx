@@ -1,11 +1,11 @@
 import { useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import React, { useEffect, useMemo, useState } from 'react'; // << Voeg useMemo toe
+import React, { useEffect, useMemo, useState } from 'react';
 import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { auth } from '../../config/firebase';
-import { authScreenFixedColors, ColorScheme } from '../../constants/Colors'; // << NIEUW
+import { authScreenFixedColors, ColorScheme } from '../../constants/Colors';
 import { updateUserAuthProfile } from '../../functions/authService';
-import { getGlobalStyles } from '../../styles/globalStyles'; // << NIEUW
+import { getGlobalStyles } from '../../styles/globalStyles';
 import { showAlert, showConfirmationDialog } from '../../utils/showAlert';
 
 /**
@@ -30,23 +30,22 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     width: 24,
     height: 24,
     resizeMode: 'contain',
-    tintColor: colors.primaryText, // << THEMA
+    tintColor: colors.primaryText,
   },
-  headerTitleCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.headerText
-    color: colors.primaryText, // << THEMA
+  headerTitleCustom: {
+    color: colors.primaryText,
     fontSize: 20,
   },
   headerRightPlaceholder: {
     width: 24 + 20,
   },
-  containerCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.contentContainer
+  containerCustom: {
     paddingHorizontal: 20,
     paddingBottom: 20,
     flexGrow: 1,
-    // backgroundColor: colors.background, // Komt van appGlobalStyles.screenContainer
   },
-  loadingTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.bodyText
-    color: colors.textDefault, // << THEMA (was colors.primaryText)
+  loadingTextCustom: {
+    color: colors.textDefault,
     textAlign: 'center',
     marginTop: 50,
     fontSize: 18,
@@ -59,44 +58,44 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: colors.primary, // << THEMA (was #DE7460)
+    backgroundColor: colors.primary,
     marginBottom: 10,
     borderWidth: 2,
-    borderColor: colors.primaryText, // << THEMA (of colors.textDefault afhankelijk van de achtergrond)
+    borderColor: colors.primaryText,
   },
   inputContainer: {
     marginBottom: 20,
   },
-  labelCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.bodyText
-    color: colors.textDefault, // << THEMA (was colors.primaryText)
+  labelCustom: {
+    color: colors.textDefault,
     marginBottom: 8,
     fontSize: 16,
   },
   input: {
-    backgroundColor: colors.inputBackground, // << THEMA (was #DE7460)
+    backgroundColor: colors.inputBackground,
     borderRadius: 6,
     padding: 12,
     fontSize: 16,
-    color: colors.textInput, // << THEMA (was #fff)
+    color: colors.textInput,
   },
   button: {
-    backgroundColor: colors.primary, // << THEMA (was #DE7460)
+    backgroundColor: colors.primary,
     borderRadius: 6,
     padding: 15,
     alignItems: 'center',
     marginBottom: 12,
   },
   buttonText: {
-    color: colors.primaryText, // << THEMA (was #fff)
+    color: colors.primaryText,
     fontSize: 16,
     fontWeight: 'bold',
   },
   buttonDisabled: {
-    backgroundColor: colors.textMuted, // << THEMA (was #A0A0A0)
-    opacity: 0.7, // Kan blijven
+    backgroundColor: colors.textMuted,
+    opacity: 0.7,
   },
-  infoTextCustom: { // Wordt gebruikt SAMEN MET appGlobalStyles.mutedText
-    color: colors.textMuted, // << THEMA (was #F0F0F0)
+  infoTextCustom: {
+    color: colors.textMuted,
     textAlign: 'center',
     marginHorizontal: 20,
     marginBottom: 10,
@@ -104,15 +103,15 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
     fontSize: 12,
   },
   saveButton: {
-    backgroundColor: colors.accent, // << THEMA (was #C0573F, gebruik je accent of een variant van primary)
+    backgroundColor: colors.accent,
   },
   deleteAccountButton: {
-    backgroundColor: colors.error, // << THEMA (was #E74C3C)
-    borderColor: colors.errorDark, // << THEMA (was #C0392B, definieer een donkerdere error kleur indien nodig)
+    backgroundColor: colors.error,
+    borderColor: colors.errorDark,
     borderWidth: 1,
   },
   deleteAccountButtonText: {
-    color: colors.primaryText, // << THEMA (was #FFFFFF, primaryText als achtergrond error donker is)
+    color: colors.primaryText,
     fontWeight: 'bold',
     fontSize: 16,
   }
@@ -281,7 +280,7 @@ export default function ProfileSettingsScreen() {
                   value={displayName}
                   onChangeText={setDisplayName}
                   placeholder="Enter your display name"
-                  placeholderTextColor={fixedAuthColors.placeholderText} // << Gebruik fixedAuthColors
+                  placeholderTextColor={fixedAuthColors.placeholderText}
                   editable={!isSaving}
                 />
               </View>
