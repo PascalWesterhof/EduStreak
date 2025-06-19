@@ -5,11 +5,11 @@ import { useTheme } from '../functions/themeFunctions/themeContext';
 
 interface CircularProgressProps {
   percentage: number;
-  radius?: number;
-  strokeWidth?: number;
-  color?: string; // Kleur voor de actieve progressiecirkel (kan een themakleur of een specifieke kleur zijn)
-  backgroundColor?: string; // Kleur voor de achtergrondcirkel (optioneel, anders een themakleur)
-  textColor?: string; // Kleur voor de tekst (optioneel, anders een themakleur)
+  radius: number;
+  strokeWidth: number;
+  color: string;
+  backgroundColor: string;
+  textColor: string;
 }
 
 // Helper for Circular Progress

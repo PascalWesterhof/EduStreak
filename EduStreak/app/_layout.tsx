@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import voor AsyncStorage
-import * as Notifications from 'expo-notifications'; // Import voor Notifications
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import for AsyncStorage
+import * as Notifications from 'expo-notifications'; // Import for Notifications
 import { Drawer } from "expo-router/drawer";
 import React, { useEffect } from 'react';
 import { Platform } from 'react-native';

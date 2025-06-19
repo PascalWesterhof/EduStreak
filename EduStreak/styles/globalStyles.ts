@@ -1,11 +1,10 @@
-// globalStyles.ts (thematiseerbare versie)
     import { Platform, StatusBar, StyleSheet } from 'react-native';
-    import { ColorScheme } from '../../constants/Colors.ts'; // Importeer je ColorScheme type
+    import { ColorScheme } from '../../constants/Colors.ts';
 
     export const getGlobalStyles = (colors: ColorScheme) => StyleSheet.create({
       screenContainer: {
         flex: 1,
-        backgroundColor: colors.primary, // Gebruikt nu de thematische kleuren
+        backgroundColor: colors.primary,
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
       },
       contentContainer: {
@@ -16,7 +15,7 @@
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.background, // Voeg thematische achtergrond toe indien nodig
+        backgroundColor: colors.background,
       },
       card: {
         backgroundColor: colors.cardBackground,
@@ -24,7 +23,7 @@
         padding: 20,
         marginVertical: 10,
         marginHorizontal: 6,
-        shadowColor: colors.shadow || colors.textDefault, // Gebruik thematische schaduw
+        shadowColor: colors.shadow || colors.textDefault,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -33,7 +32,7 @@
       headerText: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: colors.textDefault, // Of colors.text afhankelijk van je definitie
+        color: colors.textDefault,
         marginBottom: 10,
       },
       titleText: {
@@ -70,7 +69,6 @@
       },
     });
 
-    // layout blijft waarschijnlijk statisch, tenzij padding/borderRadius ook thematisch moet zijn.
     export const layout = {
       padding: 16,
       borderRadius: 12,

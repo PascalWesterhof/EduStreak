@@ -35,7 +35,7 @@
       light: {
         // Colors for Light mode
         text: '#11181C',
-        background: '#FFFFFF', // Wit
+        background: '#FFFFFF',
         tint: tintColorLight,
         icon: '#687076',
         tabIconDefault: '#687076',
@@ -93,7 +93,7 @@
       },
     };
 
-// Colors for standard Light mode, this makes it so the pages with these colors will always be in light mode
+// Colors for standard Light mode, this makes it so the pages with these colors will always stay on light mode
 export const authScreenFixedColors: ColorScheme = {
       background: '#FFFFFF',
       text: '#11181C',
