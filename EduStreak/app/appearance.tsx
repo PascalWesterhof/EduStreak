@@ -5,16 +5,16 @@ import {
   SafeAreaView,
   Pressable
 } from "react-native";
-import React, { useLayoutEffect, useMemo } from "react"; // useState verwijderd, useMemo toegevoegd
-import { useNavigation } from "expo-router"; // DrawerActions verwijderd, niet gebruikt
+import React, { useLayoutEffect, useMemo } from "react";
+import { useNavigation } from "expo-router";
 import { useFonts } from "expo-font";
-import { useTheme } from "../functions/themeFunctions/themeContext"; // << PAS PAD AAN
-import { ColorScheme } from "../functions/themeFunctions/themeContext"; // << PAS PAD AAN
+import { useTheme } from "../functions/themeFunctions/themeContext";
+import { ColorScheme } from "../constants/Colors";
 
 const getStyles = (colors: ColorScheme, fontsLoaded: boolean, DMSansSemiBold: string | undefined, RubikMedium: string | undefined) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background, // Gebruik themakleur
+    backgroundColor: colors.background,
     paddingHorizontal: 20,
     paddingTop: 12,
   },
@@ -26,28 +26,28 @@ const getStyles = (colors: ColorScheme, fontsLoaded: boolean, DMSansSemiBold: st
     fontFamily: fontsLoaded ? DMSansSemiBold : undefined,
     fontSize: 24,
     fontWeight: "bold",
-    color: colors.text, // Gebruik themakleur
+    color: colors.text,
   },
   box: {
-    backgroundColor: colors.cardBackground, // Gebruik themakleur, bv. cardBackground of inputBackground
-    borderRadius: 8, // Iets ronder misschien?
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
     padding: 16,
     marginBottom: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: colors.borderColor, // Een subtiele border
+    borderColor: colors.borderColor,
   },
   label: {
     fontFamily: fontsLoaded ? RubikMedium : undefined,
     fontSize: 16,
-    color: colors.textDefault, // Gebruik themakleur
+    color: colors.textDefault,
   },
-  selectedLabel: { // Stijl voor de geselecteerde optie
+  selectedLabel: {
     fontFamily: fontsLoaded ? RubikMedium : undefined,
     fontSize: 16,
-    color: colors.primary, // Markeer met primaire kleur
+    color: colors.primary,
     fontWeight: 'bold',
   },
 });
@@ -59,12 +59,11 @@ export default function Appearance() {
     });
 
     const navigation = useNavigation();
-    const { colors: themeColors, themeMode, setThemeMode: applyTheme } = useTheme(); // << GEBRUIK useTheme
+    const { colors: themeColors, themeMode, setThemeMode: applyTheme } = useTheme();
 
-    // Genereer stijlen gebaseerd op het huidige thema en lettertype status
     const styles = useMemo(() => getStyles(
       themeColors,
-      fontsLoaded && !fontError, // Zorg ervoor dat fonts echt geladen zijn zonder error
+      fontsLoaded && !fontError,
       "DMSans-SemiBold",
       "Rubik-Medium"
     ), [themeColors, fontsLoaded, fontError]);
@@ -75,22 +74,21 @@ export default function Appearance() {
          navigation.setOptions({
            headerTitleStyle: {
              fontFamily: "DMSans-SemiBold",
-             color: themeColors.text, // Gebruik themakleur uit context
+             color: themeColors.text,
            },
            headerStyle: {
-             backgroundColor: themeColors.headerBackground, // Gebruik themakleur uit context
+             backgroundColor: themeColors.headerBackground,
            },
-           headerTintColor: themeColors.text, // Gebruik themakleur uit context
+           headerTintColor: themeColors.text,
          });
        }
      }, [navigation, fontsLoaded, fontError, themeColors]);
 
-     if (!fontsLoaded && !fontError) { // Wacht tot fonts geladen zijn of er een error is
-       return null; // Of een ActivityIndicator
+     if (!fontsLoaded && !fontError) {
+       return null;
      }
      if (fontError) {
        console.error("Font loading error:", fontError);
-       // Je kunt hier een fallback UI tonen of de app zonder custom fonts laten renderen
      }
 
   return (
@@ -102,7 +100,6 @@ export default function Appearance() {
           <Pressable onPress={() => applyTheme("light")}>
             <View style={[styles.box, themeMode === 'light' && { borderColor: themeColors.primary, backgroundColor: themeColors.backgroundVariant }]}>
               <Text style={themeMode === 'light' ? styles.selectedLabel : styles.label}>Light</Text>
-              {/* Optioneel: voeg een icoontje toe voor de geselecteerde state */}
               {themeMode === 'light' && <Text style={{ color: themeColors.primary }}>✓</Text>}
             </View>
           </Pressable>

@@ -15,6 +15,9 @@ import { useNavigation } from "@react-navigation/native";
 import { getAuth } from "firebase/auth";
 import { createGroup } from "../functions/groupService";
 import { showAlert } from "../utils/showAlert";
+import { useTheme } from '../functions/themeFunctions/themeContext';
+import { ColorScheme } from '../constants/Colors';
+
 
 // Predefined local images
 const GROUP_IMAGES = [
@@ -30,8 +33,97 @@ const getImageKey = (image: any): string | null => {
   return index !== -1 ? `group${index + 1}` : null;
 };
 
+const getThemedStyles = (colors: ColorScheme) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  titleContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: colors.text,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  form: {
+    marginTop: 32,
+    paddingHorizontal: 24,
+  },
+  input: {
+    backgroundColor: colors.inputBackground,
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 16,
+    marginBottom: 16,
+    color: colors.textInput,
+    borderColor: colors.inputBorder,
+    borderWidth: 1,
+  },
+  textarea: {
+    height: 120,
+    textAlignVertical: "top",
+  },
+  imagePickerLabel: {
+    fontWeight: "bold",
+    marginBottom: 8,
+    color: colors.text,
+  },
+  button: {
+    backgroundColor: colors.primary,
+    marginTop: 24,
+    marginHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 40,
+    alignItems: "center",
+  },
+  buttonText: {
+    color: colors.primaryText,
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  backButton: {
+    backgroundColor: colors.cardBackground,
+    borderColor: colors.primary,
+    borderWidth: 2,
+    marginTop: 16,
+    marginHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 40,
+    alignItems: "center",
+  },
+  backButtonText: {
+    color: colors.primary,
+    fontWeight: "bold",
+    fontSize: 14,
+  },
+  imagePicker: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  imageWrapper: {
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  image: {
+    width: 60,
+    height: 60,
+    resizeMode: "cover",
+  },
+});
+
 const CreateGroup = () => {
   const navigation = useNavigation();
+  const { colors: themeColors } = useTheme();
+  const styles = React.useMemo(() => getThemedStyles(themeColors), [themeColors]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [groupImage, setGroupImage] = useState<any | null>(null);
@@ -68,122 +160,72 @@ const CreateGroup = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
-      >
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Create Group</Text>
-          <Text style={styles.subtitle}>
-            Bring your friends or classmates together to build consistent habits!
-          </Text>
-        </View>
-
-        {/* Input fields */}
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Group name"
-            value={name}
-            onChangeText={setName}
-            placeholderTextColor="#aaa"
-          />
-          <TextInput
-            style={[styles.input, styles.textarea]}
-            placeholder="Description (optional)"
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={4}
-            placeholderTextColor="#aaa"
-            maxLength={300}
-          />
-
-          {/* Image picker */}
-          <Text style={{ fontWeight: "bold", marginBottom: 8 }}>
-            Pick a group image:
-          </Text>
-          <View style={styles.imagePicker}>
-            {GROUP_IMAGES.map((imgSource, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => setGroupImage(imgSource)}
-                style={[
-                  styles.imageWrapper,
-                  groupImage === imgSource && {
-                    borderColor: "#D05B52",
-                    borderWidth: 3,
-                  },
-                ]}
-              >
-                <Image source={imgSource} style={styles.image} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.button} onPress={handleCreateGroup}>
-          <Text style={styles.buttonText}>Create Group</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.navigate("groupboard")}
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
         >
-          <Text style={styles.backButtonText}>Return to Group Board</Text>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-};
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Create Group</Text>
+            <Text style={styles.subtitle}>
+              Bring your friends or classmates together to build consistent habits!
+            </Text>
+          </View>
+
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder="Group name"
+              value={name}
+              onChangeText={setName}
+              placeholderTextColor={themeColors.placeholderText} //
+            />
+            <TextInput
+              style={[styles.input, styles.textarea]}
+              placeholder="Description (optional)"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              numberOfLines={4}
+              placeholderTextColor={themeColors.placeholderText} //
+              maxLength={300}
+            />
+
+            <Text style={styles.imagePickerLabel}>
+              Pick a group image:
+            </Text>
+            <View style={styles.imagePicker}>
+              {GROUP_IMAGES.map((imgSource, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => setGroupImage(imgSource)}
+                  style={[
+                    styles.imageWrapper,
+                    groupImage === imgSource && {
+                      borderColor: themeColors.primary, //
+                      borderWidth: 3,
+                    },
+                  ]}
+                >
+                  <Image source={imgSource} style={styles.image} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.button} onPress={handleCreateGroup}>
+            <Text style={styles.buttonText}>Create Group</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.navigate("groupboard")}
+          >
+            <Text style={styles.backButtonText}>Return to Group Board</Text>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  };
 
 export default CreateGroup;
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  titleContainer: { paddingHorizontal: 24, paddingTop: 16 },
-  title: { fontSize: 24, fontWeight: "bold" },
-  subtitle: { fontSize: 14, color: "#7C7C7C", marginTop: 4 },
-  form: { marginTop: 32, paddingHorizontal: 24 },
-  input: {
-    backgroundColor: "#F2F2F5",
-    borderRadius: 16,
-    padding: 16,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  textarea: { height: 120, textAlignVertical: "top" },
-  button: {
-    backgroundColor: "#D05B52",
-    marginTop: 24,
-    marginHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 40,
-    alignItems: "center",
-  },
-  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
-  backButton: {
-    backgroundColor: "#fff",
-    borderColor: "#D05B52",
-    borderWidth: 2,
-    marginTop: 16,
-    marginHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 40,
-    alignItems: "center",
-  },
-  backButtonText: {
-    color: "#D05B52",
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-  imagePicker: { flexDirection: "row", justifyContent: "space-between" },
-  imageWrapper: {
-    borderRadius: 12,
-    overflow: "hidden",
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  image: { width: 60, height: 60, resizeMode: "cover" },
-});
