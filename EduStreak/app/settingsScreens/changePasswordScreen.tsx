@@ -78,7 +78,7 @@ const getScreenStyles = (colors: ColorScheme, appGlobalStyles: any) => StyleShee
   },
   // Style for the text inside a button.
   buttonText: {
-    color: colors.primaryText, /
+    color: colors.primaryText,
     fontSize: 16,
     fontWeight: 'bold',
   },
