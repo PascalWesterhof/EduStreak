@@ -1,4 +1,5 @@
 import axios from 'axios';
+import Config from 'react-native-config';
 
 const key = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 
