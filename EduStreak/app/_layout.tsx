@@ -1,25 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import voor AsyncStorage
 import * as Notifications from 'expo-notifications'; // Import voor Notifications
 import { Drawer } from "expo-router/drawer";
-import React, { useEffect } from 'react'; // React is nodig
-import { Platform } from 'react-native'; // Platform kan nodig zijn voor web specifieke body style
+import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-get-random-values';
-import CustomDrawerContent from '../components/CustomDrawerContent'; // Controleer dit pad
+import CustomDrawerContent from '../components/CustomDrawerContent';
 import { cancelAllScheduledNotifications, scheduleDailyReminder } from './helpers/notificationReminder';
 
-// BELANGRIJKE IMPORTS VOOR THEMA
-import { AppThemeColors } from '../constants/Colors'; // Controleer dit pad
-import { ThemeProvider, useTheme } from '../functions/themeFunctions/themeContext'; // Controleer dit pad
+import { AppThemeColors } from '../constants/Colors';
+import { ThemeProvider, useTheme } from '../functions/themeFunctions/themeContext';
 
 
 
 const ConfiguredDrawer = () => {
-  // Gebruik useTheme om toegang te krijgen tot themakleuren
   const { colors: themeColors, themeMode } = useTheme();
 
-  // Je bestaande useEffect voor notificaties
   useEffect(() => {
     const setupNotifications = async () => {
       const { granted } = await Notifications.requestPermissionsAsync();
@@ -46,7 +43,6 @@ const ConfiguredDrawer = () => {
   useEffect(() => {
       if (Platform.OS === 'web' && typeof window !== 'undefined' && document.body) {
         document.body.style.backgroundColor = themeColors.background;
-        // document.documentElement.style.backgroundColor = themeColors.background; // Kan ook nuttig zijn
       }
     }, [themeColors.background]);
 
@@ -68,19 +64,15 @@ const ConfiguredDrawer = () => {
                    headerStyle: {
                      backgroundColor: themeColors.headerBackground,
                    },
-                   headerTintColor: themeColors.text, // Voor drawer icon & header titel (als geen specifieke title style)
+                   headerTintColor: themeColors.text, // For drawer icon & header title
                    headerTitleStyle: {
                      color: themeColors.text,
                    },
-                   // Zorg ervoor dat de content van de schermen ook de achtergrondkleur van het thema gebruikt
-                   // Dit kan hier of in een geneste Stack navigator, afhankelijk van je setup.
-                   // Als de Drawer de buitenste navigator is voor deze schermen, is het hier relevant:
-                   sceneContainerStyle: { // Voor Expo Router v3+ (Drawer) / contentStyle voor Stack
+                   sceneContainerStyle: {
                        backgroundColor: themeColors.background,
                    }
                  }}
                >
-                 {/* ... al je Drawer.Screen definities ... */}
                  <Drawer.Screen
                    name='index'
                    options={{
@@ -89,7 +81,6 @@ const ConfiguredDrawer = () => {
                      headerShown: true,
                    }}
                  />
-                 {/* ... de rest van je schermen ... */}
                   <Drawer.Screen
                    name='calendar'
                    options={{
@@ -209,17 +200,16 @@ const ConfiguredDrawer = () => {
         };
 
     const RootLayout = () => {
-      // De logica om het initiële thema te bepalen (forceer light mode)
-      const initialIsDark = false; // Altijd starten met light mode
+      // Forces the app to start on Light mode
+      const initialIsDark = false;
       const initialTheme = {
-        colors: initialIsDark ? AppThemeColors.dark : AppThemeColors.light, // Gebruik AppThemeColors
+        colors: initialIsDark ? AppThemeColors.dark : AppThemeColors.light,
         isDark: initialIsDark,
         themeMode: initialIsDark ? 'dark' : 'light',
       };
 
       return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-          {/* ThemeProvider moet de ConfiguredDrawer (en dus alles daarbinnen) omvatten */}
           <ThemeProvider initialTheme={initialTheme}>
             <ConfiguredDrawer />
           </ThemeProvider>
